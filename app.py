@@ -1,20 +1,19 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
 import os
 from pathlib import Path
 import time
 import tomllib
-from typing import Any, Iterable
+from typing import Any, Callable
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 import numpy as np
 import pandas as pd
-import yfinance as yf
 from curl_cffi import requests as curl_requests
-from yfinance.exceptions import YFRateLimitError
 
 
 CACHE_DIR = Path(".cache")
@@ -23,26 +22,13 @@ STATIC_DIR = Path("static")
 DEFAULT_HISTORY_PERIOD = "3y"
 DEFAULT_BENCHMARK = "SPY"
 DEFAULT_WATCHLIST = ["AAPL", "NVDA", "MSFT", "TSLA"]
+DEFAULT_WATCHLIST_GROUPS = [
+    {"id": "ai", "name": "AI 区", "symbols": ["NVDA", "MSFT", "MU", "AMD", "AVGO"]},
+    {"id": "tech", "name": "科技区", "symbols": ["AAPL", "MSFT", "GOOGL", "AMZN", "META", "TSLA"]},
+    {"id": "regional", "name": "地区指标区", "symbols": ["EWY", "DXJ", "FXI", "EWH"]},
+]
 PERIOD_TO_DAYS = {"1y": 365, "2y": 730, "3y": 1095, "5y": 1825}
 MEMORY_CACHE_TTL = 1800
-EARNINGS_LIMIT = 12
-
-TREND_RULES = [
-    "当前股价高于 150 日和 200 日均线",
-    "150 日均线高于 200 日均线",
-    "200 日均线至少连续 1 个月上升",
-    "50 日均线高于 150 日和 200 日均线",
-    "当前股价高于 50 日均线",
-    "当前股价较 52 周低点至少高出 30%",
-    "当前股价距离 52 周高点不超过 25%",
-    "RS 代理分数不低于 70",
-]
-
-CODE33_RULES = [
-    "最近 3 个季度 EPS 同比增速持续加速",
-    "最近 3 个季度营收同比增速持续加速",
-    "最近 3 个季度净利率持续抬升",
-]
 
 
 @dataclass
@@ -50,6 +36,22 @@ class CheckResult:
     name: str
     passed: bool | None
     detail: str
+
+
+@dataclass(frozen=True)
+class CheckSpec:
+    key: str
+    name: str
+    evaluator: Callable[["AnalysisContext"], tuple[bool | None, str]]
+
+
+@dataclass
+class AnalysisContext:
+    stock: pd.DataFrame
+    benchmark: pd.DataFrame
+    latest: pd.Series
+    rs_score: float | None
+    rs_detail: str
 
 
 _memory_cache: dict[tuple[Any, ...], tuple[float, Any]] = {}
@@ -115,25 +117,9 @@ def period_start(period: str) -> str:
     return start.strftime("%Y-%m-%d")
 
 
-def flatten_history_columns(frame: pd.DataFrame, symbol: str) -> pd.DataFrame:
-    if isinstance(frame.columns, pd.MultiIndex):
-        if symbol in frame.columns.get_level_values(-1):
-            frame = frame.xs(symbol, axis=1, level=-1)
-        else:
-            frame.columns = frame.columns.get_level_values(0)
-    frame = frame.rename_axis(index="Date").reset_index()
-    frame["Date"] = pd.to_datetime(frame["Date"]).dt.tz_localize(None)
-    return frame.sort_values("Date").reset_index(drop=True)
-
-
 def history_cache_path(symbol: str, period: str) -> Path:
     safe_symbol = symbol.replace("/", "_").replace("\\", "_")
     return CACHE_DIR / f"{safe_symbol}_{period}_history.csv"
-
-
-def frame_cache_path(symbol: str, cache_name: str) -> Path:
-    safe_symbol = symbol.replace("/", "_").replace("\\", "_")
-    return CACHE_DIR / f"{safe_symbol}_{cache_name}.csv"
 
 
 def load_history_cache(symbol: str, period: str) -> pd.DataFrame:
@@ -153,46 +139,6 @@ def save_history_cache(symbol: str, period: str, frame: pd.DataFrame) -> None:
     frame.to_csv(history_cache_path(symbol, period), index=False)
 
 
-def load_income_statement_cache(symbol: str) -> pd.DataFrame:
-    cache_file = frame_cache_path(symbol, "income_statement")
-    if not cache_file.exists():
-        return pd.DataFrame()
-    frame = pd.read_csv(cache_file)
-    if frame.empty:
-        return pd.DataFrame()
-    frame["Date"] = pd.to_datetime(frame["Date"]).dt.tz_localize(None)
-    frame = frame.set_index("Date").sort_index()
-    frame.attrs["source_note"] = f"{symbol} 财报使用本地缓存数据。"
-    return frame
-
-
-def save_income_statement_cache(symbol: str, frame: pd.DataFrame) -> None:
-    cache_file = frame_cache_path(symbol, "income_statement")
-    cache_file.parent.mkdir(exist_ok=True)
-    payload = frame.reset_index().rename(columns={"index": "Date"})
-    payload.to_csv(cache_file, index=False)
-
-
-def load_earnings_dates_cache(symbol: str) -> pd.DataFrame:
-    cache_file = frame_cache_path(symbol, "earnings_dates")
-    if not cache_file.exists():
-        return pd.DataFrame()
-    frame = pd.read_csv(cache_file)
-    if frame.empty:
-        return pd.DataFrame()
-    frame["Date"] = pd.to_datetime(frame["Date"]).dt.tz_localize(None)
-    frame = frame.set_index("Date").sort_index()
-    frame.attrs["source_note"] = f"{symbol} 财报日期使用本地缓存数据。"
-    return frame
-
-
-def save_earnings_dates_cache(symbol: str, frame: pd.DataFrame) -> None:
-    cache_file = frame_cache_path(symbol, "earnings_dates")
-    cache_file.parent.mkdir(exist_ok=True)
-    payload = frame.reset_index().rename(columns={"index": "Date"})
-    payload.to_csv(cache_file, index=False)
-
-
 def merge_history_frames(existing: pd.DataFrame, incoming: pd.DataFrame) -> pd.DataFrame:
     if existing.empty:
         return incoming.copy()
@@ -201,17 +147,6 @@ def merge_history_frames(existing: pd.DataFrame, incoming: pd.DataFrame) -> pd.D
     merged = pd.concat([existing, incoming], ignore_index=True)
     merged["Date"] = pd.to_datetime(merged["Date"]).dt.tz_localize(None)
     merged = merged.sort_values("Date").drop_duplicates(subset=["Date"], keep="last").reset_index(drop=True)
-    return merged
-
-
-def merge_indexed_frames(existing: pd.DataFrame, incoming: pd.DataFrame) -> pd.DataFrame:
-    if existing.empty:
-        return incoming.copy()
-    if incoming.empty:
-        return existing.copy()
-    merged = pd.concat([existing, incoming])
-    merged.index = pd.to_datetime(merged.index).tz_localize(None)
-    merged = merged[~merged.index.duplicated(keep="last")].sort_index()
     return merged
 
 
@@ -267,47 +202,12 @@ def fetch_history_from_tiingo(
     return frame.dropna(subset=["Date", "Close"]).sort_values("Date").reset_index(drop=True)
 
 
-def fetch_history_once(
+def load_history(
     symbol: str,
-    period: str | None = None,
-    start_date: str | None = None,
-    end_date: str | None = None,
+    period: str = DEFAULT_HISTORY_PERIOD,
+    force_refresh: bool = False,
+    allow_network: bool = True,
 ) -> pd.DataFrame:
-    ticker = yf.Ticker(symbol, session=get_session())
-    frame = ticker.history(
-        period=period,
-        start=start_date,
-        end=end_date,
-        interval="1d",
-        auto_adjust=False,
-        actions=False,
-    )
-    if frame.empty:
-        return pd.DataFrame()
-    return flatten_history_columns(frame, symbol)
-
-
-def fetch_income_statement_yahoo(symbol: str) -> pd.DataFrame:
-    ticker = yf.Ticker(symbol, session=get_session())
-    frame = ticker.quarterly_income_stmt
-    if frame is None or frame.empty:
-        return pd.DataFrame()
-    frame = frame.T.copy()
-    frame.index = pd.to_datetime(frame.index).tz_localize(None)
-    return frame.sort_index()
-
-
-def fetch_earnings_dates_yahoo(symbol: str) -> pd.DataFrame:
-    ticker = yf.Ticker(symbol, session=get_session())
-    frame = ticker.get_earnings_dates(limit=EARNINGS_LIMIT)
-    if frame is None or frame.empty:
-        return pd.DataFrame()
-    frame = frame.copy()
-    frame.index = pd.to_datetime(frame.index).tz_localize(None)
-    return frame.sort_index()
-
-
-def load_history(symbol: str, period: str = DEFAULT_HISTORY_PERIOD, force_refresh: bool = False) -> pd.DataFrame:
     cache_key = ("history", symbol, period)
     cached = get_cached(cache_key)
     if cached is not None and not force_refresh:
@@ -316,6 +216,8 @@ def load_history(symbol: str, period: str = DEFAULT_HISTORY_PERIOD, force_refres
     disk_cached = load_history_cache(symbol, period)
     if not force_refresh and not disk_cached.empty:
         return set_cached(cache_key, disk_cached.copy()).copy()
+    if not allow_network:
+        return pd.DataFrame()
 
     incremental_start = None
     tiingo_had_no_data = False
@@ -339,121 +241,15 @@ def load_history(symbol: str, period: str = DEFAULT_HISTORY_PERIOD, force_refres
         except Exception as exc:
             tiingo_error = exc
 
-    last_error: Exception | None = None
-    for attempt in range(3):
-        try:
-            period_arg = None if incremental_start else period
-            frame = fetch_history_once(
-                symbol,
-                period=period_arg,
-                start_date=incremental_start,
-                end_date=pd.Timestamp.utcnow().tz_localize(None).strftime("%Y-%m-%d") if incremental_start else None,
-            )
-            if not frame.empty or not disk_cached.empty:
-                merged = merge_history_frames(disk_cached, frame)
-                merged.attrs["source_note"] = (
-                    f"{symbol} 使用本地缓存并已增量更新。"
-                    if not disk_cached.empty
-                    else f"{symbol} 行情数据源: Yahoo Finance"
-                )
-                save_history_cache(symbol, period, merged)
-                return set_cached(cache_key, merged.copy()).copy()
-        except YFRateLimitError as exc:
-            last_error = exc
-            time.sleep(2.5 * (attempt + 1))
-            continue
-        except Exception as exc:
-            last_error = exc
-        time.sleep(1.2 * (attempt + 1))
-
     if not disk_cached.empty:
         disk_cached.attrs["source_note"] = f"{symbol} 使用本地缓存数据，当前处于离线或接口失败回退状态。"
         return set_cached(cache_key, disk_cached.copy()).copy()
 
     if tiingo_error is not None:
-        if isinstance(last_error, YFRateLimitError):
-            raise ValueError(f"{symbol} Tiingo 失败: {tiingo_error}；Yahoo Finance 也被限流了。")
-        if last_error is not None:
-            raise ValueError(f"{symbol} Tiingo 失败: {tiingo_error}；Yahoo Finance 失败: {last_error}")
         raise ValueError(f"{symbol} Tiingo 失败: {tiingo_error}")
-    if tiingo_had_no_data and isinstance(last_error, YFRateLimitError):
-        raise ValueError(
-            f"{symbol} 在 Tiingo 中没有返回可用行情，代码可能无效；"
-            " 同时 Yahoo Finance 又临时限流了。"
-            " 如果你想查苹果，请确认输入的是 AAPL，不是 APPL。"
-        )
     if tiingo_had_no_data:
         raise ValueError(f"{symbol} 在 Tiingo 中没有返回可用行情，代码可能无效。")
-    if isinstance(last_error, YFRateLimitError):
-        raise ValueError(
-            f"{symbol} 被 Yahoo Finance 临时限流，当前拿不到最新行情。"
-            " 如果你之前查过这只股票，系统会自动回退到本地缓存；"
-            " 如果是第一次查询，请等几分钟后重试。"
-        )
-    if last_error is not None:
-        raise ValueError(f"{symbol} 行情抓取失败: {last_error}")
-    raise ValueError(f"{symbol} 未返回任何价格数据，可能是代码无效或 Yahoo 当前限流。")
-
-
-def load_income_statement_yahoo(symbol: str, force_refresh: bool = False) -> pd.DataFrame:
-    cache_key = ("income_statement", symbol)
-    cached = get_cached(cache_key)
-    if cached is not None and not force_refresh:
-        return cached.copy()
-
-    disk_cached = load_income_statement_cache(symbol)
-    if not force_refresh and not disk_cached.empty:
-        return set_cached(cache_key, disk_cached.copy()).copy()
-
-    try:
-        frame = fetch_income_statement_yahoo(symbol)
-        if not frame.empty or not disk_cached.empty:
-            merged = merge_indexed_frames(disk_cached, frame)
-            merged.attrs["source_note"] = (
-                f"{symbol} 财报已增量更新。"
-                if not disk_cached.empty
-                else f"{symbol} 财报数据源: Yahoo Finance"
-            )
-            save_income_statement_cache(symbol, merged)
-            return set_cached(cache_key, merged.copy()).copy()
-    except Exception:
-        pass
-
-    if not disk_cached.empty:
-        disk_cached.attrs["source_note"] = f"{symbol} 财报使用本地缓存数据，当前处于离线或接口失败回退状态。"
-        return set_cached(cache_key, disk_cached.copy()).copy()
-    return pd.DataFrame()
-
-
-def load_earnings_dates_yahoo(symbol: str, force_refresh: bool = False) -> pd.DataFrame:
-    cache_key = ("earnings_dates", symbol)
-    cached = get_cached(cache_key)
-    if cached is not None and not force_refresh:
-        return cached.copy()
-
-    disk_cached = load_earnings_dates_cache(symbol)
-    if not force_refresh and not disk_cached.empty:
-        return set_cached(cache_key, disk_cached.copy()).copy()
-
-    try:
-        frame = fetch_earnings_dates_yahoo(symbol)
-    except Exception:
-        frame = pd.DataFrame()
-
-    if not frame.empty or not disk_cached.empty:
-        merged = merge_indexed_frames(disk_cached, frame)
-        merged.attrs["source_note"] = (
-            f"{symbol} 财报日期已增量更新。"
-            if not disk_cached.empty
-            else f"{symbol} 财报日期数据源: Yahoo Finance"
-        )
-        save_earnings_dates_cache(symbol, merged)
-        return set_cached(cache_key, merged.copy()).copy()
-
-    if not disk_cached.empty:
-        disk_cached.attrs["source_note"] = f"{symbol} 财报日期使用本地缓存数据，当前处于离线或接口失败回退状态。"
-        return set_cached(cache_key, disk_cached.copy()).copy()
-    return pd.DataFrame()
+    raise ValueError(f"{symbol} 未返回任何价格数据，可能是代码无效或 Tiingo 当前失败。")
 
 
 def add_indicators(frame: pd.DataFrame) -> pd.DataFrame:
@@ -463,77 +259,6 @@ def add_indicators(frame: pd.DataFrame) -> pd.DataFrame:
     enriched["PctFrom52WLow"] = enriched["Close"] / enriched["Low"].rolling(252).min() - 1
     enriched["PctFrom52WHigh"] = 1 - enriched["Close"] / enriched["High"].rolling(252).max()
     return enriched
-
-
-def safe_pct_change(newer: float, older: float) -> float | None:
-    if pd.isna(newer) or pd.isna(older) or older == 0:
-        return None
-    return (newer - older) / abs(older)
-
-
-def extract_first_match(frame: pd.DataFrame, candidates: Iterable[str]) -> pd.Series | None:
-    lowered = {str(column).lower(): column for column in frame.columns}
-    for candidate in candidates:
-        if candidate.lower() in lowered:
-            return pd.to_numeric(frame[lowered[candidate.lower()]], errors="coerce")
-    return None
-
-
-def compute_eps_series(earnings_dates: pd.DataFrame, income_statement: pd.DataFrame) -> pd.Series:
-    if not earnings_dates.empty and "Reported EPS" in earnings_dates.columns:
-        eps = pd.to_numeric(earnings_dates["Reported EPS"], errors="coerce").dropna()
-        if len(eps) >= 7:
-            return eps
-
-    if income_statement.empty:
-        return pd.Series(dtype=float)
-
-    eps = extract_first_match(
-        income_statement,
-        ["Diluted EPS", "Basic EPS", "Normalized Diluted EPS", "Reported EPS"],
-    )
-    return eps.dropna() if eps is not None else pd.Series(dtype=float)
-
-
-def acceleration_details(series: pd.Series, label: str) -> tuple[bool | None, str, list[float]]:
-    clean = series.dropna()
-    if len(clean) < 7:
-        return None, f"{label} 数据不足，至少需要 7 个季度", []
-
-    yoy = []
-    for idx in range(4, len(clean)):
-        growth = safe_pct_change(clean.iloc[idx], clean.iloc[idx - 4])
-        yoy.append(growth)
-    yoy_series = pd.Series(yoy, index=clean.index[4:]).dropna()
-    if len(yoy_series) < 3:
-        return None, f"{label} 同比数据不足", []
-
-    recent = yoy_series.iloc[-3:].tolist()
-    passed = recent[0] < recent[1] < recent[2]
-    detail = f"{label} 最近三季同比增速: " + " -> ".join(fmt_pct(value) for value in recent)
-    return passed, detail, recent
-
-
-def margin_details(income_statement: pd.DataFrame) -> tuple[bool | None, str, list[float]]:
-    if income_statement.empty:
-        return None, "利润率数据不可用", []
-
-    revenue = extract_first_match(income_statement, ["Total Revenue", "Revenue", "Operating Revenue"])
-    net_income = extract_first_match(
-        income_statement,
-        ["Net Income", "Net Income Common Stockholders", "NetIncome"],
-    )
-    if revenue is None or net_income is None:
-        return None, "无法从财报中提取营收或净利润", []
-
-    margin = (net_income / revenue).replace([np.inf, -np.inf], np.nan).dropna()
-    if len(margin) < 3:
-        return None, "利润率季度数据不足", []
-
-    recent = margin.iloc[-3:].tolist()
-    passed = recent[0] < recent[1] < recent[2]
-    detail = "最近三季净利率: " + " -> ".join(fmt_pct(value) for value in recent)
-    return passed, detail, recent
 
 
 def compute_rs_proxy(stock: pd.DataFrame, benchmark: pd.DataFrame) -> tuple[float | None, str]:
@@ -561,98 +286,264 @@ def compute_rs_proxy(stock: pd.DataFrame, benchmark: pd.DataFrame) -> tuple[floa
     return score, f"相对 {DEFAULT_BENCHMARK} 的 RS 代理分数: {score:.1f}"
 
 
-def build_trend_checks(stock: pd.DataFrame, rs_score: float | None, rs_detail: str) -> list[CheckResult]:
-    latest = stock.iloc[-1]
-    ma200_month_ago = stock["MA200"].iloc[-22] if len(stock) >= 222 else np.nan
-    low_52w = stock["Low"].tail(252).min() if len(stock) >= 252 else np.nan
-    high_52w = stock["High"].tail(252).max() if len(stock) >= 252 else np.nan
-
-    return [
-        CheckResult(
-            TREND_RULES[0],
-            bool(latest["Close"] > latest["MA150"] and latest["Close"] > latest["MA200"]),
-            f"现价 {fmt_price(latest['Close'])} / MA150 {fmt_price(latest['MA150'])} / MA200 {fmt_price(latest['MA200'])}",
-        ),
-        CheckResult(
-            TREND_RULES[1],
-            bool(latest["MA150"] > latest["MA200"]),
-            f"MA150 {fmt_price(latest['MA150'])} / MA200 {fmt_price(latest['MA200'])}",
-        ),
-        CheckResult(
-            TREND_RULES[2],
-            bool(pd.notna(latest["MA200"]) and pd.notna(ma200_month_ago) and latest["MA200"] > ma200_month_ago),
-            f"当前 MA200 {fmt_price(latest['MA200'])} / 约 1 个月前 {fmt_price(ma200_month_ago)}",
-        ),
-        CheckResult(
-            TREND_RULES[3],
-            bool(latest["MA50"] > latest["MA150"] and latest["MA50"] > latest["MA200"]),
-            f"MA50 {fmt_price(latest['MA50'])} / MA150 {fmt_price(latest['MA150'])} / MA200 {fmt_price(latest['MA200'])}",
-        ),
-        CheckResult(
-            TREND_RULES[4],
-            bool(latest["Close"] > latest["MA50"]),
-            f"现价 {fmt_price(latest['Close'])} / MA50 {fmt_price(latest['MA50'])}",
-        ),
-        CheckResult(
-            TREND_RULES[5],
-            bool(pd.notna(low_52w) and latest["Close"] >= low_52w * 1.3),
-            f"现价 {fmt_price(latest['Close'])} / 52 周低点 {fmt_price(low_52w)}",
-        ),
-        CheckResult(
-            TREND_RULES[6],
-            bool(pd.notna(high_52w) and latest["Close"] >= high_52w * 0.75),
-            f"现价 {fmt_price(latest['Close'])} / 52 周高点 {fmt_price(high_52w)}",
-        ),
-        CheckResult(TREND_RULES[7], bool(rs_score is not None and rs_score >= 70), rs_detail),
-    ]
+def require_values(*values: float | None) -> bool:
+    return all(pd.notna(value) for value in values)
 
 
-def build_code33_checks(
-    symbol: str,
-    force_refresh: bool = False,
-) -> tuple[list[CheckResult], dict[str, list[float]], list[str], list[str]]:
-    warnings: list[str] = []
-    source_notes: list[str] = []
-    income_statement = load_income_statement_yahoo(symbol, force_refresh=force_refresh)
-    earnings_dates = load_earnings_dates_yahoo(symbol, force_refresh=force_refresh)
+def evaluate_price_above_long_mas(context: AnalysisContext) -> tuple[bool | None, str]:
+    latest = context.latest
+    if not require_values(latest["Close"], latest["MA150"], latest["MA200"]):
+        return None, "MA150 或 MA200 数据不足"
+    passed = bool(latest["Close"] > latest["MA150"] and latest["Close"] > latest["MA200"])
+    return passed, f"现价 {fmt_price(latest['Close'])} / MA150 {fmt_price(latest['MA150'])} / MA200 {fmt_price(latest['MA200'])}"
 
-    for note in [income_statement.attrs.get("source_note", ""), earnings_dates.attrs.get("source_note", "")]:
-        if note:
-            source_notes.append(note)
 
-    eps_series = compute_eps_series(earnings_dates, income_statement)
-    revenue = (
-        extract_first_match(income_statement, ["Total Revenue", "Revenue", "Operating Revenue"])
-        if not income_statement.empty
-        else None
+def evaluate_ma150_above_ma200(context: AnalysisContext) -> tuple[bool | None, str]:
+    latest = context.latest
+    if not require_values(latest["MA150"], latest["MA200"]):
+        return None, "MA150 或 MA200 数据不足"
+    passed = bool(latest["MA150"] > latest["MA200"])
+    return passed, f"MA150 {fmt_price(latest['MA150'])} / MA200 {fmt_price(latest['MA200'])}"
+
+
+def evaluate_ma200_uptrend(context: AnalysisContext) -> tuple[bool | None, str]:
+    if len(context.stock) < 222:
+        return None, "200 日均线历史不足，至少需要约 222 个交易日"
+    latest = context.latest
+    ma200_month_ago = context.stock["MA200"].iloc[-22]
+    if not require_values(latest["MA200"], ma200_month_ago):
+        return None, "MA200 数据不足"
+    passed = bool(latest["MA200"] > ma200_month_ago)
+    return passed, f"当前 MA200 {fmt_price(latest['MA200'])} / 约 1 个月前 {fmt_price(ma200_month_ago)}"
+
+
+def evaluate_ma50_above_long_mas(context: AnalysisContext) -> tuple[bool | None, str]:
+    latest = context.latest
+    if not require_values(latest["MA50"], latest["MA150"], latest["MA200"]):
+        return None, "MA50、MA150 或 MA200 数据不足"
+    passed = bool(latest["MA50"] > latest["MA150"] and latest["MA50"] > latest["MA200"])
+    return passed, f"MA50 {fmt_price(latest['MA50'])} / MA150 {fmt_price(latest['MA150'])} / MA200 {fmt_price(latest['MA200'])}"
+
+
+def evaluate_price_above_ma50(context: AnalysisContext) -> tuple[bool | None, str]:
+    latest = context.latest
+    if not require_values(latest["Close"], latest["MA50"]):
+        return None, "MA50 数据不足"
+    passed = bool(latest["Close"] > latest["MA50"])
+    return passed, f"现价 {fmt_price(latest['Close'])} / MA50 {fmt_price(latest['MA50'])}"
+
+
+def evaluate_above_52w_low(context: AnalysisContext) -> tuple[bool | None, str]:
+    if len(context.stock) < 252:
+        return None, "52 周低点所需历史不足"
+    latest = context.latest
+    low_52w = context.stock["Low"].tail(252).min()
+    if not require_values(latest["Close"], low_52w):
+        return None, "52 周低点数据不足"
+    passed = bool(latest["Close"] >= low_52w * 1.3)
+    return passed, f"现价 {fmt_price(latest['Close'])} / 52 周低点 {fmt_price(low_52w)}"
+
+
+def evaluate_near_52w_high(context: AnalysisContext) -> tuple[bool | None, str]:
+    if len(context.stock) < 252:
+        return None, "52 周高点所需历史不足"
+    latest = context.latest
+    high_52w = context.stock["High"].tail(252).max()
+    if not require_values(latest["Close"], high_52w):
+        return None, "52 周高点数据不足"
+    passed = bool(latest["Close"] >= high_52w * 0.75)
+    return passed, f"现价 {fmt_price(latest['Close'])} / 52 周高点 {fmt_price(high_52w)}"
+
+
+def evaluate_rs_proxy_threshold(context: AnalysisContext) -> tuple[bool | None, str]:
+    if context.rs_score is None:
+        return None, context.rs_detail
+    return bool(context.rs_score >= 70), context.rs_detail
+
+
+def evaluate_market_pullback_resilience(context: AnalysisContext) -> tuple[bool | None, str]:
+    benchmark_tail = context.benchmark.tail(63).reset_index(drop=True)
+    if len(benchmark_tail) < 30:
+        return None, f"{DEFAULT_BENCHMARK} 历史不足，无法识别近期回调波段"
+
+    peak_idx = int(benchmark_tail["Close"].idxmax())
+    if peak_idx >= len(benchmark_tail) - 5:
+        return None, f"近 3 个月 {DEFAULT_BENCHMARK} 尚未形成明确回调段"
+
+    bench_segment = benchmark_tail.iloc[peak_idx:].copy()
+    bench_peak = bench_segment["Close"].iloc[0]
+    bench_low = bench_segment["Close"].min()
+    if not require_values(bench_peak, bench_low) or bench_peak == 0:
+        return None, f"{DEFAULT_BENCHMARK} 回调段数据不足"
+
+    benchmark_drawdown = 1 - bench_low / bench_peak
+    if benchmark_drawdown < 0.08:
+        return None, f"近 3 个月 {DEFAULT_BENCHMARK} 最大回撤 {fmt_pct(benchmark_drawdown)}，回调不够明确"
+
+    peak_date = bench_segment["Date"].iloc[0]
+    stock_segment = context.stock[context.stock["Date"] >= peak_date].copy()
+    if len(stock_segment) < 5:
+        return None, "个股与基准对齐后的样本不足"
+
+    stock_peak = stock_segment["Close"].iloc[0]
+    stock_low = stock_segment["Close"].min()
+    if not require_values(stock_peak, stock_low) or stock_peak == 0:
+        return None, "个股回调段数据不足"
+    stock_drawdown = 1 - stock_low / stock_peak
+
+    higher_low = False
+    if len(context.stock) >= 30 and len(context.benchmark) >= 30:
+        stock_recent_low = context.stock["Low"].tail(15).min()
+        stock_prior_low = context.stock["Low"].tail(30).head(15).min()
+        bench_recent_low = context.benchmark["Low"].tail(15).min()
+        bench_prior_low = context.benchmark["Low"].tail(30).head(15).min()
+        higher_low = bool(
+            require_values(stock_recent_low, stock_prior_low, bench_recent_low, bench_prior_low)
+            and stock_recent_low > stock_prior_low
+            and bench_recent_low <= bench_prior_low
+        )
+
+    outperformed = stock_drawdown <= benchmark_drawdown * 0.75
+    passed = bool(outperformed or higher_low)
+    detail = f"近 3 个月 {DEFAULT_BENCHMARK} 回撤 {fmt_pct(benchmark_drawdown)} / 个股回撤 {fmt_pct(stock_drawdown)}"
+    if higher_low:
+        detail += "，个股近期低点高于上一轮低点"
+    elif outperformed:
+        detail += "，个股明显更抗跌"
+    else:
+        detail += "，暂未显示明显抗跌优势"
+    return passed, detail
+
+
+def evaluate_volume_price_health(context: AnalysisContext) -> tuple[bool | None, str]:
+    if len(context.stock) < 60:
+        return None, "量价健康度至少需要约 60 个交易日数据"
+
+    enriched = context.stock.copy()
+    enriched["PrevClose"] = enriched["Close"].shift(1)
+    enriched["VolumeMA50"] = enriched["Volume"].rolling(50).mean()
+    tail = enriched.tail(30)
+    if tail["VolumeMA50"].isna().all():
+        return None, "50 日均量数据不足"
+
+    volume_signal = tail["Volume"] > tail["VolumeMA50"] * 1.05
+    up_days = int(((tail["Close"] > tail["PrevClose"]) & volume_signal).sum())
+    down_days = int(((tail["Close"] < tail["PrevClose"]) & volume_signal).sum())
+    passed = up_days >= 3 and up_days >= down_days + 2
+    detail = f"近 30 日放量上涨 {up_days} 天 / 放量下跌 {down_days} 天（基准: 50 日均量）"
+    return passed, detail
+
+
+def evaluate_pullback_depth_limit(context: AnalysisContext) -> tuple[bool | None, str]:
+    if len(context.stock) < 63:
+        return None, "回调深度至少需要近 3 个月数据"
+
+    lookback = context.stock.tail(min(126, len(context.stock)))
+    recent_high = lookback["High"].max()
+    latest_close = context.latest["Close"]
+    if not require_values(recent_high, latest_close) or recent_high == 0:
+        return None, "近期高点数据不足"
+
+    drawdown = 1 - latest_close / recent_high
+    passed = bool(drawdown <= 0.35)
+    detail = f"距近 6 个月高点回调 {fmt_pct(drawdown)} / 理想上限 35% / 硬上限 50%"
+    if not passed and drawdown <= 0.50:
+        detail += "，已超过理想区间但尚未跌破硬上限"
+    if drawdown > 0.50:
+        detail += "，已超过 50% 硬上限"
+    return passed, detail
+
+
+def evaluate_vcp_contraction(context: AnalysisContext) -> tuple[bool | None, str]:
+    if len(context.stock) < 45:
+        return None, "VCP 至少需要约 45 个交易日数据"
+
+    tail = context.stock.tail(45).copy()
+    tail["RangePct"] = (tail["High"] - tail["Low"]) / tail["Close"]
+    tail["BodyPct"] = (tail["Close"] - tail["Open"]).abs() / tail["Close"]
+    tail = tail.replace([np.inf, -np.inf], np.nan)
+
+    segments = [tail.iloc[0:15], tail.iloc[15:30], tail.iloc[30:45]]
+    range_avgs = [segment["RangePct"].dropna().mean() for segment in segments]
+    if any(pd.isna(value) for value in range_avgs):
+        return None, "波动率样本不足"
+
+    small_body_count = int((tail.tail(10)["BodyPct"].dropna() <= 0.012).sum())
+    passed = bool(
+        range_avgs[0] > range_avgs[1] > range_avgs[2]
+        and range_avgs[2] <= range_avgs[0] * 0.7
+        and small_body_count >= 2
     )
-    eps_passed, eps_detail, eps_recent = acceleration_details(eps_series, "EPS")
-    revenue_passed, revenue_detail, revenue_recent = acceleration_details(
-        revenue.dropna() if revenue is not None else pd.Series(dtype=float),
-        "营收",
+    detail = (
+        "近 45 日平均振幅: "
+        + " -> ".join(fmt_pct(value) for value in range_avgs)
+        + f" / 最近 10 日小实体 K 线 {small_body_count} 根"
     )
-    margin_passed, margin_detail, margin_recent = margin_details(income_statement)
+    return passed, detail
 
-    if income_statement.empty:
-        warnings.append("Yahoo 财报接口当前没有返回季度利润表，Code 33 结果可能缺失。")
-    if earnings_dates.empty and eps_series.empty:
-        warnings.append("EPS 实际值未取到，EPS 加速判断可能不可用。")
 
-    checks = [
-        CheckResult(CODE33_RULES[0], eps_passed, eps_detail),
-        CheckResult(CODE33_RULES[1], revenue_passed, revenue_detail),
-        CheckResult(CODE33_RULES[2], margin_passed, margin_detail),
-    ]
-    for index, result in enumerate(checks):
-        if [eps_passed, revenue_passed, margin_passed][index] is None:
-            result.detail = f"{result.detail}。"
+def evaluate_pivot_volume_dry_up(context: AnalysisContext) -> tuple[bool | None, str]:
+    if len(context.stock) < 60:
+        return None, "缩量枢轴至少需要约 60 个交易日数据"
 
-    return (
-        checks,
-        {"eps_yoy": eps_recent, "revenue_yoy": revenue_recent, "margin": margin_recent},
-        warnings,
-        source_notes,
+    enriched = context.stock.copy()
+    enriched["VolumeMA50"] = enriched["Volume"].rolling(50).mean()
+    latest = enriched.iloc[-1]
+    if pd.isna(latest["VolumeMA50"]):
+        return None, "50 日均量数据不足"
+
+    recent_10 = enriched.tail(10)
+    recent_20 = enriched.tail(20)
+    recent_avg_volume = recent_10["Volume"].mean()
+    recent_min_volume = recent_20["Volume"].min()
+    latest_volume = latest["Volume"]
+    contraction = (recent_10["High"].max() - recent_10["Low"].min()) / latest["Close"] if latest["Close"] else np.nan
+
+    if not require_values(recent_avg_volume, recent_min_volume, latest_volume, contraction):
+        return None, "缩量枢轴数据不足"
+
+    passed = bool(
+        recent_avg_volume <= latest["VolumeMA50"] * 0.65
+        and latest_volume <= recent_min_volume * 1.05
+        and contraction <= 0.08
     )
+    detail = (
+        f"近 10 日均量 {fmt_volume(recent_avg_volume)} / 50 日均量 {fmt_volume(latest['VolumeMA50'])}"
+        f" / 最新量 {fmt_volume(latest_volume)} / 近 10 日振幅 {fmt_pct(contraction)}"
+    )
+    return passed, detail
+
+
+BASE_TREND_SPECS = [
+    CheckSpec("trend_1", "当前股价高于 150 日和 200 日均线", evaluate_price_above_long_mas),
+    CheckSpec("trend_2", "150 日均线高于 200 日均线", evaluate_ma150_above_ma200),
+    CheckSpec("trend_3", "200 日均线至少连续 1 个月上升", evaluate_ma200_uptrend),
+    CheckSpec("trend_4", "50 日均线高于 150 日和 200 日均线", evaluate_ma50_above_long_mas),
+    CheckSpec("trend_5", "当前股价高于 50 日均线", evaluate_price_above_ma50),
+    CheckSpec("trend_6", "当前股价较 52 周低点至少高出 30%", evaluate_above_52w_low),
+    CheckSpec("trend_7", "当前股价距离 52 周高点不超过 25%", evaluate_near_52w_high),
+    CheckSpec("trend_8", "RS 代理分数不低于 70", evaluate_rs_proxy_threshold),
+]
+
+ADVANCED_TREND_SPECS = [
+    CheckSpec(
+        "trend_9",
+        "大盘回调测试: 回撤小于大盘或形成更高低点",
+        evaluate_market_pullback_resilience,
+    ),
+    CheckSpec("trend_10", "量价健康度: 放量上涨日明显多于放量下跌日", evaluate_volume_price_health),
+    CheckSpec("trend_11", "回调深度限制: 距近期高点回调不超过 35%", evaluate_pullback_depth_limit),
+    CheckSpec("trend_12", "VCP 波动率收缩: 近期波动明显收窄", evaluate_vcp_contraction),
+    CheckSpec("trend_13", "枢轴点缩量: 收缩末端成交量极度萎缩", evaluate_pivot_volume_dry_up),
+]
+
+
+def build_checks(specs: list[CheckSpec], context: AnalysisContext) -> list[CheckResult]:
+    results: list[CheckResult] = []
+    for spec in specs:
+        passed, detail = spec.evaluator(context)
+        results.append(CheckResult(spec.name, passed, detail))
+    return results
 
 
 def fmt_price(value: float | None) -> str:
@@ -702,7 +593,12 @@ def serialize_history(frame: pd.DataFrame) -> list[dict[str, Any]]:
     return subset.to_dict(orient="records")
 
 
-def analyze_symbol(symbol: str, force_refresh: bool = False) -> dict[str, Any]:
+def analyze_symbol(
+    symbol: str,
+    force_refresh: bool = False,
+    allow_network: bool = True,
+    refresh_benchmark: bool = False,
+) -> dict[str, Any]:
     normalized = normalize_symbol(symbol)
     if not normalized:
         raise ValueError("请输入有效的股票代码。")
@@ -714,22 +610,45 @@ def analyze_symbol(symbol: str, force_refresh: bool = False) -> dict[str, Any]:
 
     if force_refresh:
         clear_symbol_memory_cache(normalized)
-        clear_symbol_memory_cache(DEFAULT_BENCHMARK)
+        if refresh_benchmark:
+            clear_symbol_memory_cache(DEFAULT_BENCHMARK)
 
-    raw_history = load_history(normalized, DEFAULT_HISTORY_PERIOD, force_refresh=force_refresh)
-    raw_benchmark_history = load_history(DEFAULT_BENCHMARK, DEFAULT_HISTORY_PERIOD, force_refresh=force_refresh)
-    history = add_indicators(raw_history)
-    benchmark_history = add_indicators(raw_benchmark_history)
-    rs_score, rs_detail = compute_rs_proxy(history, benchmark_history)
-    trend_checks = build_trend_checks(history, rs_score, rs_detail)
-    code33_checks, raw_code33, warnings, financial_notes = build_code33_checks(
+    raw_history = load_history(
         normalized,
+        DEFAULT_HISTORY_PERIOD,
         force_refresh=force_refresh,
+        allow_network=allow_network,
     )
+    if raw_history.empty:
+        if allow_network:
+            raise ValueError(f"{normalized} 未返回任何价格数据，可能是代码无效或接口当前失败。")
+        raise ValueError(f"{normalized} 本地还没有缓存数据。请点击“拉新”获取后再查看。")
 
-    latest = history.iloc[-1]
+    raw_benchmark_history = load_history(
+        DEFAULT_BENCHMARK,
+        DEFAULT_HISTORY_PERIOD,
+        force_refresh=force_refresh and refresh_benchmark,
+        allow_network=allow_network,
+    )
+    history = add_indicators(raw_history)
+    rs_score = None
+    rs_detail = f"本地未缓存 {DEFAULT_BENCHMARK}，RS 代理分数暂不可用。点击“拉新”后可补齐。"
+    benchmark_history = pd.DataFrame()
+    if not raw_benchmark_history.empty:
+        benchmark_history = add_indicators(raw_benchmark_history)
+        rs_score, rs_detail = compute_rs_proxy(history, benchmark_history)
+    analysis_context = AnalysisContext(
+        stock=history,
+        benchmark=benchmark_history,
+        latest=history.iloc[-1],
+        rs_score=rs_score,
+        rs_detail=rs_detail,
+    )
+    trend_checks = build_checks(BASE_TREND_SPECS, analysis_context)
+    advanced_trend_checks = build_checks(ADVANCED_TREND_SPECS, analysis_context)
+    latest = analysis_context.latest
     trend_pass_count, trend_total, trend_status = summarize_check_group(trend_checks)
-    code33_pass_count, code33_total, code33_status = summarize_check_group(code33_checks)
+    advanced_trend_pass_count, advanced_trend_total, advanced_trend_status = summarize_check_group(advanced_trend_checks)
 
     result = {
         "symbol": normalized,
@@ -741,9 +660,9 @@ def analyze_symbol(symbol: str, force_refresh: bool = False) -> dict[str, Any]:
         "trendPassCount": trend_pass_count,
         "trendTotal": trend_total,
         "trendStatus": trend_status,
-        "code33PassCount": code33_pass_count,
-        "code33Total": code33_total,
-        "code33Status": code33_status,
+        "advancedTrendPassCount": advanced_trend_pass_count,
+        "advancedTrendTotal": advanced_trend_total,
+        "advancedTrendStatus": advanced_trend_status,
         "rsScore": None if rs_score is None else round(float(rs_score), 1),
         "rsDetail": rs_detail,
         "sourceNotes": [
@@ -751,21 +670,28 @@ def analyze_symbol(symbol: str, force_refresh: bool = False) -> dict[str, Any]:
             for note in [
                 raw_history.attrs.get("source_note", ""),
                 raw_benchmark_history.attrs.get("source_note", ""),
-                *financial_notes,
             ]
             if note
         ],
-        "warnings": warnings,
         "trendChecks": serialize_checks(trend_checks),
-        "code33Checks": serialize_checks(code33_checks),
-        "rawCode33": raw_code33,
+        "advancedTrendChecks": serialize_checks(advanced_trend_checks),
         "history": serialize_history(history),
     }
     return set_cached(cache_key, result)
 
 
-def summary_payload(symbol: str, force_refresh: bool = False) -> dict[str, Any]:
-    data = analyze_symbol(symbol, force_refresh=force_refresh)
+def summary_payload(
+    symbol: str,
+    force_refresh: bool = False,
+    allow_network: bool = True,
+    refresh_benchmark: bool = False,
+) -> dict[str, Any]:
+    data = analyze_symbol(
+        symbol,
+        force_refresh=force_refresh,
+        allow_network=allow_network,
+        refresh_benchmark=refresh_benchmark,
+    )
     return {
         "symbol": data["symbol"],
         "latestClose": data["latestClose"],
@@ -776,9 +702,6 @@ def summary_payload(symbol: str, force_refresh: bool = False) -> dict[str, Any]:
         "trendPassCount": data["trendPassCount"],
         "trendTotal": data["trendTotal"],
         "trendStatus": data["trendStatus"],
-        "code33PassCount": data["code33PassCount"],
-        "code33Total": data["code33Total"],
-        "code33Status": data["code33Status"],
     }
 
 
@@ -795,9 +718,10 @@ def root() -> FileResponse:
 def get_config() -> dict[str, Any]:
     return {
         "defaultWatchlist": DEFAULT_WATCHLIST,
+        "watchlistGroups": DEFAULT_WATCHLIST_GROUPS,
         "chartWindows": ["1M", "6M", "1Y", "2Y", "ALL"],
         "benchmark": DEFAULT_BENCHMARK,
-        "cacheMode": "默认优先读取本地缓存；点击“拉新”后增量更新价格与财报，并回写本地缓存。",
+        "cacheMode": "默认仅读取本地缓存；点击“拉新”后仅用 Tiingo 增量更新价格，并回写本地缓存。",
     }
 
 
@@ -811,12 +735,43 @@ def watchlist_summary(
     if not normalized_symbols:
         raise HTTPException(status_code=400, detail="缺少有效股票代码。")
 
-    items = []
-    for symbol in normalized_symbols:
+    if refresh:
+        clear_symbol_memory_cache(DEFAULT_BENCHMARK)
         try:
-            items.append({"symbol": symbol, "data": summary_payload(symbol, force_refresh=refresh), "error": None})
+            load_history(
+                DEFAULT_BENCHMARK,
+                DEFAULT_HISTORY_PERIOD,
+                force_refresh=True,
+                allow_network=True,
+            )
+        except Exception:
+            pass
+
+    results: dict[str, dict[str, Any]] = {}
+    max_workers = min(2 if refresh else 4, max(1, len(normalized_symbols)))
+
+    def load_item(symbol: str) -> dict[str, Any]:
+        try:
+            return {
+                "symbol": symbol,
+                "data": summary_payload(
+                    symbol,
+                    force_refresh=refresh,
+                    allow_network=refresh,
+                    refresh_benchmark=False,
+                ),
+                "error": None,
+            }
         except Exception as exc:
-            items.append({"symbol": symbol, "data": None, "error": str(exc)})
+            return {"symbol": symbol, "data": None, "error": str(exc)}
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_map = {executor.submit(load_item, symbol): symbol for symbol in normalized_symbols}
+        for future in as_completed(future_map):
+            symbol = future_map[future]
+            results[symbol] = future.result()
+
+    items = [results[symbol] for symbol in normalized_symbols]
     return {"items": items}
 
 
@@ -829,7 +784,12 @@ def symbol_detail(
     if not normalized:
         raise HTTPException(status_code=400, detail="请输入有效的股票代码。")
     try:
-        return analyze_symbol(normalized, force_refresh=refresh)
+        return analyze_symbol(
+            normalized,
+            force_refresh=refresh,
+            allow_network=refresh,
+            refresh_benchmark=refresh,
+        )
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
