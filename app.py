@@ -719,9 +719,7 @@ def get_config() -> dict[str, Any]:
     return {
         "defaultWatchlist": DEFAULT_WATCHLIST,
         "watchlistGroups": DEFAULT_WATCHLIST_GROUPS,
-        "chartWindows": ["1M", "6M", "1Y", "2Y", "ALL"],
         "benchmark": DEFAULT_BENCHMARK,
-        "cacheMode": "默认仅读取本地缓存；点击“拉新”后仅用 Tiingo 增量更新价格，并回写本地缓存。",
     }
 
 
