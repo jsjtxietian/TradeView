@@ -624,16 +624,16 @@ def analyze_symbol(
             raise ValueError(f"{normalized} 未返回任何价格数据，可能是代码无效或接口当前失败。")
         raise ValueError(f"{normalized} 本地还没有缓存数据。请点击“拉新”获取后再查看。")
 
-    raw_benchmark_history = load_history(
+    history = add_indicators(raw_history)
+    rs_score = None
+    rs_detail = f"本地未缓存 {DEFAULT_BENCHMARK}，RS 代理分数暂不可用。点击“拉新”后可补齐。"
+    benchmark_history = pd.DataFrame()
+    raw_benchmark_history = raw_history if normalized == DEFAULT_BENCHMARK else load_history(
         DEFAULT_BENCHMARK,
         DEFAULT_HISTORY_PERIOD,
         force_refresh=force_refresh and refresh_benchmark,
         allow_network=allow_network,
     )
-    history = add_indicators(raw_history)
-    rs_score = None
-    rs_detail = f"本地未缓存 {DEFAULT_BENCHMARK}，RS 代理分数暂不可用。点击“拉新”后可补齐。"
-    benchmark_history = pd.DataFrame()
     if not raw_benchmark_history.empty:
         benchmark_history = add_indicators(raw_benchmark_history)
         rs_score, rs_detail = compute_rs_proxy(history, benchmark_history)
@@ -735,7 +735,9 @@ def watchlist_summary(
     if not normalized_symbols:
         raise HTTPException(status_code=400, detail="缺少有效股票代码。")
 
-    if refresh:
+    benchmark_in_watchlist = DEFAULT_BENCHMARK in normalized_symbols
+
+    if refresh and not benchmark_in_watchlist:
         clear_symbol_memory_cache(DEFAULT_BENCHMARK)
         try:
             load_history(
@@ -765,8 +767,16 @@ def watchlist_summary(
         except Exception as exc:
             return {"symbol": symbol, "data": None, "error": str(exc)}
 
+    if refresh and benchmark_in_watchlist:
+        results[DEFAULT_BENCHMARK] = load_item(DEFAULT_BENCHMARK)
+
+    remaining_symbols = [
+        symbol for symbol in normalized_symbols
+        if not (refresh and benchmark_in_watchlist and symbol == DEFAULT_BENCHMARK)
+    ]
+
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_map = {executor.submit(load_item, symbol): symbol for symbol in normalized_symbols}
+        future_map = {executor.submit(load_item, symbol): symbol for symbol in remaining_symbols}
         for future in as_completed(future_map):
             symbol = future_map[future]
             results[symbol] = future.result()
