@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
 import os
 from pathlib import Path
+import re
 import time
 import tomllib
 from typing import Any, Callable
@@ -80,7 +81,10 @@ def clear_symbol_memory_cache(symbol: str) -> None:
 
 
 def normalize_symbol(raw_symbol: str) -> str:
-    return raw_symbol.strip().upper().replace(" ", "")
+    text = raw_symbol.strip().upper()
+    text = re.sub(r"[\s.]+", "-", text)
+    text = re.sub(r"-{2,}", "-", text)
+    return text
 
 
 def load_local_secrets() -> dict[str, Any]:
@@ -558,6 +562,13 @@ def fmt_pct(value: float | None) -> str:
     return f"{value:.1%}"
 
 
+def fmt_signed_pct(value: float | None) -> str:
+    if value is None or pd.isna(value):
+        return "-"
+    sign = "+" if value > 0 else ""
+    return f"{sign}{value:.1%}"
+
+
 def fmt_volume(value: float | None) -> str:
     if value is None or pd.isna(value):
         return "-"
@@ -591,6 +602,41 @@ def serialize_history(frame: pd.DataFrame) -> list[dict[str, Any]]:
     subset["Date"] = subset["Date"].dt.strftime("%Y-%m-%d")
     subset = subset.replace({np.nan: None})
     return subset.to_dict(orient="records")
+
+
+def build_trend_sparkline(frame: pd.DataFrame) -> dict[str, Any]:
+    window = frame.tail(min(35, len(frame))).copy()
+    if window.empty:
+        return {"direction": "flat", "values": []}
+
+    ma20 = window["MA20"].copy()
+    fallback = frame["Close"].expanding(min_periods=1).mean().tail(len(window)).reset_index(drop=True)
+    ma20 = ma20.reset_index(drop=True)
+    base = ma20.where(ma20.notna(), fallback)
+    smooth = base.ewm(span=3, adjust=False).mean().dropna()
+    values = [round(float(value), 4) for value in smooth.tolist()]
+
+    if len(values) < 2:
+        return {"direction": "flat", "values": values}
+
+    recent = values[-10:] if len(values) >= 10 else values
+    start = recent[0]
+    end = recent[-1]
+    move_pct = 0.0 if start == 0 else float(end / start - 1)
+    x = np.arange(len(recent), dtype=float)
+    slope = float(np.polyfit(x, np.array(recent, dtype=float), 1)[0]) if len(recent) >= 2 else 0.0
+
+    if move_pct >= 0.015 and slope > 0:
+        direction = "up"
+    elif move_pct <= -0.015 and slope < 0:
+        direction = "down"
+    else:
+        direction = "flat"
+
+    return {
+        "direction": direction,
+        "values": values,
+    }
 
 
 def analyze_symbol(
@@ -647,6 +693,16 @@ def analyze_symbol(
     trend_checks = build_checks(BASE_TREND_SPECS, analysis_context)
     advanced_trend_checks = build_checks(ADVANCED_TREND_SPECS, analysis_context)
     latest = analysis_context.latest
+    prev_close = history["Close"].iloc[-2] if len(history) >= 2 else np.nan
+    daily_change_pct = None
+    if require_values(latest["Close"], prev_close) and prev_close != 0:
+        daily_change_pct = float(latest["Close"] / prev_close - 1)
+    trend_sparkline = build_trend_sparkline(history)
+    recent_window = history.tail(min(126, len(history)))
+    six_month_high = recent_window["Close"].max() if not recent_window.empty else np.nan
+    six_month_low = recent_window["Close"].min() if not recent_window.empty else np.nan
+    is_six_month_high = bool(require_values(latest["Close"], six_month_high) and latest["Close"] >= six_month_high)
+    is_six_month_low = bool(require_values(latest["Close"], six_month_low) and latest["Close"] <= six_month_low)
     trend_pass_count, trend_total, trend_status = summarize_check_group(trend_checks)
     advanced_trend_pass_count, advanced_trend_total, advanced_trend_status = summarize_check_group(advanced_trend_checks)
 
@@ -657,6 +713,16 @@ def analyze_symbol(
         "latestVolume": None if pd.isna(latest["Volume"]) else float(latest["Volume"]),
         "latestVolumeText": fmt_volume(latest["Volume"]),
         "latestDate": history["Date"].iloc[-1].strftime("%Y-%m-%d"),
+        "dailyChangePct": None if daily_change_pct is None else round(daily_change_pct, 4),
+        "dailyChangePctText": fmt_signed_pct(daily_change_pct),
+        "trendSparklineDirection": trend_sparkline["direction"],
+        "trendSparklineValues": trend_sparkline["values"],
+        "sixMonthHigh": None if pd.isna(six_month_high) else float(six_month_high),
+        "sixMonthHighText": fmt_price(six_month_high),
+        "sixMonthLow": None if pd.isna(six_month_low) else float(six_month_low),
+        "sixMonthLowText": fmt_price(six_month_low),
+        "isSixMonthHigh": is_six_month_high,
+        "isSixMonthLow": is_six_month_low,
         "trendPassCount": trend_pass_count,
         "trendTotal": trend_total,
         "trendStatus": trend_status,
@@ -699,6 +765,14 @@ def summary_payload(
         "latestVolume": data["latestVolume"],
         "latestVolumeText": data["latestVolumeText"],
         "latestDate": data["latestDate"],
+        "dailyChangePct": data["dailyChangePct"],
+        "dailyChangePctText": data["dailyChangePctText"],
+        "trendSparklineDirection": data["trendSparklineDirection"],
+        "trendSparklineValues": data["trendSparklineValues"],
+        "isSixMonthHigh": data["isSixMonthHigh"],
+        "isSixMonthLow": data["isSixMonthLow"],
+        "sixMonthHighText": data["sixMonthHighText"],
+        "sixMonthLowText": data["sixMonthLowText"],
         "trendPassCount": data["trendPassCount"],
         "trendTotal": data["trendTotal"],
         "trendStatus": data["trendStatus"],

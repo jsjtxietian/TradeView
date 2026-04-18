@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trend Deck</title>
+  <link rel="stylesheet" href="/static/styles.css?v=20260418-06" />
+</head>
+<body>
+  <div class="page-shell">
+    <p id="messageBar" class="message-bar" hidden></p>
+
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <p class="panel-kicker">Watchlist</p>
+          <h2>自选股概览</h2>
+        </div>
+        <div class="watchlist-tools">
+          <form id="addSymbolForm" class="watchlist-add-form">
+            <input id="symbolInput" name="symbol" type="text" placeholder="例如 AAPL 或 NVDA" autocomplete="off" />
+            <button type="submit">添加</button>
+          </form>
+          <button type="button" id="trendFilterButton" class="secondary">只看趋势模板</button>
+          <button type="button" id="editGroupsButton" class="secondary">分组</button>
+          <button type="button" id="refreshButton" class="secondary">拉新</button>
+          <button type="button" id="alertsButton" class="secondary alerts-button" aria-label="查看提醒">
+            <span class="alerts-bell">i</span>
+          </button>
+        </div>
+      </div>
+      <div id="watchlistBoard" class="watchlist-board"></div>
+    </section>
+
+    <section class="detail-header">
+      <div>
+        <p class="panel-kicker">Detail</p>
+        <h2 id="detailTitle">选择一只股票</h2>
+      </div>
+    </section>
+
+    <section id="detailSection" class="detail-grid" hidden>
+      <section class="panel chart-panel">
+        <div class="panel-header">
+          <div>
+            <p class="panel-kicker">Chart</p>
+            <div class="chart-title-row">
+              <h3 id="chartTitle">选择一只股票</h3>
+              <div id="chartHeadlineStats" class="chart-headline-stats"></div>
+              <span id="chartStatusNote" class="chart-status-note" hidden></span>
+            </div>
+          </div>
+          <div class="chart-tools">
+            <label class="chart-mode-select" for="chartMode">
+              图表模式
+              <select id="chartMode">
+                <option value="candles">K线</option>
+                <option value="close">收盘价线</option>
+              </select>
+            </label>
+            <div id="maToggleGroup" class="ma-toggle-group">
+              <label><input type="checkbox" data-ma="MA20" checked /> MA20</label>
+              <label><input type="checkbox" data-ma="MA50" checked /> MA50</label>
+              <label><input type="checkbox" data-ma="MA150" checked /> MA150</label>
+              <label><input type="checkbox" data-ma="MA200" checked /> MA200</label>
+            </div>
+          </div>
+        </div>
+        <div class="chart-stack">
+          <div class="price-chart-shell">
+            <div id="priceChartContainer" class="price-chart-container"></div>
+            <div id="chartHoverCard" class="chart-hover-card" hidden></div>
+          </div>
+          <div id="volumeChartContainer" class="volume-chart-container"></div>
+        </div>
+      </section>
+
+      <div class="detail-columns">
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <p class="panel-kicker">Trend</p>
+              <h3>趋势模板检查</h3>
+            </div>
+          </div>
+          <div id="trendChecks" class="check-list"></div>
+        </section>
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <p class="panel-kicker">Trend 9-13</p>
+              <h3>趋势扩展检查</h3>
+            </div>
+          </div>
+          <div id="advancedTrendChecks" class="check-list"></div>
+        </section>
+      </div>
+    </section>
+  </div>
+
+  <dialog id="groupEditorDialog" class="group-editor-dialog">
+    <form method="dialog" class="group-editor-shell">
+      <div class="panel-header">
+        <div>
+          <p class="panel-kicker">Groups</p>
+          <h3>编辑自选股分组</h3>
+        </div>
+      </div>
+      <p class="group-editor-help">每行一组。名称可改，股票代码用逗号分隔，保存后立即更新页面里的分组区块。</p>
+      <div id="groupEditorList" class="group-editor-list"></div>
+      <div class="group-editor-actions">
+        <button type="button" id="addGroupRowButton" class="secondary">新增分组</button>
+        <button type="button" id="cancelGroupEditButton" class="secondary">取消</button>
+        <button type="button" id="saveGroupEditButton">保存分组</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="noteDialog" class="group-editor-dialog">
+    <form method="dialog" class="group-editor-shell note-dialog-shell">
+      <div class="panel-header">
+        <div>
+          <p class="panel-kicker">Note</p>
+          <h3 id="noteDialogTitle">股票笔记</h3>
+        </div>
+      </div>
+      <label class="note-editor-field">
+        <span>内容</span>
+        <textarea id="noteTextarea" rows="10" placeholder="记录交易计划、关键价位、财报关注点等"></textarea>
+      </label>
+      <div class="group-editor-actions">
+        <button type="button" id="deleteSymbolButton" class="secondary">删除该股票</button>
+        <button type="button" id="clearNoteButton" class="secondary">清空</button>
+        <button type="button" id="cancelNoteButton" class="secondary">取消</button>
+        <button type="button" id="saveNoteButton">保存笔记</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="alertsDialog" class="group-editor-dialog">
+    <form method="dialog" class="group-editor-shell alerts-dialog-shell">
+      <div class="panel-header">
+        <div>
+          <p class="panel-kicker">Alerts</p>
+          <h3>最近变化</h3>
+        </div>
+      </div>
+      <div id="alertsList" class="alerts-list"></div>
+      <div class="group-editor-actions">
+        <button type="button" id="closeAlertsButton" class="secondary">关闭</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="https://unpkg.com/lightweight-charts@5.0.0/dist/lightweight-charts.standalone.production.js"></script>
+  <script src="/static/app.js?v=20260418-06" type="module"></script>
+</body>
+</html>
