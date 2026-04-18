@@ -18,12 +18,11 @@ const state = {
   notes: {},
   alerts: [],
   alertsSnapshot: {},
-  alertsOpen: false,
   filterTrendTemplateOnly: false,
   filterHoldingOnly: false,
   activeNoteSymbol: null,
   draggingGroupId: null,
-  draggingSymbol: null,
+  draggingSymbol: "",
   selectedSymbol: null,
   chartMode: "close",
   currentChartData: [],
@@ -142,34 +141,19 @@ function bindEvents() {
   });
 
   elements.alertsButton.addEventListener("click", () => {
-    state.alertsOpen = true;
     elements.alertsDialog.showModal();
   });
 
   elements.closeAlertsButton.addEventListener("click", () => {
-    state.alertsOpen = false;
-    renderAlerts();
     elements.alertsDialog.close();
   });
 
   elements.trendFilterButton.addEventListener("click", () => {
-    state.filterTrendTemplateOnly = !state.filterTrendTemplateOnly;
-    persistTrendFilter();
-    syncTrendFilterButton();
-    renderWatchlist();
-    syncSelectionWithFilter().catch((error) => {
-      showMessage(error.message || String(error), true);
-    });
+    toggleWatchlistFilter("filterTrendTemplateOnly", persistTrendFilter, syncTrendFilterButton);
   });
 
   elements.holdingFilterButton.addEventListener("click", () => {
-    state.filterHoldingOnly = !state.filterHoldingOnly;
-    persistHoldingFilter();
-    syncHoldingFilterButton();
-    renderWatchlist();
-    syncSelectionWithFilter().catch((error) => {
-      showMessage(error.message || String(error), true);
-    });
+    toggleWatchlistFilter("filterHoldingOnly", persistHoldingFilter, syncHoldingFilterButton);
   });
 
   elements.addGroupRowButton.addEventListener("click", () => {
@@ -209,10 +193,6 @@ function bindEvents() {
 
   elements.noteDialog.addEventListener("close", () => {
     state.activeNoteSymbol = null;
-  });
-
-  elements.alertsDialog.addEventListener("close", () => {
-    state.alertsOpen = false;
   });
 
   elements.chartMode.addEventListener("change", () => {
@@ -361,6 +341,16 @@ function queueWatchlistLayoutRefresh() {
     state.watchlistResizeTimer = null;
     renderWatchlist();
   }, 120);
+}
+
+function toggleWatchlistFilter(stateKey, persistFn, syncButtonFn) {
+  state[stateKey] = !state[stateKey];
+  persistFn();
+  syncButtonFn();
+  renderWatchlist();
+  syncSelectionWithFilter().catch((error) => {
+    showMessage(error.message || String(error), true);
+  });
 }
 
 async function loadDetail(symbol, forceRefresh = false) {
@@ -699,6 +689,13 @@ function clearGroupDragOverStates(exceptNode = null) {
   }
 }
 
+function commitGroupOrder(nextGroups) {
+  state.watchlistGroups = nextGroups;
+  persistWatchlistGroups();
+  renderWatchlist();
+  showToast("分组顺序已更新。");
+}
+
 function createSymbolDropzone(sectionId) {
   const dropzone = document.createElement("div");
   dropzone.className = "watchlist-item-dropzone";
@@ -735,7 +732,7 @@ function bindSymbolContainerDrop(container, sectionId) {
     }
     event.preventDefault();
     clearSymbolDragOverStates();
-    moveSymbolToSection(state.draggingSymbol.symbol, sectionId, null, "end");
+    moveSymbolToSection(state.draggingSymbol, sectionId, null, "end");
   });
 }
 
@@ -759,7 +756,7 @@ function bindSymbolDropzone(dropzone, sectionId) {
     }
     event.preventDefault();
     clearSymbolDragOverStates();
-    moveSymbolToSection(state.draggingSymbol.symbol, sectionId, null, "end");
+    moveSymbolToSection(state.draggingSymbol, sectionId, null, "end");
   });
 }
 
@@ -781,10 +778,7 @@ function moveGroupBefore(sourceId, targetId) {
   const [moved] = groups.splice(sourceIndex, 1);
   const nextTargetIndex = groups.findIndex((group) => group.id === targetId);
   groups.splice(nextTargetIndex, 0, moved);
-  state.watchlistGroups = groups;
-  persistWatchlistGroups();
-  renderWatchlist();
-  showToast("分组顺序已更新。");
+  commitGroupOrder(groups);
 }
 
 function moveGroupAfter(sourceId, targetId) {
@@ -797,10 +791,7 @@ function moveGroupAfter(sourceId, targetId) {
   const [moved] = groups.splice(sourceIndex, 1);
   const nextTargetIndex = groups.findIndex((group) => group.id === targetId);
   groups.splice(nextTargetIndex + 1, 0, moved);
-  state.watchlistGroups = groups;
-  persistWatchlistGroups();
-  renderWatchlist();
-  showToast("分组顺序已更新。");
+  commitGroupOrder(groups);
 }
 
 function moveGroupToEnd(sourceId) {
@@ -811,10 +802,7 @@ function moveGroupToEnd(sourceId) {
   }
   const [moved] = groups.splice(sourceIndex, 1);
   groups.push(moved);
-  state.watchlistGroups = groups;
-  persistWatchlistGroups();
-  renderWatchlist();
-  showToast("分组顺序已更新。");
+  commitGroupOrder(groups);
 }
 
 function renderWatchlistItem(symbol, sectionId) {
@@ -881,7 +869,7 @@ function renderWatchlistItem(symbol, sectionId) {
 
 function bindWatchlistItemDrag(card, symbol, sectionId) {
   card.addEventListener("dragstart", (event) => {
-    state.draggingSymbol = { symbol, sectionId };
+    state.draggingSymbol = symbol;
     elements.watchlistBoard.classList.add("dragging-symbols");
     card.classList.add("dragging");
     event.dataTransfer.effectAllowed = "move";
@@ -897,7 +885,7 @@ function bindWatchlistItemDrag(card, symbol, sectionId) {
   });
 
   card.addEventListener("dragover", (event) => {
-    if (!state.draggingSymbol || state.draggingSymbol.symbol === symbol) {
+    if (!state.draggingSymbol || state.draggingSymbol === symbol) {
       return;
     }
     event.preventDefault();
@@ -912,14 +900,14 @@ function bindWatchlistItemDrag(card, symbol, sectionId) {
   });
 
   card.addEventListener("drop", (event) => {
-    if (!state.draggingSymbol || state.draggingSymbol.symbol === symbol) {
+    if (!state.draggingSymbol || state.draggingSymbol === symbol) {
       return;
     }
     event.preventDefault();
     event.stopPropagation();
     const placement = getSymbolDropPlacement(card, event.clientY);
     clearSymbolDragOverStates();
-    moveSymbolToSection(state.draggingSymbol.symbol, sectionId, symbol, placement);
+    moveSymbolToSection(state.draggingSymbol, sectionId, symbol, placement);
   });
 }
 
@@ -952,6 +940,10 @@ function moveSymbolToSection(symbol, targetSectionId, targetSymbol = null, place
     nextWatchlist.push(normalizedSymbol);
   }
 
+  commitWatchlistArrangement(nextGroups, nextWatchlist);
+}
+
+function commitWatchlistArrangement(nextGroups, nextWatchlist) {
   state.watchlistGroups = nextGroups;
   state.watchlist = nextWatchlist;
   persistWatchlistGroups();
@@ -1850,7 +1842,7 @@ async function deleteActiveSymbol() {
 function filterWatchlistSymbols(symbols) {
   return symbols.filter((symbol) => {
     const data = state.summaries.get(symbol)?.data;
-    if (state.filterTrendTemplateOnly && !(!!data && data.trendPassCount === data.trendTotal && data.trendTotal > 0)) {
+    if (state.filterTrendTemplateOnly && !isTrendTemplateMatch(data)) {
       return false;
     }
     if (state.filterHoldingOnly && !getHoldingForSymbol(symbol)) {
@@ -1858,6 +1850,10 @@ function filterWatchlistSymbols(symbols) {
     }
     return true;
   });
+}
+
+function isTrendTemplateMatch(data) {
+  return !!data && data.trendPassCount === data.trendTotal && data.trendTotal > 0;
 }
 
 function getVisibleWatchlistSymbols() {
