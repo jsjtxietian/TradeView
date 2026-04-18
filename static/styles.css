@@ -1,16 +1,16 @@
 :root {
-  --bg: #f3efe6;
-  --bg-accent: #eef4f8;
-  --panel: rgba(255, 255, 255, 0.92);
-  --border: rgba(15, 23, 42, 0.09);
-  --text: #102033;
-  --muted: #617286;
-  --accent: #0e7490;
-  --accent-soft: rgba(14, 116, 144, 0.12);
+  --bg: #edf4fb;
+  --bg-accent: #f7fbff;
+  --panel: rgba(250, 253, 255, 0.82);
+  --border: rgba(83, 129, 158, 0.15);
+  --text: #0d1b2a;
+  --muted: #5d7186;
+  --accent: #0b84a5;
+  --accent-soft: rgba(11, 132, 165, 0.12);
   --warm: #b45309;
   --danger: #b42318;
   --success: #166534;
-  --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+  --shadow: 0 20px 48px rgba(8, 21, 40, 0.1);
   --radius: 22px;
   font-family: "Segoe UI", "PingFang SC", "Noto Sans SC", sans-serif;
 }
@@ -25,11 +25,28 @@
 
 body {
   margin: 0;
+  min-height: 100vh;
+  position: relative;
   color: var(--text);
   background:
-    radial-gradient(circle at top right, rgba(14, 116, 144, 0.12), transparent 28%),
-    radial-gradient(circle at top left, rgba(180, 83, 9, 0.1), transparent 30%),
+    radial-gradient(circle at top right, rgba(11, 132, 165, 0.16), transparent 24%),
+    radial-gradient(circle at 12% 10%, rgba(56, 189, 248, 0.1), transparent 26%),
+    radial-gradient(circle at 90% 85%, rgba(12, 74, 110, 0.08), transparent 22%),
+    radial-gradient(circle at top left, rgba(180, 83, 9, 0.06), transparent 28%),
     linear-gradient(180deg, var(--bg) 0%, var(--bg-accent) 100%);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(11, 132, 165, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(11, 132, 165, 0.045) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.28), transparent 72%);
+  opacity: 0.42;
 }
 
 button,
@@ -67,7 +84,9 @@ select {
 .meta-card,
 .metric-card,
 .panel {
-  background: var(--panel);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(248, 252, 255, 0.84)),
+    var(--panel);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
 }
@@ -84,30 +103,39 @@ select {
 
 input,
 select {
-  border: 1px solid rgba(15, 23, 42, 0.14);
+  border: 1px solid rgba(83, 129, 158, 0.18);
   border-radius: 14px;
   padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.88);
   color: var(--text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 button {
   border: 0;
   border-radius: 14px;
   padding: 12px 18px;
-  background: var(--text);
+  background: linear-gradient(135deg, #0b2238, #123552);
   color: white;
+  box-shadow: 0 10px 22px rgba(12, 34, 56, 0.16);
   cursor: pointer;
   transition: transform 160ms ease, opacity 160ms ease, background 160ms ease;
 }
 
 button.secondary {
-  background: rgba(15, 23, 42, 0.12);
+  background: rgba(12, 34, 56, 0.08);
   color: var(--text);
+  box-shadow: none;
+}
+
+.alerts-button,
+.watchlist-note-button,
+.check-rule-button {
+  box-shadow: none;
 }
 
 button.secondary.active-toggle {
-  background: rgba(14, 116, 144, 0.14);
+  background: rgba(11, 132, 165, 0.14);
   color: var(--accent);
 }
 
@@ -144,7 +172,7 @@ button:disabled {
   margin: 14px 0 0;
   padding: 12px 14px;
   border-radius: 14px;
-  background: rgba(15, 23, 42, 0.06);
+  background: rgba(12, 34, 56, 0.06);
   color: var(--text);
 }
 
@@ -162,9 +190,9 @@ button:disabled {
   max-width: min(360px, calc(100vw - 28px));
   padding: 12px 14px;
   border-radius: 14px;
-  background: rgba(16, 32, 51, 0.94);
+  background: rgba(10, 26, 43, 0.96);
   color: white;
-  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 20px 40px rgba(7, 18, 31, 0.22);
   font-size: 0.88rem;
   line-height: 1.4;
 }
@@ -269,7 +297,7 @@ button:disabled {
 }
 
 .group-editor-dialog::backdrop {
-  background: rgba(243, 239, 230, 0.98);
+  background: rgba(236, 244, 251, 0.98);
 }
 
 .group-editor-shell {
@@ -784,7 +812,7 @@ button:disabled {
   gap: 6px;
   padding: 4px 9px;
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.07);
+  background: rgba(12, 34, 56, 0.07);
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 600;
@@ -814,6 +842,20 @@ button:disabled {
   color: var(--warm);
   font-size: 0.78rem;
   font-weight: 600;
+}
+
+.chart-unavailable {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 320px;
+  border: 1px dashed rgba(83, 129, 158, 0.24);
+  border-radius: 18px;
+  background: rgba(248, 252, 255, 0.68);
+  color: var(--muted);
+  font-size: 0.94rem;
 }
 
 .ma-toggle-group {
@@ -876,10 +918,17 @@ button:disabled {
 }
 
 .check-item {
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(83, 129, 158, 0.12);
   border-radius: 16px;
   padding: 14px 16px;
   background: rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.check-item.subdued-check {
+  background: rgba(245, 249, 252, 0.56);
+  border-color: rgba(93, 113, 134, 0.12);
+  opacity: 0.82;
 }
 
 .check-item strong {
@@ -929,7 +978,7 @@ button:disabled {
   font-size: 0.8rem;
   padding: 4px 8px;
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.08);
+  background: rgba(12, 34, 56, 0.08);
 }
 
 .check-state.pass {
@@ -945,6 +994,11 @@ button:disabled {
 .check-state.fail {
   background: rgba(180, 35, 24, 0.14);
   color: var(--danger);
+}
+
+.check-state.subdued {
+  background: rgba(93, 113, 134, 0.12);
+  color: var(--muted);
 }
 
 .empty-state {

@@ -9,6 +9,7 @@ const ALERTS_SNAPSHOT_STORAGE_KEY = "trenddeck_watchlist_alerts_snapshot";
 const DEFAULT_VISIBLE_BARS = 126;
 const WATCHLIST_COLUMN_MIN_WIDTH = 280;
 const WATCHLIST_COLUMN_GAP = 10;
+const SUBDUED_CHECK_NAMES = new Set(["近期波动明显收窄", "收缩末端成交量极度萎缩"]);
 const ADVANCED_CHECK_RULES = {
   "回撤小于大盘或形成更高低点": "近63个交易日先定位 SPY 最大回撤段，再比较个股同时间窗内的最大回撤；若个股近期低点抬高，也视为加分项。",
   "30个交易日内放量上涨日明显多于放量下跌日": "近30日仅统计成交量高于 1.05 倍 50 日均量的交易日；强度 = abs(日涨跌幅) * (Volume / VolumeMA50)。",
@@ -393,6 +394,7 @@ function renderSelectedDetail() {
   renderChecks(elements.advancedTrendChecks, detail.advancedTrendChecks, {
     trimPrefix: true,
     ruleTooltips: ADVANCED_CHECK_RULES,
+    subduedNames: SUBDUED_CHECK_NAMES,
   });
   logDetailMessages(detail);
   renderMainChart(detail);
@@ -1039,6 +1041,10 @@ function renderChecks(container, checks, options = {}) {
     const stateLabel = item.passed === true ? "通过" : item.passed === false ? "未通过" : "待确认";
     const stateClass = item.passed === true ? "pass" : item.passed === false ? "fail" : "pending";
     const displayName = options.trimPrefix ? stripCheckNamePrefix(item.name) : item.name;
+    const isSubdued = options.subduedNames?.has(displayName);
+    if (isSubdued) {
+      node.classList.add("subdued-check");
+    }
     const header = document.createElement("strong");
 
     const title = document.createElement("span");
@@ -1059,6 +1065,9 @@ function renderChecks(container, checks, options = {}) {
 
     const state = document.createElement("span");
     state.className = `check-state ${stateClass}`;
+    if (isSubdued) {
+      state.classList.add("subdued");
+    }
     state.textContent = stateLabel;
     header.appendChild(state);
 
@@ -1093,11 +1102,32 @@ function renderChartHeadlineStats(detail) {
     .join("");
 }
 
+function getChartLib() {
+  return globalThis.LightweightCharts || null;
+}
+
+function renderChartUnavailable(message) {
+  destroyCharts();
+  hideHoverCard();
+  const placeholder = document.createElement("div");
+  placeholder.className = "chart-unavailable";
+  placeholder.textContent = message;
+  elements.priceChartContainer.innerHTML = "";
+  elements.priceChartContainer.appendChild(placeholder);
+  elements.volumeChartContainer.innerHTML = "";
+}
+
 function renderMainChart(detail) {
   const chartData = detail.history || [];
   state.currentChartData = chartData;
+  if (!getChartLib()) {
+    renderChartUnavailable("图表库未加载，当前无法显示图表。");
+    return;
+  }
   if (!state.priceChart) {
-    createMainChart();
+    if (!createMainChart()) {
+      return;
+    }
   }
 
   state.candleSeries.setData(
@@ -1153,10 +1183,19 @@ function renderMainChart(detail) {
 }
 
 function createMainChart() {
-  const dashedLineStyle = LightweightCharts.LineStyle?.Dashed ?? 2;
-  const dottedLineStyle = LightweightCharts.LineStyle?.Dotted ?? 1;
+  const chartLib = getChartLib();
+  if (!chartLib) {
+    renderChartUnavailable("图表库未加载，当前无法显示图表。");
+    return false;
+  }
 
-  state.priceChart = LightweightCharts.createChart(elements.priceChartContainer, {
+  elements.priceChartContainer.innerHTML = "";
+  elements.volumeChartContainer.innerHTML = "";
+
+  const dashedLineStyle = chartLib.LineStyle?.Dashed ?? 2;
+  const dottedLineStyle = chartLib.LineStyle?.Dotted ?? 1;
+
+  state.priceChart = chartLib.createChart(elements.priceChartContainer, {
     layout: {
       background: { color: "rgba(255,255,255,0)" },
       textColor: "#102033",
@@ -1193,7 +1232,7 @@ function createMainChart() {
     },
   });
 
-  state.candleSeries = state.priceChart.addSeries(LightweightCharts.CandlestickSeries, {
+  state.candleSeries = state.priceChart.addSeries(chartLib.CandlestickSeries, {
     upColor: "#0f9d58",
     downColor: "#db4437",
     borderVisible: false,
@@ -1203,18 +1242,18 @@ function createMainChart() {
     priceLineVisible: false,
   });
 
-  state.closeLineSeries = state.priceChart.addSeries(LightweightCharts.LineSeries, {
+  state.closeLineSeries = state.priceChart.addSeries(chartLib.LineSeries, {
     color: "#0e7490",
     lineWidth: 3,
     title: "",
     crosshairMarkerVisible: true,
-    lineStyle: LightweightCharts.LineStyle?.Solid ?? 0,
+    lineStyle: chartLib.LineStyle?.Solid ?? 0,
     lastValueVisible: false,
     priceLineVisible: false,
   });
 
   state.maSeries = [
-    state.priceChart.addSeries(LightweightCharts.LineSeries, {
+    state.priceChart.addSeries(chartLib.LineSeries, {
       color: "#d48a00cc",
       lineWidth: 1.5,
       lineStyle: dottedLineStyle,
@@ -1222,7 +1261,7 @@ function createMainChart() {
       lastValueVisible: false,
       priceLineVisible: false,
     }),
-    state.priceChart.addSeries(LightweightCharts.LineSeries, {
+    state.priceChart.addSeries(chartLib.LineSeries, {
       color: "#0077b6bb",
       lineWidth: 1.5,
       lineStyle: dashedLineStyle,
@@ -1230,7 +1269,7 @@ function createMainChart() {
       lastValueVisible: false,
       priceLineVisible: false,
     }),
-    state.priceChart.addSeries(LightweightCharts.LineSeries, {
+    state.priceChart.addSeries(chartLib.LineSeries, {
       color: "#6d597aaa",
       lineWidth: 1.5,
       lineStyle: dashedLineStyle,
@@ -1238,7 +1277,7 @@ function createMainChart() {
       lastValueVisible: false,
       priceLineVisible: false,
     }),
-    state.priceChart.addSeries(LightweightCharts.LineSeries, {
+    state.priceChart.addSeries(chartLib.LineSeries, {
       color: "#1d3557aa",
       lineWidth: 1.5,
       lineStyle: dottedLineStyle,
@@ -1261,7 +1300,7 @@ function createMainChart() {
     });
   });
 
-  state.volumeChart = LightweightCharts.createChart(elements.volumeChartContainer, {
+  state.volumeChart = chartLib.createChart(elements.volumeChartContainer, {
     layout: {
       background: { color: "rgba(255,255,255,0)" },
       textColor: "#617286",
@@ -1291,7 +1330,7 @@ function createMainChart() {
     },
   });
 
-  state.volumeSeries = state.volumeChart.addSeries(LightweightCharts.HistogramSeries, {
+  state.volumeSeries = state.volumeChart.addSeries(chartLib.HistogramSeries, {
     priceFormat: { type: "volume" },
     priceScaleId: "right",
     lastValueVisible: false,
@@ -1319,6 +1358,7 @@ function createMainChart() {
   });
 
   bindChartWheelZoom();
+  return true;
 }
 
 function applyVisibleWindow(history) {
