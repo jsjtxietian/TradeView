@@ -418,7 +418,7 @@ def evaluate_market_pullback_resilience(context: AnalysisContext) -> tuple[bool 
     detail = (
         f"近 3 个月 {DEFAULT_BENCHMARK} 最大回撤 {fmt_pct(benchmark_drawdown)}"
         f"（{peak_date.strftime('%Y-%m-%d')} -> {trough_date.strftime('%Y-%m-%d')}）"
-        f" / 个股同期回撤 {fmt_pct(stock_drawdown)}"
+        f"\n个股同期回撤 {fmt_pct(stock_drawdown)}"
     )
     if higher_low:
         detail += "，个股近期低点高于上一轮低点"
