@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trend Deck</title>
-  <link rel="stylesheet" href="/static/styles.css?v=20260418-06" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260418-11" />
 </head>
 <body>
   <div class="page-shell">
@@ -22,6 +22,7 @@
             <button type="submit">添加</button>
           </form>
           <button type="button" id="trendFilterButton" class="secondary">只看趋势模板</button>
+          <button type="button" id="holdingFilterButton" class="secondary">只看持仓</button>
           <button type="button" id="editGroupsButton" class="secondary">分组</button>
           <button type="button" id="refreshButton" class="secondary">拉新</button>
           <button type="button" id="alertsButton" class="secondary alerts-button" aria-label="查看提醒">
@@ -128,7 +129,11 @@
         <span>内容</span>
         <textarea id="noteTextarea" rows="10" placeholder="记录交易计划、关键价位、财报关注点等"></textarea>
       </label>
-      <div class="group-editor-actions">
+      <div class="group-editor-actions note-editor-actions">
+        <label class="note-flag-toggle">
+          <input id="noteHoldingCheckbox" type="checkbox" />
+          <span>标记为我的持仓</span>
+        </label>
         <button type="button" id="deleteSymbolButton" class="secondary">删除该股票</button>
         <button type="button" id="clearNoteButton" class="secondary">清空</button>
         <button type="button" id="cancelNoteButton" class="secondary">取消</button>
@@ -155,6 +160,6 @@
   <div id="toast" class="toast" hidden></div>
 
   <script src="https://unpkg.com/lightweight-charts@5.0.0/dist/lightweight-charts.standalone.production.js"></script>
-  <script src="/static/app.js?v=20260418-06" type="module"></script>
+  <script src="/static/app.js?v=20260418-11" type="module"></script>
 </body>
 </html>

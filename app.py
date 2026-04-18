@@ -370,22 +370,28 @@ def evaluate_market_pullback_resilience(context: AnalysisContext) -> tuple[bool 
     if len(benchmark_tail) < 30:
         return None, f"{DEFAULT_BENCHMARK} 历史不足，无法识别近期回调波段"
 
-    peak_idx = int(benchmark_tail["Close"].idxmax())
-    if peak_idx >= len(benchmark_tail) - 5:
-        return None, f"近 3 个月 {DEFAULT_BENCHMARK} 尚未形成明确回调段"
-
-    bench_segment = benchmark_tail.iloc[peak_idx:].copy()
-    bench_peak = bench_segment["Close"].iloc[0]
-    bench_low = bench_segment["Close"].min()
-    if not require_values(bench_peak, bench_low) or bench_peak == 0:
+    rolling_peak = benchmark_tail["Close"].cummax()
+    drawdowns = 1 - benchmark_tail["Close"] / rolling_peak
+    if drawdowns.isna().all():
         return None, f"{DEFAULT_BENCHMARK} 回调段数据不足"
 
-    benchmark_drawdown = 1 - bench_low / bench_peak
+    trough_idx = int(drawdowns.idxmax())
+    benchmark_drawdown = float(drawdowns.iloc[trough_idx])
     if benchmark_drawdown < 0.08:
         return None, f"近 3 个月 {DEFAULT_BENCHMARK} 最大回撤 {fmt_pct(benchmark_drawdown)}，回调不够明确"
 
-    peak_date = bench_segment["Date"].iloc[0]
-    stock_segment = context.stock[context.stock["Date"] >= peak_date].copy()
+    peak_idx = int(benchmark_tail["Close"].iloc[: trough_idx + 1].idxmax())
+    bench_peak = benchmark_tail["Close"].iloc[peak_idx]
+    bench_low = benchmark_tail["Close"].iloc[trough_idx]
+    peak_date = benchmark_tail["Date"].iloc[peak_idx]
+    trough_date = benchmark_tail["Date"].iloc[trough_idx]
+
+    if not require_values(bench_peak, bench_low) or bench_peak == 0:
+        return None, f"{DEFAULT_BENCHMARK} 回调段数据不足"
+
+    stock_segment = context.stock[
+        (context.stock["Date"] >= peak_date) & (context.stock["Date"] <= trough_date)
+    ].copy()
     if len(stock_segment) < 5:
         return None, "个股与基准对齐后的样本不足"
 
@@ -409,7 +415,11 @@ def evaluate_market_pullback_resilience(context: AnalysisContext) -> tuple[bool 
 
     outperformed = stock_drawdown <= benchmark_drawdown * 0.75
     passed = bool(outperformed or higher_low)
-    detail = f"近 3 个月 {DEFAULT_BENCHMARK} 回撤 {fmt_pct(benchmark_drawdown)} / 个股回撤 {fmt_pct(stock_drawdown)}"
+    detail = (
+        f"近 3 个月 {DEFAULT_BENCHMARK} 最大回撤 {fmt_pct(benchmark_drawdown)}"
+        f"（{peak_date.strftime('%Y-%m-%d')} -> {trough_date.strftime('%Y-%m-%d')}）"
+        f" / 个股同期回撤 {fmt_pct(stock_drawdown)}"
+    )
     if higher_low:
         detail += "，个股近期低点高于上一轮低点"
     elif outperformed:
@@ -612,7 +622,9 @@ def build_trend_sparkline(frame: pd.DataFrame) -> dict[str, Any]:
     ma20 = window["MA20"].copy()
     fallback = frame["Close"].expanding(min_periods=1).mean().tail(len(window)).reset_index(drop=True)
     ma20 = ma20.reset_index(drop=True)
-    base = ma20.where(ma20.notna(), fallback)
+    close = window["Close"].reset_index(drop=True)
+    ma20_base = ma20.where(ma20.notna(), fallback)
+    base = ma20_base * 0.7 + close * 0.3
     smooth = base.ewm(span=3, adjust=False).mean().dropna()
     values = [round(float(value), 4) for value in smooth.tolist()]
 

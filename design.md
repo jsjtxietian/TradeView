@@ -85,9 +85,11 @@ Keys:
 - `trenddeck_chart_prefs`
   chart mode and MA visibility
 - `trenddeck_symbol_notes`
-  per-symbol notes
+  per-symbol notes and holding flag
 - `trenddeck_watchlist_filter_template`
   whether watchlist is filtered to full trend-template matches
+- `trenddeck_watchlist_filter_holding`
+  whether watchlist is filtered to locally marked holdings
 - `trenddeck_watchlist_alerts`
   recent alert list shown in alerts modal
 - `trenddeck_watchlist_alerts_snapshot`
@@ -161,10 +163,11 @@ Implementation lives in `build_trend_sparkline()` in `app.py`.
 Steps:
 
 1. take the last up to `35` trading days for display
-2. use `MA20` as the base trend line
+2. build a `MA20` base line
 3. if early rows do not have `MA20` yet, backfill with cumulative mean of all history up to that date
-4. run a `3-period EMA` over that base line
-5. display only the resulting smoothed series in the watchlist
+4. blend the base with raw close using `0.7 * MA20_base + 0.3 * Close`
+5. run a `3-period EMA` over that blended line
+6. display only the resulting smoothed series in the watchlist
 
 Direction color:
 
@@ -178,6 +181,7 @@ Direction color:
 
 Reasoning:
 
+- the `70/30` blend keeps the line anchored to recent structure while reacting faster to sharp reversals and breakouts
 - MA20 reflects recent price structure better than raw close
 - EMA removes jagged turns without drifting too far
 - the watchlist view should emphasize direction, not candle noise
@@ -237,8 +241,11 @@ Behavior:
 
 - click opens modal only
 - no hover preview card
+- note modal stores both free-form text and a local `isHolding` flag
+- holding symbols get a highlighted card background in the watchlist
 - button `title` text shows:
   - custom note if it exists
+  - otherwise `持仓股` when only the holding flag is set
   - otherwise a generic "查看或编辑笔记"
 
 Reason:

@@ -3,9 +3,12 @@ const GROUPS_STORAGE_KEY = "trenddeck_watchlist_groups";
 const CHART_PREFS_KEY = "trenddeck_chart_prefs";
 const NOTES_STORAGE_KEY = "trenddeck_symbol_notes";
 const TREND_FILTER_STORAGE_KEY = "trenddeck_watchlist_filter_template";
+const HOLDING_FILTER_STORAGE_KEY = "trenddeck_watchlist_filter_holding";
 const ALERTS_STORAGE_KEY = "trenddeck_watchlist_alerts";
 const ALERTS_SNAPSHOT_STORAGE_KEY = "trenddeck_watchlist_alerts_snapshot";
 const DEFAULT_VISIBLE_BARS = 126;
+const WATCHLIST_COLUMN_MIN_WIDTH = 280;
+const WATCHLIST_COLUMN_GAP = 10;
 
 let toastTimer = null;
 
@@ -17,8 +20,10 @@ const state = {
   alertsSnapshot: {},
   alertsOpen: false,
   filterTrendTemplateOnly: false,
+  filterHoldingOnly: false,
   activeNoteSymbol: null,
   draggingGroupId: null,
+  draggingSymbol: null,
   selectedSymbol: null,
   chartMode: "close",
   currentChartData: [],
@@ -32,6 +37,7 @@ const state = {
   maSeries: [],
   maVisibility: { MA20: true, MA50: true, MA150: true, MA200: true },
   chartWheelBound: false,
+  watchlistResizeTimer: null,
 };
 
 const elements = {
@@ -43,6 +49,7 @@ const elements = {
   alertsList: document.getElementById("alertsList"),
   closeAlertsButton: document.getElementById("closeAlertsButton"),
   trendFilterButton: document.getElementById("trendFilterButton"),
+  holdingFilterButton: document.getElementById("holdingFilterButton"),
   editGroupsButton: document.getElementById("editGroupsButton"),
   refreshButton: document.getElementById("refreshButton"),
   chartMode: document.getElementById("chartMode"),
@@ -65,6 +72,7 @@ const elements = {
   saveGroupEditButton: document.getElementById("saveGroupEditButton"),
   noteDialog: document.getElementById("noteDialog"),
   noteDialogTitle: document.getElementById("noteDialogTitle"),
+  noteHoldingCheckbox: document.getElementById("noteHoldingCheckbox"),
   noteTextarea: document.getElementById("noteTextarea"),
   deleteSymbolButton: document.getElementById("deleteSymbolButton"),
   clearNoteButton: document.getElementById("clearNoteButton"),
@@ -85,11 +93,13 @@ async function init() {
   state.alerts = loadStoredAlerts();
   state.alertsSnapshot = loadStoredAlertsSnapshot();
   state.filterTrendTemplateOnly = loadStoredTrendFilter();
+  state.filterHoldingOnly = loadStoredHoldingFilter();
   state.watchlistGroups = loadStoredWatchlistGroups(
     normalizeWatchlistGroups(config.watchlistGroups || []),
   );
   elements.chartMode.value = state.chartMode;
   syncTrendFilterButton();
+  syncHoldingFilterButton();
   renderAlerts();
 
   const storedWatchlist = loadStoredWatchlist();
@@ -146,6 +156,16 @@ function bindEvents() {
     state.filterTrendTemplateOnly = !state.filterTrendTemplateOnly;
     persistTrendFilter();
     syncTrendFilterButton();
+    renderWatchlist();
+    syncSelectionWithFilter().catch((error) => {
+      showMessage(error.message || String(error), true);
+    });
+  });
+
+  elements.holdingFilterButton.addEventListener("click", () => {
+    state.filterHoldingOnly = !state.filterHoldingOnly;
+    persistHoldingFilter();
+    syncHoldingFilterButton();
     renderWatchlist();
     syncSelectionWithFilter().catch((error) => {
       showMessage(error.message || String(error), true);
@@ -214,6 +234,7 @@ function bindEvents() {
 
   window.addEventListener("resize", () => {
     resizeCharts();
+    queueWatchlistLayoutRefresh();
   });
 }
 
@@ -274,16 +295,72 @@ function renderWatchlist() {
   if (!sections.length) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
-    empty.textContent = state.filterTrendTemplateOnly
-      ? "当前没有满足 8 个趋势模板条件的股票。"
-      : "当前没有自选股，请先添加股票。";
+    empty.textContent = getWatchlistEmptyMessage();
     elements.watchlistBoard.appendChild(empty);
     return;
   }
 
+  renderWatchlistMasonry(sections);
+}
+
+function renderWatchlistMasonry(sections) {
+  const columnCount = getWatchlistColumnCount(sections.length);
+  const columns = Array.from({ length: columnCount }, () => {
+    const column = document.createElement("div");
+    column.className = "watchlist-column";
+    elements.watchlistBoard.appendChild(column);
+    return column;
+  });
+  const columnHeights = new Array(columnCount).fill(0);
+
   for (const section of sections) {
-    elements.watchlistBoard.appendChild(renderWatchlistSection(section));
+    const panel = renderWatchlistSection(section);
+    const targetIndex = getShortestColumnIndex(columnHeights);
+    columns[targetIndex].appendChild(panel);
+    columnHeights[targetIndex] = columns[targetIndex].scrollHeight;
   }
+
+  for (const column of columns) {
+    const dropzone = document.createElement("div");
+    dropzone.className = "watchlist-column-dropzone";
+    bindColumnDropzone(dropzone, column);
+    column.appendChild(dropzone);
+  }
+}
+
+function getWatchlistColumnCount(sectionCount) {
+  const boardWidth =
+    elements.watchlistBoard.clientWidth
+    || elements.watchlistBoard.parentElement?.clientWidth
+    || WATCHLIST_COLUMN_MIN_WIDTH;
+  const count = Math.max(
+    1,
+    Math.floor((boardWidth + WATCHLIST_COLUMN_GAP) / (WATCHLIST_COLUMN_MIN_WIDTH + WATCHLIST_COLUMN_GAP)),
+  );
+  return Math.max(1, Math.min(sectionCount || 1, count));
+}
+
+function getShortestColumnIndex(columnHeights) {
+  let shortestIndex = 0;
+  for (let index = 1; index < columnHeights.length; index += 1) {
+    if (columnHeights[index] < columnHeights[shortestIndex]) {
+      shortestIndex = index;
+    }
+  }
+  return shortestIndex;
+}
+
+function queueWatchlistLayoutRefresh() {
+  if (!state.watchlist.length) {
+    return;
+  }
+  if (state.watchlistResizeTimer) {
+    clearTimeout(state.watchlistResizeTimer);
+  }
+  state.watchlistResizeTimer = setTimeout(() => {
+    state.watchlistResizeTimer = null;
+    renderWatchlist();
+  }, 120);
 }
 
 async function loadDetail(symbol, forceRefresh = false) {
@@ -495,59 +572,73 @@ function buildWatchlistSections() {
 function renderWatchlistSection(section) {
   const panel = document.createElement("section");
   panel.className = "watchlist-group";
+  panel.dataset.sectionId = section.id;
   if (section.draggable) {
     panel.classList.add("draggable");
-    panel.draggable = true;
     panel.dataset.groupId = section.id;
-    bindGroupDrag(panel, section.id);
   }
-  panel.innerHTML = `
-    <header class="watchlist-group-header">
-      <h3>${section.name}</h3>
-    </header>
-  `;
+
+  const header = document.createElement("header");
+  header.className = "watchlist-group-header";
+  header.innerHTML = `<h3>${section.name}</h3>`;
+  if (section.draggable) {
+    header.classList.add("watchlist-group-drag-handle");
+    header.draggable = true;
+    bindGroupDrag(header, panel, section.id);
+  }
 
   const body = document.createElement("div");
   body.className = "watchlist-group-body";
+  body.dataset.sectionId = section.id;
+  bindSymbolContainerDrop(body, section.id);
+
+  panel.appendChild(header);
 
   if (!section.symbols.length) {
     const empty = document.createElement("div");
     empty.className = "watchlist-group-empty";
     empty.textContent = section.emptyText;
     body.appendChild(empty);
+    body.appendChild(createSymbolDropzone(section.id));
     panel.appendChild(body);
     return panel;
   }
 
   for (const symbol of section.symbols) {
-    body.appendChild(renderWatchlistItem(symbol));
+    body.appendChild(renderWatchlistItem(symbol, section.id));
   }
+  body.appendChild(createSymbolDropzone(section.id));
 
   panel.appendChild(body);
   return panel;
 }
 
-function bindGroupDrag(panel, groupId) {
-  panel.addEventListener("dragstart", (event) => {
+function bindGroupDrag(handle, panel, groupId) {
+  handle.addEventListener("dragstart", (event) => {
+    if (state.draggingSymbol) {
+      event.preventDefault();
+      return;
+    }
     state.draggingGroupId = groupId;
+    elements.watchlistBoard.classList.add("dragging-groups");
     panel.classList.add("dragging");
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData("text/plain", groupId);
   });
 
-  panel.addEventListener("dragend", () => {
+  handle.addEventListener("dragend", () => {
     state.draggingGroupId = null;
+    elements.watchlistBoard.classList.remove("dragging-groups");
     panel.classList.remove("dragging");
-    for (const groupNode of elements.watchlistBoard.querySelectorAll(".watchlist-group")) {
-      groupNode.classList.remove("drag-over");
-    }
+    clearGroupDragOverStates();
   });
 
   panel.addEventListener("dragover", (event) => {
-    if (!state.draggingGroupId || state.draggingGroupId === groupId) {
+    if (!state.draggingGroupId || state.draggingGroupId === groupId || state.draggingSymbol) {
       return;
     }
     event.preventDefault();
+    clearGroupDragOverStates(panel);
     panel.classList.add("drag-over");
   });
 
@@ -557,13 +648,127 @@ function bindGroupDrag(panel, groupId) {
 
   panel.addEventListener("drop", (event) => {
     event.preventDefault();
-    panel.classList.remove("drag-over");
+    clearGroupDragOverStates();
     const sourceId = state.draggingGroupId;
     if (!sourceId || sourceId === groupId) {
       return;
     }
     moveGroupBefore(sourceId, groupId);
   });
+}
+
+function bindColumnDropzone(dropzone, column) {
+  dropzone.addEventListener("dragover", (event) => {
+    if (!state.draggingGroupId || state.draggingSymbol) {
+      return;
+    }
+    event.preventDefault();
+    clearGroupDragOverStates(dropzone);
+    dropzone.classList.add("drag-over");
+  });
+
+  dropzone.addEventListener("dragleave", () => {
+    dropzone.classList.remove("drag-over");
+  });
+
+  dropzone.addEventListener("drop", (event) => {
+    event.preventDefault();
+    clearGroupDragOverStates();
+    const sourceId = state.draggingGroupId;
+    if (!sourceId) {
+      return;
+    }
+    const lastDraggableGroup = [...column.querySelectorAll(".watchlist-group[data-group-id]")]
+      .map((node) => node.dataset.groupId)
+      .filter(Boolean)
+      .filter((groupId) => groupId !== sourceId)
+      .at(-1);
+    if (!lastDraggableGroup) {
+      moveGroupToEnd(sourceId);
+      return;
+    }
+    moveGroupAfter(sourceId, lastDraggableGroup);
+  });
+}
+
+function clearGroupDragOverStates(exceptNode = null) {
+  for (const node of elements.watchlistBoard.querySelectorAll(".watchlist-group.drag-over, .watchlist-column-dropzone.drag-over")) {
+    if (node !== exceptNode) {
+      node.classList.remove("drag-over");
+    }
+  }
+}
+
+function createSymbolDropzone(sectionId) {
+  const dropzone = document.createElement("div");
+  dropzone.className = "watchlist-item-dropzone";
+  dropzone.dataset.sectionId = sectionId;
+  bindSymbolDropzone(dropzone, sectionId);
+  return dropzone;
+}
+
+function bindSymbolContainerDrop(container, sectionId) {
+  container.addEventListener("dragover", (event) => {
+    if (!state.draggingSymbol) {
+      return;
+    }
+    if (event.target.closest(".watchlist-item") || event.target.closest(".watchlist-item-dropzone")) {
+      return;
+    }
+    event.preventDefault();
+    clearSymbolDragOverStates(container);
+    container.classList.add("drag-over-end");
+  });
+
+  container.addEventListener("dragleave", (event) => {
+    if (event.currentTarget === event.target) {
+      container.classList.remove("drag-over-end");
+    }
+  });
+
+  container.addEventListener("drop", (event) => {
+    if (!state.draggingSymbol) {
+      return;
+    }
+    if (event.target.closest(".watchlist-item") || event.target.closest(".watchlist-item-dropzone")) {
+      return;
+    }
+    event.preventDefault();
+    clearSymbolDragOverStates();
+    moveSymbolToSection(state.draggingSymbol.symbol, sectionId, null, "end");
+  });
+}
+
+function bindSymbolDropzone(dropzone, sectionId) {
+  dropzone.addEventListener("dragover", (event) => {
+    if (!state.draggingSymbol) {
+      return;
+    }
+    event.preventDefault();
+    clearSymbolDragOverStates(dropzone);
+    dropzone.classList.add("drag-over");
+  });
+
+  dropzone.addEventListener("dragleave", () => {
+    dropzone.classList.remove("drag-over");
+  });
+
+  dropzone.addEventListener("drop", (event) => {
+    if (!state.draggingSymbol) {
+      return;
+    }
+    event.preventDefault();
+    clearSymbolDragOverStates();
+    moveSymbolToSection(state.draggingSymbol.symbol, sectionId, null, "end");
+  });
+}
+
+function clearSymbolDragOverStates(exceptNode = null) {
+  for (const node of elements.watchlistBoard.querySelectorAll(".watchlist-item.drag-over-before, .watchlist-item.drag-over-after, .watchlist-item-dropzone.drag-over, .watchlist-group-body.drag-over-end")) {
+    if (node !== exceptNode) {
+      node.classList.remove("drag-over-before", "drag-over-after", "drag-over", "drag-over-end");
+    }
+  }
 }
 
 function moveGroupBefore(sourceId, targetId) {
@@ -582,11 +787,45 @@ function moveGroupBefore(sourceId, targetId) {
   showToast("分组顺序已更新。");
 }
 
-function renderWatchlistItem(symbol) {
+function moveGroupAfter(sourceId, targetId) {
+  const groups = [...state.watchlistGroups];
+  const sourceIndex = groups.findIndex((group) => group.id === sourceId);
+  const targetIndex = groups.findIndex((group) => group.id === targetId);
+  if (sourceIndex < 0 || targetIndex < 0 || sourceId === targetId) {
+    return;
+  }
+  const [moved] = groups.splice(sourceIndex, 1);
+  const nextTargetIndex = groups.findIndex((group) => group.id === targetId);
+  groups.splice(nextTargetIndex + 1, 0, moved);
+  state.watchlistGroups = groups;
+  persistWatchlistGroups();
+  renderWatchlist();
+  showToast("分组顺序已更新。");
+}
+
+function moveGroupToEnd(sourceId) {
+  const groups = [...state.watchlistGroups];
+  const sourceIndex = groups.findIndex((group) => group.id === sourceId);
+  if (sourceIndex < 0 || sourceIndex === groups.length - 1) {
+    return;
+  }
+  const [moved] = groups.splice(sourceIndex, 1);
+  groups.push(moved);
+  state.watchlistGroups = groups;
+  persistWatchlistGroups();
+  renderWatchlist();
+  showToast("分组顺序已更新。");
+}
+
+function renderWatchlistItem(symbol, sectionId) {
   const item = state.summaries.get(symbol);
   const card = document.createElement("article");
-  card.className = `watchlist-item${symbol === state.selectedSymbol ? " selected" : ""}`;
+  card.className = `watchlist-item${symbol === state.selectedSymbol ? " selected" : ""}${getHoldingForSymbol(symbol) ? " holding" : ""}`;
   card.tabIndex = 0;
+  card.draggable = true;
+  card.dataset.symbol = symbol;
+  card.dataset.sectionId = sectionId;
+  bindWatchlistItemDrag(card, symbol, sectionId);
 
   const openDetail = async () => {
     if (state.selectedSymbol === symbol) {
@@ -638,6 +877,124 @@ function renderWatchlistItem(symbol) {
   `;
   bindNoteButton(card, symbol);
   return card;
+}
+
+function bindWatchlistItemDrag(card, symbol, sectionId) {
+  card.addEventListener("dragstart", (event) => {
+    state.draggingSymbol = { symbol, sectionId };
+    elements.watchlistBoard.classList.add("dragging-symbols");
+    card.classList.add("dragging");
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", symbol);
+    event.stopPropagation();
+  });
+
+  card.addEventListener("dragend", () => {
+    state.draggingSymbol = null;
+    elements.watchlistBoard.classList.remove("dragging-symbols");
+    card.classList.remove("dragging");
+    clearSymbolDragOverStates();
+  });
+
+  card.addEventListener("dragover", (event) => {
+    if (!state.draggingSymbol || state.draggingSymbol.symbol === symbol) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const placement = getSymbolDropPlacement(card, event.clientY);
+    clearSymbolDragOverStates(card);
+    card.classList.add(placement === "before" ? "drag-over-before" : "drag-over-after");
+  });
+
+  card.addEventListener("dragleave", () => {
+    card.classList.remove("drag-over-before", "drag-over-after");
+  });
+
+  card.addEventListener("drop", (event) => {
+    if (!state.draggingSymbol || state.draggingSymbol.symbol === symbol) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const placement = getSymbolDropPlacement(card, event.clientY);
+    clearSymbolDragOverStates();
+    moveSymbolToSection(state.draggingSymbol.symbol, sectionId, symbol, placement);
+  });
+}
+
+function getSymbolDropPlacement(card, clientY) {
+  const rect = card.getBoundingClientRect();
+  return clientY < rect.top + rect.height / 2 ? "before" : "after";
+}
+
+function moveSymbolToSection(symbol, targetSectionId, targetSymbol = null, placement = "end") {
+  const normalizedSymbol = normalizeSymbol(symbol);
+  if (!normalizedSymbol || !state.watchlist.includes(normalizedSymbol)) {
+    return;
+  }
+
+  const nextGroups = state.watchlistGroups.map((group) => ({
+    ...group,
+    symbols: (group.symbols || []).filter((item) => item !== normalizedSymbol),
+  }));
+
+  if (targetSectionId !== "ungrouped") {
+    const targetGroup = nextGroups.find((group) => group.id === targetSectionId);
+    if (!targetGroup) {
+      return;
+    }
+    insertSymbolIntoList(targetGroup.symbols, normalizedSymbol, targetSymbol, placement);
+  }
+
+  const nextWatchlist = buildWatchlistOrder(nextGroups, normalizedSymbol, targetSectionId, targetSymbol, placement);
+  if (targetSectionId === "ungrouped" && !nextWatchlist.includes(normalizedSymbol)) {
+    nextWatchlist.push(normalizedSymbol);
+  }
+
+  state.watchlistGroups = nextGroups;
+  state.watchlist = nextWatchlist;
+  persistWatchlistGroups();
+  persistWatchlist();
+  renderWatchlist();
+}
+
+function buildWatchlistOrder(groups, movingSymbol, targetSectionId, targetSymbol, placement) {
+  const assignedSymbols = new Set(groups.flatMap((group) => group.symbols));
+  const ungrouped = state.watchlist.filter((symbol) => symbol !== movingSymbol && !assignedSymbols.has(symbol));
+
+  if (targetSectionId === "ungrouped") {
+    insertSymbolIntoList(ungrouped, movingSymbol, targetSymbol, placement);
+  }
+
+  const ordered = [];
+  const seen = new Set();
+  for (const group of groups) {
+    for (const symbol of group.symbols) {
+      if (!seen.has(symbol) && state.watchlist.includes(symbol)) {
+        ordered.push(symbol);
+        seen.add(symbol);
+      }
+    }
+  }
+  for (const symbol of ungrouped) {
+    if (!seen.has(symbol)) {
+      ordered.push(symbol);
+      seen.add(symbol);
+    }
+  }
+  return ordered;
+}
+
+function insertSymbolIntoList(list, symbol, targetSymbol, placement) {
+  const normalizedTarget = normalizeSymbol(targetSymbol || "");
+  const nextIndex = normalizedTarget ? list.indexOf(normalizedTarget) : -1;
+  if (nextIndex < 0 || placement === "end") {
+    list.push(symbol);
+    return;
+  }
+  const insertIndex = placement === "after" ? nextIndex + 1 : nextIndex;
+  list.splice(insertIndex, 0, symbol);
 }
 
 function renderAlerts() {
@@ -1195,6 +1552,10 @@ function persistTrendFilter() {
   localStorage.setItem(TREND_FILTER_STORAGE_KEY, state.filterTrendTemplateOnly ? "1" : "0");
 }
 
+function persistHoldingFilter() {
+  localStorage.setItem(HOLDING_FILTER_STORAGE_KEY, state.filterHoldingOnly ? "1" : "0");
+}
+
 function persistAlerts() {
   localStorage.setItem(ALERTS_STORAGE_KEY, JSON.stringify(state.alerts));
 }
@@ -1274,8 +1635,26 @@ function loadStoredNotes() {
     }
     return Object.fromEntries(
       Object.entries(parsed)
-        .map(([symbol, note]) => [normalizeSymbol(symbol), String(note || "")])
-        .filter(([symbol, note]) => symbol && note.trim()),
+        .map(([symbol, note]) => {
+          const normalizedSymbol = normalizeSymbol(symbol);
+          if (!normalizedSymbol) {
+            return null;
+          }
+          if (typeof note === "string") {
+            const text = note.trim();
+            return text ? [normalizedSymbol, { text, isHolding: false }] : null;
+          }
+          if (!note || typeof note !== "object" || Array.isArray(note)) {
+            return null;
+          }
+          const text = String(note.text || "").trim();
+          const isHolding = !!note.isHolding;
+          if (!text && !isHolding) {
+            return null;
+          }
+          return [normalizedSymbol, { text, isHolding }];
+        })
+        .filter(Boolean),
     );
   } catch {
     return {};
@@ -1285,6 +1664,14 @@ function loadStoredNotes() {
 function loadStoredTrendFilter() {
   try {
     return localStorage.getItem(TREND_FILTER_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function loadStoredHoldingFilter() {
+  try {
+    return localStorage.getItem(HOLDING_FILTER_STORAGE_KEY) === "1";
   } catch {
     return false;
   }
@@ -1365,13 +1752,21 @@ function stripCheckNamePrefix(value) {
 }
 
 function getNoteForSymbol(symbol) {
-  return String(state.notes[normalizeSymbol(symbol)] || "").trim();
+  return String(state.notes[normalizeSymbol(symbol)]?.text || "").trim();
+}
+
+function getHoldingForSymbol(symbol) {
+  return !!state.notes[normalizeSymbol(symbol)]?.isHolding;
 }
 
 function renderNoteButton(symbol) {
-  const hasNote = !!getNoteForSymbol(symbol);
-  const activeClass = hasNote ? " has-note" : "";
-  const title = hasNote ? getNoteForSymbol(symbol) : "查看或编辑笔记";
+  const noteText = getNoteForSymbol(symbol);
+  const isHolding = getHoldingForSymbol(symbol);
+  const hasMeta = !!noteText || isHolding;
+  const activeClass = hasMeta ? " has-note" : "";
+  const title = noteText
+    ? (isHolding ? `持仓股 · ${noteText}` : noteText)
+    : (isHolding ? "持仓股" : "查看或编辑笔记");
   return `
     <button type="button" class="watchlist-note-button${activeClass}" data-note-symbol="${symbol}" aria-label="${escapeHtml(title)}" title="${escapeHtml(title)}">
       i
@@ -1395,6 +1790,7 @@ function openNoteEditor(symbol) {
   state.activeNoteSymbol = symbol;
   elements.noteDialogTitle.textContent = `${symbol} 笔记`;
   elements.noteTextarea.value = getNoteForSymbol(symbol);
+  elements.noteHoldingCheckbox.checked = getHoldingForSymbol(symbol);
   elements.deleteSymbolButton.hidden = !state.watchlist.includes(symbol);
   elements.noteDialog.showModal();
   elements.noteTextarea.focus();
@@ -1406,8 +1802,12 @@ function saveNote() {
   }
   const symbol = normalizeSymbol(state.activeNoteSymbol);
   const value = String(elements.noteTextarea.value || "").trim();
-  if (value) {
-    state.notes[symbol] = value;
+  const isHolding = !!elements.noteHoldingCheckbox.checked;
+  if (value || isHolding) {
+    state.notes[symbol] = {
+      text: value,
+      isHolding,
+    };
   } else {
     delete state.notes[symbol];
   }
@@ -1448,12 +1848,15 @@ async function deleteActiveSymbol() {
 }
 
 function filterWatchlistSymbols(symbols) {
-  if (!state.filterTrendTemplateOnly) {
-    return symbols;
-  }
   return symbols.filter((symbol) => {
     const data = state.summaries.get(symbol)?.data;
-    return !!data && data.trendPassCount === data.trendTotal && data.trendTotal > 0;
+    if (state.filterTrendTemplateOnly && !(!!data && data.trendPassCount === data.trendTotal && data.trendTotal > 0)) {
+      return false;
+    }
+    if (state.filterHoldingOnly && !getHoldingForSymbol(symbol)) {
+      return false;
+    }
+    return true;
   });
 }
 
@@ -1478,7 +1881,23 @@ async function syncSelectionWithFilter() {
 
 function syncTrendFilterButton() {
   elements.trendFilterButton.classList.toggle("active-toggle", state.filterTrendTemplateOnly);
-  elements.trendFilterButton.textContent = state.filterTrendTemplateOnly ? "显示全部" : "只看趋势模板";
+}
+
+function syncHoldingFilterButton() {
+  elements.holdingFilterButton.classList.toggle("active-toggle", state.filterHoldingOnly);
+}
+
+function getWatchlistEmptyMessage() {
+  if (state.filterTrendTemplateOnly && state.filterHoldingOnly) {
+    return "当前没有同时满足趋势模板且标记为持仓的股票。";
+  }
+  if (state.filterTrendTemplateOnly) {
+    return "当前没有满足 8 个趋势模板条件的股票。";
+  }
+  if (state.filterHoldingOnly) {
+    return "当前没有标记为持仓的股票。";
+  }
+  return "当前没有自选股，请先添加股票。";
 }
 
 function updateAlertsFromSummary(items) {
