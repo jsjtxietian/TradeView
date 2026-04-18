@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trend Deck</title>
-  <link rel="stylesheet" href="/static/styles.css?v=20260418-11" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260418-13" />
 </head>
 <body>
   <div class="page-shell">
@@ -13,7 +13,6 @@
     <section class="panel">
       <div class="panel-header">
         <div>
-          <p class="panel-kicker">Watchlist</p>
           <h2>自选股概览</h2>
         </div>
         <div class="watchlist-tools">
@@ -33,18 +32,10 @@
       <div id="watchlistBoard" class="watchlist-board"></div>
     </section>
 
-    <section class="detail-header">
-      <div>
-        <p class="panel-kicker">Detail</p>
-        <h2 id="detailTitle">选择一只股票</h2>
-      </div>
-    </section>
-
     <section id="detailSection" class="detail-grid" hidden>
       <section class="panel chart-panel">
         <div class="panel-header">
           <div>
-            <p class="panel-kicker">Chart</p>
             <div class="chart-title-row">
               <h3 id="chartTitle">选择一只股票</h3>
               <div id="chartHeadlineStats" class="chart-headline-stats"></div>
@@ -80,7 +71,6 @@
         <section class="panel">
           <div class="panel-header">
             <div>
-              <p class="panel-kicker">Trend</p>
               <h3>趋势模板检查</h3>
             </div>
           </div>
@@ -89,7 +79,6 @@
         <section class="panel">
           <div class="panel-header">
             <div>
-              <p class="panel-kicker">Trend 9-13</p>
               <h3>趋势扩展检查</h3>
             </div>
           </div>
@@ -160,6 +149,6 @@
   <div id="toast" class="toast" hidden></div>
 
   <script src="https://unpkg.com/lightweight-charts@5.0.0/dist/lightweight-charts.standalone.production.js"></script>
-  <script src="/static/app.js?v=20260418-11" type="module"></script>
+  <script src="/static/app.js?v=20260418-13" type="module"></script>
 </body>
 </html>

@@ -193,6 +193,21 @@ There are two analysis groups:
 - base trend template `1-8`
 - extended checks `9-13`
 
+Extended implementation note:
+
+- trend `9` first finds SPY's largest drawdown window over the latest `63` trading days
+- stock resilience is then judged inside that same market-stress window, while also checking for a higher-low structure
+- trend `10` uses a weighted volume-price health score over the latest `30` trading days
+- a day counts as "volume-significant" only when `Volume > 1.05 * VolumeMA50`
+- upward and downward pressure are scored separately as `abs(day return) * (Volume / VolumeMA50)`
+- the check passes when:
+  - volume-significant up days are at least `3`
+  - up days are not fewer than down days
+  - upward weighted score is at least `max(down_score * 1.25, down_score + 0.02)`
+- trend `11` measures pullback from the latest `6` month closing high to current close
+- trend `12` compares average amplitude across three recent segments and also checks for small-body candles in the latest `10` sessions
+- trend `13` looks for simultaneous range contraction and volume dry-up near the end of consolidation
+
 The watchlist filter `只看趋势模板` currently means:
 
 - only show stocks where `trendPassCount === trendTotal`
@@ -227,6 +242,16 @@ Storage behavior:
 UI behavior:
 
 - clicking the top-right icon opens a modal
+
+## Check Rule Tooltip
+
+Extended checks `9-13` show a small `i` hover hint in the detail panel.
+
+Design choice:
+
+- keep the visible card text focused on conclusion and current measurement
+- move calculation rules into short hover copy instead of expanding every card
+- keep tooltip copy aligned with backend logic so later formula changes only need one text update
 
 Reason:
 

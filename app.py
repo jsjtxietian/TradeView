@@ -391,12 +391,19 @@ def evaluate_market_pullback_resilience(context: AnalysisContext) -> tuple[bool 
 
     stock_segment = context.stock[
         (context.stock["Date"] >= peak_date) & (context.stock["Date"] <= trough_date)
-    ].copy()
+    ].copy().reset_index(drop=True)
     if len(stock_segment) < 5:
         return None, "个股与基准对齐后的样本不足"
 
-    stock_peak = stock_segment["Close"].iloc[0]
-    stock_low = stock_segment["Close"].min()
+    stock_rolling_peak = stock_segment["Close"].cummax()
+    stock_drawdowns = 1 - stock_segment["Close"] / stock_rolling_peak
+    if stock_drawdowns.isna().all():
+        return None, "个股回调段数据不足"
+
+    stock_trough_idx = int(stock_drawdowns.idxmax())
+    stock_peak_idx = int(stock_segment["Close"].iloc[: stock_trough_idx + 1].idxmax())
+    stock_peak = stock_segment["Close"].iloc[stock_peak_idx]
+    stock_low = stock_segment["Close"].iloc[stock_trough_idx]
     if not require_values(stock_peak, stock_low) or stock_peak == 0:
         return None, "个股回调段数据不足"
     stock_drawdown = 1 - stock_low / stock_peak
@@ -418,7 +425,7 @@ def evaluate_market_pullback_resilience(context: AnalysisContext) -> tuple[bool 
     detail = (
         f"近 3 个月 {DEFAULT_BENCHMARK} 最大回撤 {fmt_pct(benchmark_drawdown)}"
         f"（{peak_date.strftime('%Y-%m-%d')} -> {trough_date.strftime('%Y-%m-%d')}）"
-        f"\n个股同期回撤 {fmt_pct(stock_drawdown)}"
+        f"\n个股同期最大回撤 {fmt_pct(stock_drawdown)}"
     )
     if higher_low:
         detail += "，个股近期低点高于上一轮低点"
@@ -440,11 +447,25 @@ def evaluate_volume_price_health(context: AnalysisContext) -> tuple[bool | None,
     if tail["VolumeMA50"].isna().all():
         return None, "50 日均量数据不足"
 
-    volume_signal = tail["Volume"] > tail["VolumeMA50"] * 1.05
-    up_days = int(((tail["Close"] > tail["PrevClose"]) & volume_signal).sum())
-    down_days = int(((tail["Close"] < tail["PrevClose"]) & volume_signal).sum())
-    passed = up_days >= 3 and up_days >= down_days + 2
-    detail = f"近 30 日放量上涨 {up_days} 天 / 放量下跌 {down_days} 天（基准: 50 日均量）"
+    volume_ratio = tail["Volume"] / tail["VolumeMA50"]
+    volume_signal = volume_ratio > 1.05
+    day_return = tail["Close"] / tail["PrevClose"] - 1
+    weighted_move = day_return.abs() * volume_ratio.where(volume_signal, 0)
+
+    up_days = int(((day_return > 0) & volume_signal).sum())
+    down_days = int(((day_return < 0) & volume_signal).sum())
+    up_score = float(weighted_move.where(day_return > 0, 0).sum())
+    down_score = float(weighted_move.where(day_return < 0, 0).sum())
+
+    passed = bool(
+        up_days >= 3
+        and up_days >= down_days
+        and up_score >= max(down_score * 1.25, down_score + 0.02)
+    )
+    detail = (
+        f"上涨: {up_days} 天 / 加权强度 {fmt_pct(up_score)}"
+        f"\n下跌: {down_days} 天 / 加权强度 {fmt_pct(down_score)}（基准: 50 日均量）"
+    )
     return passed, detail
 
 
@@ -545,7 +566,7 @@ ADVANCED_TREND_SPECS = [
         "大盘回调测试: 回撤小于大盘或形成更高低点",
         evaluate_market_pullback_resilience,
     ),
-    CheckSpec("trend_10", "量价健康度: 放量上涨日明显多于放量下跌日", evaluate_volume_price_health),
+    CheckSpec("trend_10", "30个交易日内放量上涨日明显多于放量下跌日", evaluate_volume_price_health),
     CheckSpec("trend_11", "回调深度限制: 距近期高点回调不超过 35%", evaluate_pullback_depth_limit),
     CheckSpec("trend_12", "VCP 波动率收缩: 近期波动明显收窄", evaluate_vcp_contraction),
     CheckSpec("trend_13", "枢轴点缩量: 收缩末端成交量极度萎缩", evaluate_pivot_volume_dry_up),

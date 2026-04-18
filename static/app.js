@@ -9,6 +9,13 @@ const ALERTS_SNAPSHOT_STORAGE_KEY = "trenddeck_watchlist_alerts_snapshot";
 const DEFAULT_VISIBLE_BARS = 126;
 const WATCHLIST_COLUMN_MIN_WIDTH = 280;
 const WATCHLIST_COLUMN_GAP = 10;
+const ADVANCED_CHECK_RULES = {
+  "回撤小于大盘或形成更高低点": "近63个交易日先定位 SPY 最大回撤段，再比较个股同时间窗内的最大回撤；若个股近期低点抬高，也视为加分项。",
+  "30个交易日内放量上涨日明显多于放量下跌日": "近30日仅统计成交量高于 1.05 倍 50 日均量的交易日；强度 = abs(日涨跌幅) * (Volume / VolumeMA50)。",
+  "距近期高点回调不超过 35%": "看近6个月最高收盘到当前收盘的回撤幅度；35% 以内更健康，50% 以上视为过深。",
+  "近期波动明显收窄": "把近45日拆成三段比较平均振幅，要求逐段收缩；最近10日至少出现 2 根小实体 K 线。",
+  "收缩末端成交量极度萎缩": "近10日均量需明显低于 50 日均量，最新成交量接近盘整低位，且近10日振幅不宜超过 8%。",
+};
 
 let toastTimer = null;
 
@@ -56,7 +63,6 @@ const elements = {
   chartHoverCard: document.getElementById("chartHoverCard"),
   messageBar: document.getElementById("messageBar"),
   detailSection: document.getElementById("detailSection"),
-  detailTitle: document.getElementById("detailTitle"),
   chartTitle: document.getElementById("chartTitle"),
   chartHeadlineStats: document.getElementById("chartHeadlineStats"),
   trendChecks: document.getElementById("trendChecks"),
@@ -380,12 +386,14 @@ function renderSelectedDetail() {
   }
 
   elements.detailSection.hidden = false;
-  elements.detailTitle.textContent = detail.symbol;
   elements.chartTitle.textContent = detail.symbol;
   renderChartHeadlineStats(detail);
   renderChartStatus(detail);
   renderChecks(elements.trendChecks, detail.trendChecks);
-  renderChecks(elements.advancedTrendChecks, detail.advancedTrendChecks, { trimPrefix: true });
+  renderChecks(elements.advancedTrendChecks, detail.advancedTrendChecks, {
+    trimPrefix: true,
+    ruleTooltips: ADVANCED_CHECK_RULES,
+  });
   logDetailMessages(detail);
   renderMainChart(detail);
   syncMaToggleInputs();
@@ -1031,13 +1039,34 @@ function renderChecks(container, checks, options = {}) {
     const stateLabel = item.passed === true ? "通过" : item.passed === false ? "未通过" : "待确认";
     const stateClass = item.passed === true ? "pass" : item.passed === false ? "fail" : "pending";
     const displayName = options.trimPrefix ? stripCheckNamePrefix(item.name) : item.name;
-    node.innerHTML = `
-      <strong>
-        ${displayName}
-        <span class="check-state ${stateClass}">${stateLabel}</span>
-      </strong>
-      <p>${item.detail}</p>
-    `;
+    const header = document.createElement("strong");
+
+    const title = document.createElement("span");
+    title.className = "check-title";
+    title.textContent = displayName;
+    header.appendChild(title);
+
+    const ruleText = options.ruleTooltips?.[displayName];
+    if (ruleText) {
+      const info = document.createElement("button");
+      info.type = "button";
+      info.className = "check-rule-button";
+      info.textContent = "i";
+      info.title = ruleText;
+      info.setAttribute("aria-label", `${displayName} 计算规则`);
+      header.appendChild(info);
+    }
+
+    const state = document.createElement("span");
+    state.className = `check-state ${stateClass}`;
+    state.textContent = stateLabel;
+    header.appendChild(state);
+
+    const detail = document.createElement("p");
+    detail.textContent = item.detail || "";
+
+    node.appendChild(header);
+    node.appendChild(detail);
     container.appendChild(node);
   }
 }
@@ -1394,7 +1423,6 @@ function buildRightAnchoredRange(width, dataLength) {
 
 function clearDetail() {
   elements.detailSection.hidden = true;
-  elements.detailTitle.textContent = "选择一只股票";
   elements.chartTitle.textContent = "选择一只股票";
   elements.chartHeadlineStats.innerHTML = "";
   hideChartStatus();
