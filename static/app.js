@@ -81,7 +81,7 @@ const elements = {
   noteHoldingCheckbox: document.getElementById("noteHoldingCheckbox"),
   noteTextarea: document.getElementById("noteTextarea"),
   deleteSymbolButton: document.getElementById("deleteSymbolButton"),
-  clearNoteButton: document.getElementById("clearNoteButton"),
+  copyPromptButton: document.getElementById("copyPromptButton"),
   cancelNoteButton: document.getElementById("cancelNoteButton"),
   saveNoteButton: document.getElementById("saveNoteButton"),
   toast: document.getElementById("toast"),
@@ -187,11 +187,10 @@ function bindEvents() {
     });
   });
 
-  elements.clearNoteButton.addEventListener("click", () => {
-    if (!state.activeNoteSymbol) {
-      return;
-    }
-    elements.noteTextarea.value = "";
+  elements.copyPromptButton.addEventListener("click", () => {
+    copyPromptForActiveSymbol().catch((error) => {
+      showMessage(error.message || String(error), true);
+    });
   });
 
   elements.saveNoteButton.addEventListener("click", () => {
@@ -1088,7 +1087,7 @@ function renderChartHeadlineStats(detail) {
       value: detail.dailyChangePctText || "-",
       tone: classifyChangeTone(detail.dailyChangePct),
     },
-    { label: "当日成交量", value: detail.latestVolumeText || "-" },
+    { label: "收盘日成交量", value: detail.latestVolumeText || "-" },
   ];
   elements.chartHeadlineStats.innerHTML = stats
     .map(
@@ -1907,6 +1906,22 @@ async function deleteActiveSymbol() {
   }
 }
 
+async function copyPromptForActiveSymbol() {
+  const symbol = normalizeSymbol(state.activeNoteSymbol || state.selectedSymbol || "");
+  if (!symbol) {
+    return;
+  }
+  const liveNote = state.activeNoteSymbol === symbol ? String(elements.noteTextarea.value || "").trim() : "";
+  const note = liveNote || getNoteForSymbol(symbol);
+  const payload = await fetchJson(`/api/prompt/${encodeURIComponent(symbol)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ note }),
+  });
+  await copyTextToClipboard(String(payload.prompt || ""));
+  showToast(`${symbol} 的分析 Prompt 已复制。`);
+}
+
 function filterWatchlistSymbols(symbols) {
   return symbols.filter((symbol) => {
     const data = state.summaries.get(symbol)?.data;
@@ -2096,7 +2111,7 @@ function deriveChartStatus(detail) {
   if (!isStale || !latestDate) {
     return "";
   }
-  return `缓存数据，最新到 ${latestDate}`;
+  return `最新到 ${latestDate}`;
 }
 
 function buildSparklineSvg(values, direction = "flat") {
@@ -2138,11 +2153,28 @@ function hideMessage() {
   elements.messageBar.textContent = "";
 }
 
-async function fetchJson(url) {
-  const response = await fetch(url);
+async function fetchJson(url, options = undefined) {
+  const response = await fetch(url, options);
   const payload = await response.json();
   if (!response.ok) {
     throw new Error(payload.detail || "请求失败");
   }
   return payload;
+}
+
+async function copyTextToClipboard(text) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "readonly");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  document.body.removeChild(textarea);
 }

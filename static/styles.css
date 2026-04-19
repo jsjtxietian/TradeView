@@ -780,16 +780,17 @@ button:disabled {
 }
 
 .chart-mode-select {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  min-width: 94px;
+  padding: 8px 10px;
+  font-size: 0.82rem;
   color: var(--muted);
-  font-size: 0.84rem;
 }
 
-.chart-mode-select select {
-  min-width: 112px;
-  padding: 8px 10px;
+.chart-copy-button {
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  white-space: nowrap;
 }
 
 .chart-title-row {

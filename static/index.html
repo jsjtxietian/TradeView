@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trend Deck</title>
-  <link rel="stylesheet" href="/static/styles.css?v=20260419-02" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260419-05" />
 </head>
 <body>
   <div class="page-shell">
@@ -43,19 +43,17 @@
             </div>
           </div>
           <div class="chart-tools">
-            <label class="chart-mode-select" for="chartMode">
-              图表模式
-              <select id="chartMode">
-                <option value="candles">K线</option>
-                <option value="close">收盘价线</option>
-              </select>
-            </label>
+            <select id="chartMode" class="chart-mode-select" aria-label="切换图表模式">
+              <option value="close">收盘价线</option>
+              <option value="candles">K线</option>
+            </select>
             <div id="maToggleGroup" class="ma-toggle-group">
               <label><input type="checkbox" data-ma="MA20" checked /> MA20</label>
               <label><input type="checkbox" data-ma="MA50" checked /> MA50</label>
               <label><input type="checkbox" data-ma="MA150" checked /> MA150</label>
               <label><input type="checkbox" data-ma="MA200" checked /> MA200</label>
             </div>
+            <button type="button" id="copyPromptButton" class="secondary chart-copy-button">复制 Prompt</button>
           </div>
         </div>
         <div class="chart-stack">
@@ -124,7 +122,6 @@
           <span>标记为我的持仓</span>
         </label>
         <button type="button" id="deleteSymbolButton" class="secondary">删除该股票</button>
-        <button type="button" id="clearNoteButton" class="secondary">清空</button>
         <button type="button" id="cancelNoteButton" class="secondary">取消</button>
         <button type="button" id="saveNoteButton">保存笔记</button>
       </div>
@@ -149,6 +146,6 @@
   <div id="toast" class="toast" hidden></div>
 
   <script src="https://unpkg.com/lightweight-charts@5.0.0/dist/lightweight-charts.standalone.production.js"></script>
-  <script src="/static/app.js?v=20260419-02" type="module"></script>
+  <script src="/static/app.js?v=20260419-05" type="module"></script>
 </body>
 </html>

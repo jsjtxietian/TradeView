@@ -9,7 +9,7 @@ import time
 import tomllib
 from typing import Any, Callable
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Body, FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 import numpy as np
@@ -20,6 +20,7 @@ from curl_cffi import requests as curl_requests
 CACHE_DIR = Path(".cache")
 CACHE_DIR.mkdir(exist_ok=True)
 STATIC_DIR = Path("static")
+PROMPT_TEMPLATE_PATH = Path("prompt_template.md")
 DEFAULT_HISTORY_PERIOD = "3y"
 DEFAULT_BENCHMARK = "SPY"
 DEFAULT_WATCHLIST = ["AAPL", "NVDA", "MSFT", "TSLA"]
@@ -30,6 +31,36 @@ DEFAULT_WATCHLIST_GROUPS = [
 ]
 PERIOD_TO_DAYS = {"1y": 365, "2y": 730, "3y": 1095, "5y": 1825}
 MEMORY_CACHE_TTL = 1800
+DEFAULT_PROMPT_TEMPLATE = """# 交易分析任务
+
+我的交易哲学继承 Livermore、Darvas、Mark Minervini 等趋势交易体系。
+我的偏好很明确：重视价格、成交量、相对强度、供需结构与风险收益比；不抄底，只做趋势大段；优先做行业/主题龙头股。
+
+请你帮我判断这只股票现在是否适合进入观察名单、试仓或等待更好的位置。
+
+股票代码：{{symbol}}
+数据截止：{{latest_date}}
+
+## 我掌握的技术面摘要
+{{technical_summary}}
+
+## 我的补充笔记
+{{note_block}}
+
+请你自行搜索并补充：
+1. 最近几个季度的基本面变化，包括营收、EPS、利润率、指引与市场预期。
+2. 是否存在 Mark Minervini 所说的 Code 33 情况：连续三个季度 earnings、sales、profit margins 加速改善。
+3. 它是否是所属行业/主题里的龙头股；如果不是，谁更像龙头，它和龙头相比差在哪。
+4. 最近一次财报日、下一次预期财报日分别是什么，距离下一次财报还有多久。
+5. 所属行业/主题当前是否处在强化阶段。
+6. 最近的重要新闻、财报、产品周期或政策催化。
+
+最后请按下面结构输出：
+1. 目前更像“可考虑买入 / 继续观察 / 暂不考虑”哪一种。
+2. 核心理由。
+3. 若要介入，理想的触发条件、止损思路和失效信号是什么；如果临近财报，请明确说明是否应尽量避免赌财报。
+4. 最大的不确定性或反例是什么。
+"""
 
 
 @dataclass
@@ -84,6 +115,15 @@ def normalize_symbol(raw_symbol: str) -> str:
     text = raw_symbol.strip().upper()
     text = re.sub(r"[\s.]+", "-", text)
     text = re.sub(r"-{2,}", "-", text)
+    return text
+
+
+def strip_check_name_prefix(name: str) -> str:
+    text = str(name or "").strip()
+    for separator in ("：", ":"):
+        index = text.find(separator)
+        if index >= 0:
+            return text[index + 1 :].strip() or text
     return text
 
 
@@ -613,6 +653,48 @@ def fmt_volume(value: float | None) -> str:
     return f"{value:,.0f}"
 
 
+def fmt_prompt_return(history: pd.DataFrame, days: int) -> str:
+    if len(history) <= days:
+        return "数据不足"
+    latest_close = history["Close"].iloc[-1]
+    base_close = history["Close"].iloc[-days - 1]
+    if not require_values(latest_close, base_close) or base_close == 0:
+        return "数据不足"
+    return fmt_signed_pct(float(latest_close / base_close - 1))
+
+
+def fmt_prompt_ma_position(latest: pd.Series, field: str) -> str:
+    ma_value = latest.get(field)
+    close_value = latest.get("Close")
+    if not require_values(close_value, ma_value) or ma_value == 0:
+        return f"{field} 数据不足"
+    delta = float(close_value / ma_value - 1)
+    relation = "上方" if delta >= 0 else "下方"
+    return f"{field} {relation} {fmt_pct(abs(delta))}"
+
+
+def build_check_summary_lines(checks: list[dict[str, Any]]) -> list[str]:
+    lines: list[str] = []
+    for item in checks:
+        name = strip_check_name_prefix(item.get("name", ""))
+        passed = item.get("passed")
+        detail = str(item.get("detail", "")).strip().replace("\n", "；")
+        status = "通过" if passed is True else "未通过" if passed is False else "待确认"
+        lines.append(f"- {name}：{status}；{detail}")
+    return lines
+
+
+def read_prompt_template() -> str:
+    if PROMPT_TEMPLATE_PATH.exists():
+        try:
+            text = PROMPT_TEMPLATE_PATH.read_text(encoding="utf-8").strip()
+            if text:
+                return text
+        except Exception:
+            pass
+    return DEFAULT_PROMPT_TEMPLATE
+
+
 def summarize_check_group(checks: list[CheckResult]) -> tuple[int, int, str]:
     passed = sum(item.passed is True for item in checks)
     total = len(checks)
@@ -670,6 +752,82 @@ def build_trend_sparkline(frame: pd.DataFrame) -> dict[str, Any]:
         "direction": direction,
         "values": values,
     }
+
+
+def build_technical_summary(data: dict[str, Any]) -> str:
+    history = pd.DataFrame(data.get("history") or [])
+    if history.empty:
+        return "- 本地没有可用价格历史。"
+
+    latest = history.iloc[-1]
+    recent_volume_ma50 = history["Volume"].rolling(50).mean().iloc[-1] if "Volume" in history else np.nan
+    volume_ratio = None
+    if require_values(latest.get("Volume"), recent_volume_ma50) and recent_volume_ma50:
+        volume_ratio = float(latest["Volume"] / recent_volume_ma50)
+
+    latest_close = data.get("latestClose")
+    six_month_high = data.get("sixMonthHigh")
+    six_month_low = data.get("sixMonthLow")
+    distance_from_high = None
+    distance_from_low = None
+    if require_values(latest_close, six_month_high) and six_month_high:
+        distance_from_high = max(0.0, 1 - float(latest_close) / float(six_month_high))
+    if require_values(latest_close, six_month_low) and six_month_low:
+        distance_from_low = max(0.0, float(latest_close) / float(six_month_low) - 1)
+
+    price_snapshot = [
+        f"最新收盘 {data.get('latestCloseText', '-')}",
+        f"较前收盘 {data.get('dailyChangePctText', '-')}",
+        f"最新收盘日成交量 {data.get('latestVolumeText', '-')}",
+    ]
+    if volume_ratio is not None:
+        price_snapshot.append(f"约为 50 日均量的 {volume_ratio:.2f} 倍")
+
+    summary_lines = [
+        "### 价格与位置",
+        f"- {'；'.join(price_snapshot)}",
+        f"- 阶段涨跌幅：5 日 {fmt_prompt_return(history, 5)}；20 日 {fmt_prompt_return(history, 20)}；60 日 {fmt_prompt_return(history, 60)}；126 日 {fmt_prompt_return(history, 126)}",
+        f"- 均线位置：{fmt_prompt_ma_position(latest, 'MA20')}；{fmt_prompt_ma_position(latest, 'MA50')}；{fmt_prompt_ma_position(latest, 'MA150')}；{fmt_prompt_ma_position(latest, 'MA200')}",
+        f"- 近 6 个月位置：距高点 {fmt_pct(distance_from_high)}；距低点 {fmt_pct(distance_from_low)}",
+        "### 趋势模板",
+        f"- 基础趋势模板 1-8：{data.get('trendPassCount', 0)}/{data.get('trendTotal', 0)}",
+    ]
+
+    base_failures = [
+        strip_check_name_prefix(item.get("name", ""))
+        for item in data.get("trendChecks", [])
+        if item.get("passed") is False
+    ]
+    if base_failures:
+        summary_lines.append(f"- 当前未通过项：{'；'.join(base_failures)}")
+
+    rs_detail = str(data.get("rsDetail", "")).strip()
+    if rs_detail:
+        summary_lines.extend([
+            "### 相对强度",
+            f"- {rs_detail}",
+        ])
+
+    summary_lines.append("### 扩展观察")
+    summary_lines.extend(build_check_summary_lines(data.get("advancedTrendChecks", [])))
+    return "\n".join(summary_lines)
+
+
+def build_prompt_from_analysis(data: dict[str, Any], note: str = "") -> str:
+    template = read_prompt_template()
+    note_text = note.strip()
+    note_block = note_text if note_text else "（无）"
+    replacements = {
+        "{{symbol}}": str(data.get("symbol", "")).strip(),
+        "{{latest_date}}": str(data.get("latestDate", "")).strip(),
+        "{{technical_summary}}": build_technical_summary(data),
+        "{{note}}": note_text,
+        "{{note_block}}": note_block,
+    }
+    prompt = template
+    for key, value in replacements.items():
+        prompt = prompt.replace(key, value)
+    return prompt
 
 
 def analyze_symbol(
@@ -905,6 +1063,31 @@ def symbol_detail(
             allow_network=refresh,
             refresh_benchmark=refresh,
         )
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/prompt/{symbol}")
+def symbol_prompt(
+    symbol: str,
+    payload: dict[str, Any] | None = Body(default=None),
+) -> dict[str, Any]:
+    normalized = normalize_symbol(symbol)
+    if not normalized:
+        raise HTTPException(status_code=400, detail="请输入有效的股票代码。")
+    try:
+        data = analyze_symbol(
+            normalized,
+            force_refresh=False,
+            allow_network=False,
+            refresh_benchmark=False,
+        )
+        note = str((payload or {}).get("note", "")).strip()
+        return {
+            "symbol": normalized,
+            "prompt": build_prompt_from_analysis(data, note=note),
+            "templatePath": str(PROMPT_TEMPLATE_PATH),
+        }
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

@@ -296,13 +296,42 @@ Reason:
 - success feedback should not push layout downward
 - loading/error still needs a persistent visible status area
 
+## AI Prompt Export
+
+The detail chart toolbar includes a `复制 Prompt` action.
+
+Design:
+
+- prompt template lives in repo root as `prompt_template.md`
+- template is local and user-editable without changing application code
+- backend fills placeholders such as symbol, latest date, condensed technical summary, and current note text
+- prompt wording explicitly reflects the user's trend-following preference:
+  - do not bottom-fish
+  - focus on big trend segments
+  - prefer leader stocks
+  - check for `Code 33` style acceleration in earnings, sales, and margins
+- technical summary is intentionally compressed into:
+  - latest close / daily change / latest volume
+  - 5/20/60/126 day returns
+  - MA20/50/150/200 relative position
+  - six-month high/low position
+  - trend-template pass count and failed items
+  - RS detail
+  - advanced trend-check summary
+
+Reason:
+
+- LLMs benefit more from structured state summaries than raw OHLC history
+- the user can iterate on prompt wording independently from the implementation
+- if the note modal is open, unsaved textarea content is preferred; otherwise the saved local note is used
+
 ## Chart Detail Panel
 
 Detail panel semantics:
 
 - `最新收盘`: latest available daily close, not realtime price
 - `较前收盘`: change versus previous day close
-- `当日成交量`: volume of the same latest trading day
+- `收盘日成交量`: volume of the same latest daily close session
 
 Reason:
 
