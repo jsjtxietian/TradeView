@@ -1,38 +1,354 @@
-# Trend Deck
+# TrendDeck Design Notes
 
-本地趋势交易看盘工具，使用 `Python + FastAPI` 提供数据接口，前端为原生 `HTML / JS` 单页。
+## Overview
 
-## 功能
+This project is a cache-first US stock trend dashboard.
 
-- 首页展示自选股概览，可添加股票并切换查看明细
-- 优先用 `Tiingo` 抓取日线行情，失败时回退到 `yfinance`
-- 使用 `yfinance` 抓取季度财报
-- 展示 K 线、20/50/150/200 日均线、成交量
-- 检查 8 条趋势模板条件
-- 检查 `Code 33`:
-  - EPS 同比增速是否连续三季加速
-  - 营收同比增速是否连续三季加速
-  - 净利率是否连续三季抬升
-- 内部固定用 `SPY` 计算一个 RS 代理分数
+Primary goals:
 
-## 启动
+- offline-capable display from local cached data
+- controlled online refresh against rate-limited APIs
+- compact watchlist view optimized for quick trend scanning
+- richer detail view for actual analysis
 
-```powershell
-pip install -r requirements.txt
-python -m uvicorn app:app --reload
-```
+Current runtime shape:
 
-如需启用 Tiingo 价格源，请先设置环境变量：
+- backend: `FastAPI`
+- frontend: static `HTML + JS + CSS`
+- market data: `Tiingo + local CSV cache`
+- charting: `lightweight-charts`
 
-```powershell
-setx TIINGO_API_KEY "你的key"
-```
+## Data Source Strategy
 
-## 备注
+### Price Data
 
-- 默认优先读取本地缓存；点击页面上的“拉新”后，会对价格和财报执行增量更新并回写本地缓存。
-- Yahoo Finance 偶尔会限流，因此工具保留了本地缓存和备用抓取逻辑。
-- 如果设置了 `TIINGO_API_KEY`，价格数据会优先走 Tiingo。
-- 行情、季度利润表和财报日期都会写入 `.cache/`。如果外部接口临时不可用，已拉取过的股票仍可离线展示。
-- 自选股列表当前保存在浏览器 `localStorage`。
-- RS 这里是本地近似分数，不是 IBD 官方评级。
+Source of truth for price history is local cache under `.cache/*_3y_history.csv`.
+
+Behavior:
+
+- normal page load: read local cache only
+- user clicks `拉新`: allow network and do incremental update
+- updated data is merged back into cache CSV
+
+Why:
+
+- API limit is tight
+- page must still work offline
+- cached CSVs can be committed and shared
+
+### Incremental Refresh
+
+Incremental update logic lives in `app.py`.
+
+Rules:
+
+- if cache exists, refresh starts from `last_cached_date + 1 day`
+- incoming Tiingo rows are merged with cached rows
+- duplicates are deduplicated by `Date`, keeping newest row
+
+Result:
+
+- no full re-download on every refresh
+- offline display keeps working from latest local snapshot
+
+## Symbol Normalization
+
+Frontend and backend both normalize symbols in the same way.
+
+Rules:
+
+- uppercase everything
+- whitespace and `.` become `-`
+- repeated `-` collapse to one
+
+Examples:
+
+- `brk b` -> `BRK-B`
+- `BRK.B` -> `BRK-B`
+- ` msft ` -> `MSFT`
+
+Reason:
+
+- Tiingo commonly expects dash-separated share class symbols
+- frontend and backend must agree to avoid cache mismatches
+
+## Local Storage Model
+
+Frontend keeps user-specific state in `localStorage`.
+
+Keys:
+
+- `trenddeck_watchlist`
+  watchlist symbol array
+- `trenddeck_watchlist_groups`
+  custom groups and per-group symbol order
+- `trenddeck_chart_prefs`
+  chart mode and MA visibility
+- `trenddeck_symbol_notes`
+  per-symbol notes and holding flag
+- `trenddeck_watchlist_filter_template`
+  whether watchlist is filtered to full trend-template matches
+- `trenddeck_watchlist_filter_holding`
+  whether watchlist is filtered to locally marked holdings
+- `trenddeck_watchlist_alerts`
+  recent alert list shown in alerts modal
+- `trenddeck_watchlist_alerts_snapshot`
+  last seen summary snapshot used to detect changes
+
+Important design choice:
+
+- notes, filters, alerts and grouping are purely local user state
+- price history and analysis results come from cached market data
+
+## Watchlist Rendering
+
+### Group Ordering
+
+Watchlist group order and in-group symbol order come from the saved group definition itself, not from global watchlist order.
+
+If the user reorders symbols inside a group editor row and saves, homepage rendering follows that exact order.
+
+Reason:
+
+- user expects group editor order to be authoritative
+
+### Adding Symbols
+
+There are two ways symbols enter watchlist:
+
+- from the top `添加` form
+- from editing group contents
+
+When group save introduces new symbols:
+
+- they are appended into watchlist
+- persisted immediately
+- a refresh is triggered automatically
+
+Reason:
+
+- user should not need two separate actions to add and fetch
+
+### Removing Symbols
+
+Removal is done from the note modal.
+
+Deleting a symbol removes:
+
+- watchlist membership
+- group membership
+- local note
+- local alert snapshot for that symbol
+- stored alerts mentioning that symbol
+
+Reason:
+
+- keep the main card UI compact
+- still provide a safe correction path for typo symbols
+
+## Watchlist Trend Mini-Chart
+
+### Purpose
+
+The mini chart is not meant to mirror raw closing prices.
+
+It is meant to answer one question quickly:
+
+- is the recent trend rising, falling, or flat?
+
+### Current Algorithm
+
+Implementation lives in `build_trend_sparkline()` in `app.py`.
+
+Steps:
+
+1. take the last up to `35` trading days for display
+2. build a `MA20` base line
+3. if early rows do not have `MA20` yet, backfill with cumulative mean of all history up to that date
+4. blend the base with raw close using `0.7 * MA20_base + 0.3 * Close`
+5. run a `3-period EMA` over that blended line
+6. display only the resulting smoothed series in the watchlist
+
+Direction color:
+
+- look at the latest up to `10` points of the smoothed line
+- compute end-to-start move
+- compute simple slope
+- classify as:
+  - `up` if move >= about `+1.5%` and slope positive
+  - `down` if move <= about `-1.5%` and slope negative
+  - otherwise `flat`
+
+Reasoning:
+
+- the `70/30` blend keeps the line anchored to recent structure while reacting faster to sharp reversals and breakouts
+- MA20 reflects recent price structure better than raw close
+- EMA removes jagged turns without drifting too far
+- the watchlist view should emphasize direction, not candle noise
+
+## Trend Template Logic
+
+There are two analysis groups:
+
+- base trend template `1-8`
+- extended checks `9-13`
+
+Extended implementation note:
+
+- trend `9` first finds SPY's largest drawdown window over the latest `63` trading days
+- stock resilience is then judged inside that same market-stress window, while also checking for a higher-low structure
+- trend `10` uses a weighted volume-price health score over the latest `30` trading days
+- a day counts as "volume-significant" only when `Volume > 1.05 * VolumeMA50`
+- upward and downward pressure are scored separately as `abs(day return) * (Volume / VolumeMA50)`
+- the check passes when:
+  - volume-significant up days are at least `3`
+  - up days are not fewer than down days
+  - upward weighted score is at least `max(down_score * 1.25, down_score + 0.02)`
+- trend `11` measures pullback from the latest `6` month closing high to current close
+- trend `12` compares average amplitude across three recent segments and also checks for small-body candles in the latest `10` sessions
+- trend `13` looks for simultaneous range contraction and volume dry-up near the end of consolidation
+
+The watchlist filter `只看趋势模板` currently means:
+
+- only show stocks where `trendPassCount === trendTotal`
+- effectively full pass on the base template set
+
+Reason:
+
+- the homepage filter should stay simple and unambiguous
+
+## Alerts Logic
+
+Alerts are frontend-local and summary-based.
+
+Important rule:
+
+- alerts are recalculated whenever summaries are refreshed into the page
+- comparison uses `trenddeck_watchlist_alerts_snapshot`
+
+Alert types:
+
+- newly satisfied full trend template
+- no longer satisfies full trend template
+- latest close changed more than `+/-5%` versus previous snapshot
+- latest close reaches recent `6` month closing high
+- latest close reaches recent `6` month closing low
+
+Storage behavior:
+
+- fresh alerts are prepended
+- alert list is capped to the latest `20`
+
+UI behavior:
+
+- clicking the top-right icon opens a modal
+
+## Check Rule Tooltip
+
+Extended checks `9-13` show a small `i` hover hint in the detail panel.
+
+Design choice:
+
+- keep the visible card text focused on conclusion and current measurement
+- move calculation rules into short hover copy instead of expanding every card
+- keep tooltip copy aligned with backend logic so later formula changes only need one text update
+
+Reason:
+
+- alerts should be visible but not occupy permanent page space
+- local snapshot comparison is enough for this product stage
+
+## Notes UX
+
+Each watchlist card has a right-aligned `i` button.
+
+Behavior:
+
+- click opens modal only
+- no hover preview card
+- note modal stores both free-form text and a local `isHolding` flag
+- holding symbols get a highlighted card background in the watchlist
+- button `title` text shows:
+  - custom note if it exists
+  - otherwise `持仓股` when only the holding flag is set
+  - otherwise a generic "查看或编辑笔记"
+
+Reason:
+
+- hover card looked visually noisy
+- modal is the primary editing surface
+- a lightweight tooltip is still useful, but symbol-name mapping was removed to avoid stale manual metadata
+
+## Messaging UX
+
+Top message bar is kept for error state only.
+
+Short successful actions use a temporary toast instead.
+
+Examples:
+
+- symbol added
+- group saved
+- symbol deleted
+
+Reason:
+
+- success feedback should not push layout downward
+- loading/error still needs a persistent visible status area
+
+## AI Prompt Export
+
+The detail chart toolbar includes a `复制 Prompt` action.
+
+Design:
+
+- prompt template lives in repo root as `prompt_template.md`
+- template is local and user-editable without changing application code
+- backend fills placeholders such as symbol, latest date, condensed technical summary, and current note text
+- prompt wording explicitly reflects the user's trend-following preference:
+  - do not bottom-fish
+  - focus on big trend segments
+  - prefer leader stocks
+  - check for `Code 33` style acceleration in earnings, sales, and margins
+- technical summary is intentionally compressed into:
+  - latest close / daily change / latest volume
+  - 5/20/60/126 day returns
+  - MA20/50/150/200 relative position
+  - six-month high/low position
+  - trend-template pass count and failed items
+  - RS detail
+  - advanced trend-check summary
+
+Reason:
+
+- LLMs benefit more from structured state summaries than raw OHLC history
+- the user can iterate on prompt wording independently from the implementation
+- if the note modal is open, unsaved textarea content is preferred; otherwise the saved local note is used
+
+## Chart Detail Panel
+
+Detail panel semantics:
+
+- `最新收盘`: latest available daily close, not realtime price
+- `较前收盘`: change versus previous day close
+- `收盘日成交量`: volume of the same latest daily close session
+
+Reason:
+
+- avoid confusion with live intraday terminology
+
+## Current Tradeoffs
+
+Known intentional simplifications:
+
+- company full names come from a local map, not a dedicated metadata API
+- alerts are local and user-specific, not server-synced
+- watchlist trend mini-chart is a smoothed price-structure proxy, not a formal technical score
+- default historical horizon is fixed and cache-centered rather than user-configurable everywhere
+
+These choices are deliberate to keep:
+
+- API usage low
+- offline support strong
+- implementation maintainable
+- homepage visually dense but still readable
