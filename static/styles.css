@@ -351,6 +351,12 @@ button:disabled {
   font-size: 0.88rem;
 }
 
+.note-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .note-editor-field textarea {
   width: 100%;
   min-height: 220px;
@@ -593,6 +599,24 @@ button:disabled {
   min-width: 0;
   font-size: 0.8rem;
   line-height: 1.2;
+}
+
+.watchlist-holding-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 7px;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.watchlist-holding-line.up {
+  color: var(--success);
+}
+
+.watchlist-holding-line.down {
+  color: var(--danger);
 }
 
 .watchlist-trend-block {
@@ -1031,6 +1055,10 @@ button:disabled {
   .watchlist-tools,
   .watchlist-add-form {
     width: 100%;
+  }
+
+  .note-metrics-grid {
+    grid-template-columns: 1fr;
   }
 
   .group-editor-row {

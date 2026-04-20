@@ -80,6 +80,8 @@ const elements = {
   noteDialogTitle: document.getElementById("noteDialogTitle"),
   noteHoldingCheckbox: document.getElementById("noteHoldingCheckbox"),
   noteTextarea: document.getElementById("noteTextarea"),
+  noteCostBasisInput: document.getElementById("noteCostBasisInput"),
+  noteSharesInput: document.getElementById("noteSharesInput"),
   deleteSymbolButton: document.getElementById("deleteSymbolButton"),
   copyPromptButton: document.getElementById("copyPromptButton"),
   cancelNoteButton: document.getElementById("cancelNoteButton"),
@@ -858,6 +860,7 @@ function renderWatchlistItem(symbol, sectionId) {
         </div>
         ${renderNoteButton(symbol)}
       </div>
+      ${renderHoldingInline(symbol)}
     `;
     bindNoteButton(card, symbol);
     return card;
@@ -1089,6 +1092,21 @@ function renderChartHeadlineStats(detail) {
     },
     { label: "收盘日成交量", value: detail.latestVolumeText || "-" },
   ];
+  const holding = getHoldingSnapshot(detail.symbol);
+  if (holding) {
+    const holdingParts = [`成本 ${fmtPrice(holding.costBasis)}`, `浮盈亏 ${fmtPct(holding.pnlPct)}`];
+    if (holding.shares != null) {
+      holdingParts.push(`股数 ${holding.shares}`);
+    }
+    if (holding.pnlValue != null) {
+      holdingParts.push(`金额 ${fmtSignedPrice(holding.pnlValue)}`);
+    }
+    stats.push({
+      label: "持仓",
+      value: holdingParts.join(" / "),
+      tone: classifyChangeTone(holding.pnlPct),
+    });
+  }
   elements.chartHeadlineStats.innerHTML = stats
     .map(
       (item) => `
@@ -1701,17 +1719,19 @@ function loadStoredNotes() {
           }
           if (typeof note === "string") {
             const text = note.trim();
-            return text ? [normalizedSymbol, { text, isHolding: false }] : null;
+            return text ? [normalizedSymbol, { text, isHolding: false, costBasis: null, shares: null }] : null;
           }
           if (!note || typeof note !== "object" || Array.isArray(note)) {
             return null;
           }
+          const costBasis = parsePositiveNumber(note.costBasis);
+          const shares = parsePositiveNumber(note.shares);
           const text = String(note.text || "").trim();
-          const isHolding = !!note.isHolding;
-          if (!text && !isHolding) {
+          const isHolding = !!note.isHolding || costBasis != null || shares != null;
+          if (!text && !isHolding && costBasis == null && shares == null) {
             return null;
           }
-          return [normalizedSymbol, { text, isHolding }];
+          return [normalizedSymbol, { text, isHolding, costBasis, shares }];
         })
         .filter(Boolean),
     );
@@ -1782,6 +1802,15 @@ function fmtPrice(value) {
   return value == null ? "-" : Number(value).toFixed(2);
 }
 
+function fmtSignedPrice(value) {
+  if (value == null || Number.isNaN(Number(value))) {
+    return "-";
+  }
+  const numeric = Number(value);
+  const sign = numeric > 0 ? "+" : "";
+  return `${sign}${numeric.toFixed(2)}`;
+}
+
 function fmtVolume(value) {
   if (value == null) {
     return "-";
@@ -1799,6 +1828,14 @@ function fmtVolume(value) {
   return String(Math.round(value));
 }
 
+function parsePositiveNumber(value) {
+  if (value == null || value === "") {
+    return null;
+  }
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
+}
+
 function stripCheckNamePrefix(value) {
   const text = String(value || "").trim();
   for (const separator of ["：", ":"]) {
@@ -1814,18 +1851,68 @@ function getNoteForSymbol(symbol) {
   return String(state.notes[normalizeSymbol(symbol)]?.text || "").trim();
 }
 
+function getCostBasisForSymbol(symbol) {
+  const value = state.notes[normalizeSymbol(symbol)]?.costBasis;
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function getSharesForSymbol(symbol) {
+  const value = state.notes[normalizeSymbol(symbol)]?.shares;
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
+}
+
 function getHoldingForSymbol(symbol) {
   return !!state.notes[normalizeSymbol(symbol)]?.isHolding;
+}
+
+function getHoldingSnapshot(symbol) {
+  const normalizedSymbol = normalizeSymbol(symbol);
+  const latestClose = state.summaries.get(normalizedSymbol)?.data?.latestClose;
+  const costBasis = getCostBasisForSymbol(normalizedSymbol);
+  const shares = getSharesForSymbol(normalizedSymbol);
+  if (!(typeof latestClose === "number" && Number.isFinite(latestClose)) || !(typeof costBasis === "number" && costBasis > 0)) {
+    return null;
+  }
+  const pnlPct = latestClose / costBasis - 1;
+  const pnlValue = typeof shares === "number" && shares > 0 ? (latestClose - costBasis) * shares : null;
+  return { latestClose, costBasis, shares, pnlPct, pnlValue };
+}
+
+function renderHoldingInline(symbol) {
+  const holding = getHoldingSnapshot(symbol);
+  if (!holding) {
+    return "";
+  }
+  const tone = classifyChangeTone(holding.pnlPct);
+  return `
+    <div class="watchlist-holding-line${tone ? ` ${tone}` : ""}">
+      <span>成本 ${fmtPrice(holding.costBasis)}</span>
+      <span>浮盈亏 ${fmtPct(holding.pnlPct)}</span>
+    </div>
+  `;
 }
 
 function renderNoteButton(symbol) {
   const noteText = getNoteForSymbol(symbol);
   const isHolding = getHoldingForSymbol(symbol);
-  const hasMeta = !!noteText || isHolding;
+  const costBasis = getCostBasisForSymbol(symbol);
+  const shares = getSharesForSymbol(symbol);
+  const hasMeta = !!noteText || isHolding || costBasis != null || shares != null;
   const activeClass = hasMeta ? " has-note" : "";
-  const title = noteText
-    ? (isHolding ? `持仓股 · ${noteText}` : noteText)
-    : (isHolding ? "持仓股" : "查看或编辑笔记");
+  const parts = [];
+  if (isHolding) {
+    parts.push("持仓股");
+  }
+  if (costBasis != null) {
+    parts.push(`成本 ${fmtPrice(costBasis)}`);
+  }
+  if (shares != null) {
+    parts.push(`股数 ${shares}`);
+  }
+  if (noteText) {
+    parts.push(noteText);
+  }
+  const title = parts.join(" · ") || "查看或编辑笔记";
   return `
     <button type="button" class="watchlist-note-button${activeClass}" data-note-symbol="${symbol}" aria-label="${escapeHtml(title)}" title="${escapeHtml(title)}">
       i
@@ -1850,6 +1937,8 @@ function openNoteEditor(symbol) {
   elements.noteDialogTitle.textContent = `${symbol} 笔记`;
   elements.noteTextarea.value = getNoteForSymbol(symbol);
   elements.noteHoldingCheckbox.checked = getHoldingForSymbol(symbol);
+  elements.noteCostBasisInput.value = getCostBasisForSymbol(symbol) ?? "";
+  elements.noteSharesInput.value = getSharesForSymbol(symbol) ?? "";
   elements.deleteSymbolButton.hidden = !state.watchlist.includes(symbol);
   elements.noteDialog.showModal();
   elements.noteTextarea.focus();
@@ -1861,11 +1950,15 @@ function saveNote() {
   }
   const symbol = normalizeSymbol(state.activeNoteSymbol);
   const value = String(elements.noteTextarea.value || "").trim();
-  const isHolding = !!elements.noteHoldingCheckbox.checked;
-  if (value || isHolding) {
+  const costBasis = parsePositiveNumber(elements.noteCostBasisInput.value);
+  const shares = parsePositiveNumber(elements.noteSharesInput.value);
+  const isHolding = !!elements.noteHoldingCheckbox.checked || costBasis != null || shares != null;
+  if (value || isHolding || costBasis != null || shares != null) {
     state.notes[symbol] = {
       text: value,
       isHolding,
+      costBasis,
+      shares,
     };
   } else {
     delete state.notes[symbol];

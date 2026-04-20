@@ -116,6 +116,16 @@
         <span>内容</span>
         <textarea id="noteTextarea" rows="10" placeholder="记录交易计划、关键价位、财报关注点等"></textarea>
       </label>
+      <div class="note-metrics-grid">
+        <label class="note-editor-field">
+          <span>成本价</span>
+          <input id="noteCostBasisInput" type="number" min="0" step="0.0001" placeholder="例如 128.50" />
+        </label>
+        <label class="note-editor-field">
+          <span>股数</span>
+          <input id="noteSharesInput" type="number" min="0" step="0.0001" placeholder="可不填" />
+        </label>
+      </div>
       <div class="group-editor-actions note-editor-actions">
         <label class="note-flag-toggle">
           <input id="noteHoldingCheckbox" type="checkbox" />

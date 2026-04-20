@@ -31,36 +31,6 @@ DEFAULT_WATCHLIST_GROUPS = [
 ]
 PERIOD_TO_DAYS = {"1y": 365, "2y": 730, "3y": 1095, "5y": 1825}
 MEMORY_CACHE_TTL = 1800
-DEFAULT_PROMPT_TEMPLATE = """# 交易分析任务
-
-我的交易哲学继承 Livermore、Darvas、Mark Minervini 等趋势交易体系。
-我的偏好很明确：重视价格、成交量、相对强度、供需结构与风险收益比；不抄底，只做趋势大段；优先做行业/主题龙头股。
-
-请你帮我判断这只股票现在是否适合进入观察名单、试仓或等待更好的位置。
-
-股票代码：{{symbol}}
-数据截止：{{latest_date}}
-
-## 我掌握的技术面摘要
-{{technical_summary}}
-
-## 我的补充笔记
-{{note_block}}
-
-请你自行搜索并补充：
-1. 最近几个季度的基本面变化，包括营收、EPS、利润率、指引与市场预期。
-2. 是否存在 Mark Minervini 所说的 Code 33 情况：连续三个季度 earnings、sales、profit margins 加速改善。
-3. 它是否是所属行业/主题里的龙头股；如果不是，谁更像龙头，它和龙头相比差在哪。
-4. 最近一次财报日、下一次预期财报日分别是什么，距离下一次财报还有多久。
-5. 所属行业/主题当前是否处在强化阶段。
-6. 最近的重要新闻、财报、产品周期或政策催化。
-
-最后请按下面结构输出：
-1. 目前更像“可考虑买入 / 继续观察 / 暂不考虑”哪一种。
-2. 核心理由。
-3. 若要介入，理想的触发条件、止损思路和失效信号是什么；如果临近财报，请明确说明是否应尽量避免赌财报。
-4. 最大的不确定性或反例是什么。
-"""
 
 
 @dataclass
@@ -684,15 +654,55 @@ def build_check_summary_lines(checks: list[dict[str, Any]]) -> list[str]:
     return lines
 
 
+def find_check_detail(checks: list[dict[str, Any]], target_name: str) -> tuple[str, str] | None:
+    for item in checks:
+        name = strip_check_name_prefix(item.get("name", ""))
+        if name != target_name:
+            continue
+        passed = item.get("passed")
+        status = "通过" if passed is True else "未通过" if passed is False else "待确认"
+        detail = str(item.get("detail", "")).strip().replace("\n", "；")
+        return status, detail
+    return None
+
+
+def fmt_close_in_range(high: float | None, low: float | None, close: float | None) -> str:
+    if not require_values(high, low, close) or high == low:
+        return "区间位置数据不足"
+    ratio = (float(close) - float(low)) / (float(high) - float(low))
+    return f"收盘位于日内区间 {ratio * 100:.0f}%"
+
+
+def build_raw_session_line(row: pd.Series, prev_close: float | None, volume_ma50: float | None) -> str:
+    day_change = None
+    if require_values(row.get("Close"), prev_close) and prev_close and prev_close != 0:
+        day_change = float(row["Close"] / prev_close - 1)
+    volume_ratio = None
+    if require_values(row.get("Volume"), volume_ma50) and volume_ma50 and volume_ma50 != 0:
+        volume_ratio = float(row["Volume"] / volume_ma50)
+
+    parts = [
+        f"{row.get('Date', '-')}",
+        f"O {fmt_price(row.get('Open'))}",
+        f"H {fmt_price(row.get('High'))}",
+        f"L {fmt_price(row.get('Low'))}",
+        f"C {fmt_price(row.get('Close'))}",
+        f"日涨跌 {fmt_signed_pct(day_change)}",
+        f"量 {fmt_volume(row.get('Volume'))}",
+    ]
+    if volume_ratio is not None:
+        parts.append(f"量/50日均量 {volume_ratio:.2f}x")
+    parts.append(fmt_close_in_range(row.get("High"), row.get("Low"), row.get("Close")))
+    return "；".join(parts)
+
+
 def read_prompt_template() -> str:
-    if PROMPT_TEMPLATE_PATH.exists():
-        try:
-            text = PROMPT_TEMPLATE_PATH.read_text(encoding="utf-8").strip()
-            if text:
-                return text
-        except Exception:
-            pass
-    return DEFAULT_PROMPT_TEMPLATE
+    if not PROMPT_TEMPLATE_PATH.exists():
+        raise ValueError(f"缺少提示词模板文件: {PROMPT_TEMPLATE_PATH}")
+    text = PROMPT_TEMPLATE_PATH.read_text(encoding="utf-8").strip()
+    if not text:
+        raise ValueError(f"提示词模板文件为空: {PROMPT_TEMPLATE_PATH}")
+    return text
 
 
 def summarize_check_group(checks: list[CheckResult]) -> tuple[int, int, str]:
@@ -759,7 +769,11 @@ def build_technical_summary(data: dict[str, Any]) -> str:
     if history.empty:
         return "- 本地没有可用价格历史。"
 
+    history = history.copy()
+    history["PrevClose"] = history["Close"].shift(1)
+    history["VolumeMA50Calc"] = history["Volume"].rolling(50).mean()
     latest = history.iloc[-1]
+    recent_20 = history.tail(min(20, len(history))).copy()
     recent_volume_ma50 = history["Volume"].rolling(50).mean().iloc[-1] if "Volume" in history else np.nan
     volume_ratio = None
     if require_values(latest.get("Volume"), recent_volume_ma50) and recent_volume_ma50:
@@ -774,6 +788,20 @@ def build_technical_summary(data: dict[str, Any]) -> str:
         distance_from_high = max(0.0, 1 - float(latest_close) / float(six_month_high))
     if require_values(latest_close, six_month_low) and six_month_low:
         distance_from_low = max(0.0, float(latest_close) / float(six_month_low) - 1)
+
+    range_position = None
+    accumulation_days = 0
+    distribution_days = 0
+    if len(recent_20) >= 2:
+        recent_high = recent_20["High"].max()
+        recent_low = recent_20["Low"].min()
+        if require_values(latest_close, recent_high, recent_low) and recent_high != recent_low:
+            range_position = float((float(latest_close) - float(recent_low)) / (float(recent_high) - float(recent_low)))
+
+        recent_20["PrevClose"] = recent_20["Close"].shift(1)
+        recent_20["PrevVolume"] = recent_20["Volume"].shift(1)
+        accumulation_days = int(((recent_20["Close"] > recent_20["PrevClose"]) & (recent_20["Volume"] > recent_20["PrevVolume"])).sum())
+        distribution_days = int(((recent_20["Close"] < recent_20["PrevClose"]) & (recent_20["Volume"] > recent_20["PrevVolume"])).sum())
 
     price_snapshot = [
         f"最新收盘 {data.get('latestCloseText', '-')}",
@@ -807,6 +835,35 @@ def build_technical_summary(data: dict[str, Any]) -> str:
             "### 相对强度",
             f"- {rs_detail}",
         ])
+
+    summary_lines.append("### 吸筹/派发线索")
+    if range_position is not None:
+        summary_lines.append(f"- 近 20 日区间位置：约处在区间的 {range_position * 100:.0f}% 位置")
+    summary_lines.append(f"- 近 20 日疑似吸筹日 {accumulation_days} 天；疑似派发日 {distribution_days} 天（定义：涨/跌且成交量高于前一日）")
+    volume_price_health = find_check_detail(data.get("advancedTrendChecks", []), "30个交易日内放量上涨日明显多于放量下跌日")
+    if volume_price_health:
+        status, detail = volume_price_health
+        summary_lines.append(f"- 量价健康度：{status}；{detail}")
+    pivot_dry_up = find_check_detail(data.get("advancedTrendChecks", []), "收缩末端成交量极度萎缩")
+    if pivot_dry_up:
+        status, detail = pivot_dry_up
+        summary_lines.append(f"- 枢轴缩量线索：{status}；{detail}")
+
+    summary_lines.append("### 最近 20 个交易日原始量价")
+    recent_20_raw = history.tail(min(20, len(history)))
+    for _, row in recent_20_raw.iterrows():
+        summary_lines.append(f"- {build_raw_session_line(row, row.get('PrevClose'), row.get('VolumeMA50Calc'))}")
+
+    summary_lines.append("### 近 20 日关键量价日")
+    key_days = recent_20.copy()
+    key_days["VolumeRatioCalc"] = key_days["Volume"] / key_days["VolumeMA50Calc"]
+    key_days = key_days.replace([np.inf, -np.inf], np.nan).dropna(subset=["VolumeRatioCalc"])
+    key_days = key_days.sort_values("VolumeRatioCalc", ascending=False).head(4).sort_values("Date")
+    if key_days.empty:
+        summary_lines.append("- 量比数据不足。")
+    else:
+        for _, row in key_days.iterrows():
+            summary_lines.append(f"- {build_raw_session_line(row, row.get('PrevClose'), row.get('VolumeMA50Calc'))}")
 
     summary_lines.append("### 扩展观察")
     summary_lines.extend(build_check_summary_lines(data.get("advancedTrendChecks", [])))
