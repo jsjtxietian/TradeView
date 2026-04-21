@@ -135,7 +135,7 @@ function bindEvents() {
     persistWatchlistGroups();
     persistWatchlist();
     elements.symbolInput.value = "";
-    await refreshSummaries();
+    await refreshSingleSymbol(candidate, true);
     showToast(`${candidate} 已添加。`);
   });
 
@@ -260,6 +260,38 @@ async function refreshSummaries(forceRefresh = false) {
       await loadDetail(state.selectedSymbol, false);
     } else {
       clearDetail();
+    }
+  } catch (error) {
+    showMessage(error.message || String(error), true);
+  } finally {
+    setRefreshLoading(false);
+  }
+}
+
+async function refreshSingleSymbol(symbol, forceRefresh = false) {
+  setRefreshLoading(true);
+  try {
+    const summaryPayload = await fetchJson(
+      `/api/watchlist/summary?symbols=${encodeURIComponent(symbol)}&refresh=${forceRefresh ? "1" : "0"}`,
+    );
+    const summaryItem = summaryPayload.items?.[0] || null;
+    if (summaryItem) {
+      state.summaries.set(symbol, summaryItem);
+      updateAlertsFromSummary([summaryItem]);
+    }
+
+    if (summaryItem?.data) {
+      const detail = await fetchJson(`/api/symbol/${encodeURIComponent(symbol)}?refresh=${forceRefresh ? "1" : "0"}`);
+      state.details.set(symbol, detail);
+      hideMessage();
+      renderWatchlist();
+      renderSelectedDetail();
+      return;
+    }
+
+    renderWatchlist();
+    if (summaryItem?.error) {
+      throw new Error(summaryItem.error);
     }
   } catch (error) {
     showMessage(error.message || String(error), true);
@@ -516,7 +548,10 @@ async function saveGroupEditor() {
   persistWatchlistGroups();
   elements.groupEditorDialog.close();
   if (newSymbols.length) {
-    await refreshSummaries(true);
+    renderWatchlist();
+    for (const symbol of newSymbols) {
+      await refreshSingleSymbol(symbol, true);
+    }
     showToast(`已新增并拉新 ${newSymbols.join(", ")}。`);
     return;
   }

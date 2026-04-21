@@ -31,6 +31,7 @@ DEFAULT_WATCHLIST_GROUPS = [
 ]
 PERIOD_TO_DAYS = {"1y": 365, "2y": 730, "3y": 1095, "5y": 1825}
 MEMORY_CACHE_TTL = 1800
+REFRESH_COOLDOWN_SECONDS = 900
 
 
 @dataclass
@@ -136,6 +137,14 @@ def history_cache_path(symbol: str, period: str) -> Path:
     return CACHE_DIR / f"{safe_symbol}_{period}_history.csv"
 
 
+def is_refresh_cooldown_active(symbol: str, period: str) -> bool:
+    cache_file = history_cache_path(symbol, period)
+    if not cache_file.exists():
+        return False
+    modified_at = cache_file.stat().st_mtime
+    return (time.time() - modified_at) < REFRESH_COOLDOWN_SECONDS
+
+
 def load_history_cache(symbol: str, period: str) -> pd.DataFrame:
     cache_file = history_cache_path(symbol, period)
     if not cache_file.exists():
@@ -232,6 +241,9 @@ def load_history(
         return set_cached(cache_key, disk_cached.copy()).copy()
     if not allow_network:
         return pd.DataFrame()
+    if force_refresh and not disk_cached.empty and is_refresh_cooldown_active(symbol, period):
+        disk_cached.attrs["source_note"] = f"{symbol} 刚刚已拉新过，短时间内直接复用本地缓存。"
+        return set_cached(cache_key, disk_cached.copy()).copy()
 
     incremental_start = None
     tiingo_had_no_data = False
