@@ -957,6 +957,13 @@ def analyze_symbol(
     daily_change_pct = None
     if require_values(latest["Close"], prev_close) and prev_close != 0:
         daily_change_pct = float(latest["Close"] / prev_close - 1)
+    recent_five_window = history["Close"].tail(5)
+    five_day_change_pct = None
+    if len(recent_five_window) >= 5:
+        base_close = recent_five_window.iloc[0]
+        latest_close = recent_five_window.iloc[-1]
+        if require_values(base_close, latest_close) and base_close != 0:
+            five_day_change_pct = float(latest_close / base_close - 1)
     trend_sparkline = build_trend_sparkline(history)
     recent_window = history.tail(min(126, len(history)))
     six_month_high = recent_window["Close"].max() if not recent_window.empty else np.nan
@@ -975,6 +982,8 @@ def analyze_symbol(
         "latestDate": history["Date"].iloc[-1].strftime("%Y-%m-%d"),
         "dailyChangePct": None if daily_change_pct is None else round(daily_change_pct, 4),
         "dailyChangePctText": fmt_signed_pct(daily_change_pct),
+        "fiveDayChangePct": None if five_day_change_pct is None else round(five_day_change_pct, 4),
+        "fiveDayChangePctText": fmt_signed_pct(five_day_change_pct),
         "trendSparklineDirection": trend_sparkline["direction"],
         "trendSparklineValues": trend_sparkline["values"],
         "sixMonthHigh": None if pd.isna(six_month_high) else float(six_month_high),

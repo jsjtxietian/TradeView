@@ -1798,7 +1798,12 @@ function loadStoredAlerts() {
       return [];
     }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.slice(0, 20) : [];
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed
+      .filter((item) => !String(item?.message || "").includes("较上次快照"))
+      .slice(0, 20);
   } catch {
     return [];
   }
@@ -2124,6 +2129,8 @@ function updateAlertsFromSummary(items) {
     const current = {
       latestClose: data.latestClose,
       latestDate: data.latestDate,
+      dailyChangePct: data.dailyChangePct,
+      fiveDayChangePct: data.fiveDayChangePct,
       trendPassCount: data.trendPassCount,
       trendTotal: data.trendTotal,
       isSixMonthHigh: !!data.isSixMonthHigh,
@@ -2154,15 +2161,23 @@ function updateAlertsFromSummary(items) {
     }
 
     if (
-      typeof previous.latestClose === "number"
-      && typeof current.latestClose === "number"
-      && previous.latestClose > 0
+      current.latestDate
+      && current.latestDate !== previous.latestDate
+      && typeof current.dailyChangePct === "number"
+      && Math.abs(current.dailyChangePct) >= 0.05
     ) {
-      const move = current.latestClose / previous.latestClose - 1;
-      if (Math.abs(move) >= 0.05) {
-        const direction = move > 0 ? "上涨" : "下跌";
-        freshAlerts.push(createAlert(symbol, `较上次快照${direction} ${fmtPct(move)}。`));
-      }
+      const direction = current.dailyChangePct > 0 ? "上涨" : "下跌";
+      freshAlerts.push(createAlert(symbol, `较前一交易日${direction} ${fmtPct(current.dailyChangePct)}。`));
+    }
+
+    if (
+      current.latestDate
+      && current.latestDate !== previous.latestDate
+      && typeof current.fiveDayChangePct === "number"
+      && Math.abs(current.fiveDayChangePct) >= 0.08
+    ) {
+      const direction = current.fiveDayChangePct > 0 ? "上涨" : "下跌";
+      freshAlerts.push(createAlert(symbol, `近 5 个交易日累计${direction} ${fmtPct(current.fiveDayChangePct)}。`));
     }
   }
 
