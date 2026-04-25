@@ -17,6 +17,17 @@ const ADVANCED_CHECK_RULES = {
   "近期波动明显收窄": "把近45日拆成三段比较平均振幅，要求逐段收缩；最近10日至少出现 2 根小实体 K 线。",
   "收缩末端成交量极度萎缩": "近10日均量需明显低于 50 日均量，最新成交量接近盘整低位，且近10日振幅不宜超过 8%。",
 };
+const PATTERN_RISK_RULES = {
+  "MVP 动量量价共振": "严格按简化版 MVP：近15个交易日至少12天上涨、累计涨幅至少20%、近15日均量至少高于此前30日均量25%。",
+  "Power Play 高位紧凑旗形": "用近8周最大推进幅度近似前期暴涨，再看最近10-30日是否形成不超过20%的紧凑整理；低价股放宽到25%。",
+  "VCP 收缩递减结构": "简化版 VCP：近55日切成5段，观察振幅是否逐段收窄、末段是否较首段明显压缩，且末段成交量低于50日均量。",
+  "突破后跟进买盘占优": "近10日若识别到放量突破，则统计突破后4日与8日上涨天数；4天至少3涨或8天至少6涨更健康。",
+  "近期好收盘天数占优": "近10日按收盘在日内区间的位置计数；收于区间上半部算好收盘，下半部算弱收盘。",
+  "未出现三连阴破位": "看最近6日是否出现连续3天更低低点，同时近3日均量高于近20日常态；若出现则视为破位风险。",
+  "未出现放量破 20/50 日线": "若最新收盘跌破MA20或MA50，且当日成交量至少高于对应均量25%，则视为放量破均线风险。",
+  "近 10 日未见明显放量滞涨": "近10日若出现量比至少1.5倍、日涨跌幅绝对值不超过1%、且收盘不强的交易日，则记为放量滞涨。",
+  "近 7-15 日未进入高潮式加速": "在最近7到15日窗口内，若上涨天数占比超过70%且累计涨幅达到25%，视为高潮式加速风险升温。",
+};
 
 let toastTimer = null;
 
@@ -68,6 +79,7 @@ const elements = {
   chartHeadlineStats: document.getElementById("chartHeadlineStats"),
   trendChecks: document.getElementById("trendChecks"),
   advancedTrendChecks: document.getElementById("advancedTrendChecks"),
+  patternRiskChecks: document.getElementById("patternRiskChecks"),
   chartStatusNote: document.getElementById("chartStatusNote"),
   priceChartContainer: document.getElementById("priceChartContainer"),
   volumeChartContainer: document.getElementById("volumeChartContainer"),
@@ -428,6 +440,9 @@ function renderSelectedDetail() {
     trimPrefix: true,
     ruleTooltips: ADVANCED_CHECK_RULES,
     subduedNames: SUBDUED_CHECK_NAMES,
+  });
+  renderChecks(elements.patternRiskChecks, detail.patternRiskChecks, {
+    ruleTooltips: PATTERN_RISK_RULES,
   });
   logDetailMessages(detail);
   renderMainChart(detail);
@@ -1520,6 +1535,7 @@ function clearDetail() {
   hideChartStatus();
   elements.trendChecks.innerHTML = "";
   elements.advancedTrendChecks.innerHTML = "";
+  elements.patternRiskChecks.innerHTML = "";
   hideHoverCard();
   destroyCharts();
 }

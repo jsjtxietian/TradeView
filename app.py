@@ -571,6 +571,334 @@ def evaluate_pivot_volume_dry_up(context: AnalysisContext) -> tuple[bool | None,
     return passed, detail
 
 
+def find_recent_breakout(stock: pd.DataFrame, lookback_days: int = 10, base_days: int = 20) -> dict[str, Any] | None:
+    if len(stock) < max(55, base_days + lookback_days + 1):
+        return None
+
+    frame = stock.copy()
+    frame["VolumeMA50"] = frame["Volume"].rolling(50).mean()
+    start_idx = max(base_days, len(frame) - lookback_days)
+    for idx in range(len(frame) - 1, start_idx - 1, -1):
+        row = frame.iloc[idx]
+        prior = frame.iloc[idx - base_days : idx]
+        if len(prior) < base_days or pd.isna(row["VolumeMA50"]):
+            continue
+        prior_high = prior["High"].max()
+        if not require_values(prior_high, row["Close"], row["Volume"], row["VolumeMA50"]):
+            continue
+        if row["Close"] > prior_high and row["Volume"] >= row["VolumeMA50"] * 1.2:
+            return {
+                "index": idx,
+                "date": row["Date"],
+                "prior_high": float(prior_high),
+                "volume_ratio": float(row["Volume"] / row["VolumeMA50"]) if row["VolumeMA50"] else np.nan,
+            }
+    return None
+
+
+def evaluate_mvp_burst(context: AnalysisContext) -> tuple[bool | None, str]:
+    if len(context.stock) < 45:
+        return None, "MVP 至少需要约 45 个交易日数据"
+
+    recent = context.stock.tail(15).copy()
+    prior = context.stock.iloc[-45:-15].copy()
+    if recent.empty or prior.empty:
+        return None, "MVP 样本不足"
+
+    up_days = int((recent["Close"].diff() > 0).sum())
+    start_close = recent["Close"].iloc[0]
+    end_close = recent["Close"].iloc[-1]
+    prior_avg_volume = prior["Volume"].mean()
+    recent_avg_volume = recent["Volume"].mean()
+    if not require_values(start_close, end_close, prior_avg_volume, recent_avg_volume) or prior_avg_volume == 0:
+        return None, "MVP 数据不足"
+
+    price_move = float(end_close / start_close - 1)
+    volume_ratio = float(recent_avg_volume / prior_avg_volume)
+    passed = bool(up_days >= 12 and price_move >= 0.20 and volume_ratio >= 1.25)
+    detail = (
+        f"15 日上涨天数 {up_days}/15"
+        f"\n15 日累计涨幅 {fmt_signed_pct(price_move)}"
+        f"\n近 15 日均量 / 前 30 日均量 {volume_ratio:.2f}x"
+    )
+    return passed, detail
+
+
+def evaluate_power_play(context: AnalysisContext) -> tuple[bool | None, str]:
+    if len(context.stock) < 90:
+        return None, "Power Play 至少需要约 90 个交易日数据"
+
+    frame = context.stock.tail(110).reset_index(drop=True)
+    latest_close = frame["Close"].iloc[-1]
+    best_candidate: dict[str, Any] | None = None
+
+    for base_len in range(10, 31):
+        run_end = len(frame) - base_len
+        run = frame.iloc[max(0, run_end - 40) : run_end]
+        prior = frame.iloc[max(0, run_end - 80) : max(0, run_end - 40)]
+        base = frame.iloc[run_end:]
+        if len(run) < 30 or len(base) < 10:
+            continue
+
+        run_low = run["Low"].min()
+        run_high = run["High"].max()
+        base_low = base["Low"].min()
+        base_high = base["High"].max()
+        if not require_values(run_low, run_high, base_low, base_high, latest_close) or run_low == 0 or base_high == 0:
+            continue
+
+        run_gain = float(run_high / run_low - 1)
+        base_drawdown = float(1 - base_low / base_high)
+        distance_from_base_high = float(1 - latest_close / base_high)
+        volume_ratio = np.nan
+        if not prior.empty:
+            prior_avg_volume = prior["Volume"].mean()
+            run_avg_volume = run["Volume"].mean()
+            if require_values(prior_avg_volume, run_avg_volume) and prior_avg_volume:
+                volume_ratio = float(run_avg_volume / prior_avg_volume)
+
+        low_price_allowance = 0.25 if latest_close < 20 else 0.20
+        volume_ok = bool(pd.isna(volume_ratio) or volume_ratio >= 1.25)
+        candidate = {
+            "base_len": base_len,
+            "run_gain": run_gain,
+            "base_drawdown": base_drawdown,
+            "distance_from_base_high": distance_from_base_high,
+            "volume_ratio": volume_ratio,
+            "passed": bool(
+                run_gain >= 1.0
+                and base_drawdown <= low_price_allowance
+                and distance_from_base_high <= 0.10
+                and volume_ok
+            ),
+        }
+        if best_candidate is None:
+            best_candidate = candidate
+            continue
+        if candidate["passed"] and not best_candidate["passed"]:
+            best_candidate = candidate
+            continue
+        if candidate["passed"] == best_candidate["passed"] and candidate["base_drawdown"] < best_candidate["base_drawdown"]:
+            best_candidate = candidate
+
+    if best_candidate is None:
+        return None, "Power Play 样本不足"
+
+    volume_text = "-" if pd.isna(best_candidate["volume_ratio"]) else f"{best_candidate['volume_ratio']:.2f}x"
+    detail = (
+        f"前段 8 周最大推进 {fmt_pct(best_candidate['run_gain'])}"
+        f"\n整理 {best_candidate['base_len']} 日回撤 {fmt_pct(best_candidate['base_drawdown'])}"
+        f"\n距整理高点 {fmt_pct(best_candidate['distance_from_base_high'])} / 爆发段均量比 {volume_text}"
+    )
+    return bool(best_candidate["passed"]), detail
+
+
+def evaluate_vcp_contraction_ladder(context: AnalysisContext) -> tuple[bool | None, str]:
+    if len(context.stock) < 70:
+        return None, "VCP 递减结构至少需要约 70 个交易日数据"
+
+    frame = context.stock.tail(55).copy().reset_index(drop=True)
+    frame["VolumeMA50"] = context.stock["Volume"].rolling(50).mean().tail(55).reset_index(drop=True)
+    segments = [frame.iloc[index : index + 11] for index in range(0, len(frame), 11)]
+    if len(segments) < 5:
+        return None, "VCP 分段样本不足"
+
+    range_series: list[float] = []
+    for segment in segments:
+        avg_close = segment["Close"].mean()
+        segment_range = np.nan if not avg_close else (segment["High"].max() - segment["Low"].min()) / avg_close
+        range_series.append(float(segment_range) if pd.notna(segment_range) else np.nan)
+    if any(pd.isna(value) for value in range_series):
+        return None, "VCP 振幅样本不足"
+
+    contraction_steps = sum(1 for left, right in zip(range_series, range_series[1:]) if right < left)
+    strong_steps = sum(1 for left, right in zip(range_series, range_series[1:]) if right <= left * 0.7)
+    last_avg_volume = segments[-1]["Volume"].mean()
+    last_volume_ma50 = segments[-1]["VolumeMA50"].iloc[-1]
+    if not require_values(last_avg_volume, last_volume_ma50) or last_volume_ma50 == 0:
+        return None, "VCP 均量数据不足"
+
+    passed = bool(
+        contraction_steps >= 3
+        and strong_steps >= 1
+        and range_series[-1] <= range_series[0] * 0.6
+        and last_avg_volume <= last_volume_ma50 * 0.75
+    )
+    detail = (
+        "近 55 日五段振幅 "
+        + " -> ".join(fmt_pct(value) for value in range_series)
+        + f"\n收缩步数 {contraction_steps} / 强收缩 {strong_steps} 次"
+        + f"\n末段均量 {fmt_volume(last_avg_volume)} / 50 日均量 {fmt_volume(last_volume_ma50)}"
+    )
+    return passed, detail
+
+
+def evaluate_follow_through_count(context: AnalysisContext) -> tuple[bool | None, str]:
+    breakout = find_recent_breakout(context.stock)
+    if breakout is None:
+        return None, "近 10 日未识别到有效放量突破"
+
+    start_idx = breakout["index"]
+    after_breakout = context.stock.iloc[start_idx + 1 : start_idx + 9].copy()
+    if len(after_breakout) < 2:
+        return None, f"突破日 {breakout['date'].strftime('%Y-%m-%d')}，后续样本还不足 2 天"
+
+    after_breakout["PrevClose"] = after_breakout["Close"].shift(1)
+    after_breakout.iloc[0, after_breakout.columns.get_loc("PrevClose")] = context.stock["Close"].iloc[start_idx]
+    day_change = after_breakout["Close"] / after_breakout["PrevClose"] - 1
+    first_four = day_change.head(4)
+    first_eight = day_change.head(8)
+    up4 = int((first_four > 0).sum())
+    up8 = int((first_eight > 0).sum())
+
+    if len(first_eight) >= 8:
+        passed = bool(up8 >= 6)
+    elif len(first_four) >= 4:
+        passed = bool(up4 >= 3)
+    else:
+        passed = bool((day_change > 0).sum() > (day_change < 0).sum())
+
+    detail = (
+        f"突破日 {breakout['date'].strftime('%Y-%m-%d')}"
+        f"\n后续 4 日上涨 {up4}/{len(first_four)}"
+        f"\n后续 8 日上涨 {up8}/{len(first_eight)}"
+    )
+    return passed, detail
+
+
+def evaluate_good_closes(context: AnalysisContext) -> tuple[bool | None, str]:
+    if len(context.stock) < 10:
+        return None, "好收盘统计至少需要近 10 个交易日"
+
+    tail = context.stock.tail(10).copy()
+    full_range = tail["High"] - tail["Low"]
+    valid = full_range > 0
+    if not valid.any():
+        return None, "近期高低点区间不足"
+
+    close_location = (tail["Close"] - tail["Low"]) / full_range.where(valid, np.nan)
+    good_count = int((close_location >= 0.55).sum())
+    bad_count = int((close_location <= 0.45).sum())
+    passed = bool(good_count > bad_count)
+    detail = f"近 10 日好收盘 {good_count} 天\n近 10 日弱收盘 {bad_count} 天"
+    return passed, detail
+
+
+def evaluate_no_three_lower_lows(context: AnalysisContext) -> tuple[bool | None, str]:
+    if len(context.stock) < 25:
+        return None, "三连阴破位至少需要约 25 个交易日数据"
+
+    tail = context.stock.tail(6).reset_index(drop=True)
+    baseline_volume = context.stock["Volume"].tail(20).mean()
+    if not require_values(baseline_volume):
+        return None, "量能基准不足"
+
+    warning_detail = ""
+    danger_found = False
+    for start in range(0, len(tail) - 3):
+        segment = tail.iloc[start : start + 4]
+        lower_lows = bool((segment["Low"].diff().iloc[1:] < 0).all())
+        lower_closes = int((segment["Close"].diff().iloc[1:] < 0).sum())
+        avg_volume = segment["Volume"].iloc[1:].mean()
+        volume_expanding = bool(require_values(avg_volume) and avg_volume >= baseline_volume * 1.1)
+        if lower_lows and lower_closes >= 2 and volume_expanding:
+            danger_found = True
+            warning_detail = (
+                f"{segment['Date'].iloc[0].strftime('%Y-%m-%d')} -> {segment['Date'].iloc[-1].strftime('%Y-%m-%d')}"
+                f"\n连续更低低点，3 日均量 {fmt_volume(avg_volume)} 高于近 20 日常态"
+            )
+            break
+
+    if not danger_found:
+        warning_detail = f"近 6 日未见连续 3 天更低低点放量扩散（近 20 日均量 {fmt_volume(baseline_volume)}）"
+    return (not danger_found), warning_detail
+
+
+def evaluate_no_high_volume_ma_break(context: AnalysisContext) -> tuple[bool | None, str]:
+    if len(context.stock) < 50:
+        return None, "放量破均线至少需要约 50 个交易日数据"
+
+    frame = context.stock.copy()
+    frame["VolumeMA20"] = frame["Volume"].rolling(20).mean()
+    frame["VolumeMA50"] = frame["Volume"].rolling(50).mean()
+    latest = frame.iloc[-1]
+    if pd.isna(latest["VolumeMA20"]) or pd.isna(latest["VolumeMA50"]):
+        return None, "均量数据不足"
+
+    break_ma20 = bool(
+        require_values(latest["Close"], latest["MA20"], latest["Volume"], latest["VolumeMA20"])
+        and latest["Close"] < latest["MA20"]
+        and latest["Volume"] >= latest["VolumeMA20"] * 1.25
+    )
+    break_ma50 = bool(
+        require_values(latest["Close"], latest["MA50"], latest["Volume"], latest["VolumeMA50"])
+        and latest["Close"] < latest["MA50"]
+        and latest["Volume"] >= latest["VolumeMA50"] * 1.25
+    )
+    passed = bool(not break_ma20 and not break_ma50)
+    detail = (
+        f"现价 {fmt_price(latest['Close'])} / MA20 {fmt_price(latest['MA20'])} / MA50 {fmt_price(latest['MA50'])}"
+        f"\n最新量 {fmt_volume(latest['Volume'])} / 20 日均量 {fmt_volume(latest['VolumeMA20'])} / 50 日均量 {fmt_volume(latest['VolumeMA50'])}"
+    )
+    if break_ma50:
+        detail += "\n已触发放量跌破 MA50 风险"
+    elif break_ma20:
+        detail += "\n已触发放量跌破 MA20 风险"
+    return passed, detail
+
+
+def evaluate_no_churning(context: AnalysisContext) -> tuple[bool | None, str]:
+    if len(context.stock) < 60:
+        return None, "放量滞涨至少需要约 60 个交易日数据"
+
+    frame = context.stock.copy()
+    frame["PrevClose"] = frame["Close"].shift(1)
+    frame["VolumeMA50"] = frame["Volume"].rolling(50).mean()
+    tail = frame.tail(10).copy()
+    full_range = tail["High"] - tail["Low"]
+    close_location = (tail["Close"] - tail["Low"]) / full_range.where(full_range > 0, np.nan)
+    day_return = tail["Close"] / tail["PrevClose"] - 1
+    volume_ratio = tail["Volume"] / tail["VolumeMA50"]
+    churning_mask = (
+        (volume_ratio >= 1.5)
+        & (day_return.abs() <= 0.01)
+        & (close_location <= 0.6)
+    )
+    count = int(churning_mask.sum())
+    passed = bool(count == 0)
+    detail = f"近 10 日疑似放量滞涨 {count} 天\n最大量比 {volume_ratio.replace([np.inf, -np.inf], np.nan).max():.2f}x"
+    return passed, detail
+
+
+def evaluate_no_climax_run(context: AnalysisContext) -> tuple[bool | None, str]:
+    if len(context.stock) < 20:
+        return None, "高潮加速至少需要约 20 个交易日数据"
+
+    best_window: dict[str, Any] | None = None
+    for window in range(7, 16):
+        tail = context.stock.tail(window).copy()
+        if len(tail) < window:
+            continue
+        up_days = int((tail["Close"].diff() > 0).sum())
+        move = float(tail["Close"].iloc[-1] / tail["Close"].iloc[0] - 1) if tail["Close"].iloc[0] else np.nan
+        if pd.isna(move):
+            continue
+        up_ratio = up_days / max(window - 1, 1)
+        candidate = {"window": window, "up_ratio": up_ratio, "move": move}
+        if best_window is None or candidate["move"] > best_window["move"]:
+            best_window = candidate
+
+    if best_window is None:
+        return None, "高潮加速样本不足"
+
+    danger = bool(best_window["up_ratio"] >= 0.70 and best_window["move"] >= 0.25)
+    detail = (
+        f"近 {best_window['window']} 日上涨天数占比 {best_window['up_ratio']:.0%}"
+        f"\n近 {best_window['window']} 日累计涨幅 {fmt_signed_pct(best_window['move'])}"
+    )
+    return (not danger), detail
+
+
 BASE_TREND_SPECS = [
     CheckSpec("trend_1", "当前股价高于 150 日和 200 日均线", evaluate_price_above_long_mas),
     CheckSpec("trend_2", "150 日均线高于 200 日均线", evaluate_ma150_above_ma200),
@@ -592,6 +920,18 @@ ADVANCED_TREND_SPECS = [
     CheckSpec("trend_11", "回调深度限制: 距近期高点回调不超过 35%", evaluate_pullback_depth_limit),
     CheckSpec("trend_12", "VCP 波动率收缩: 近期波动明显收窄", evaluate_vcp_contraction),
     CheckSpec("trend_13", "枢轴点缩量: 收缩末端成交量极度萎缩", evaluate_pivot_volume_dry_up),
+]
+
+PATTERN_RISK_SPECS = [
+    CheckSpec("pattern_1", "MVP 动量量价共振", evaluate_mvp_burst),
+    CheckSpec("pattern_2", "Power Play 高位紧凑旗形", evaluate_power_play),
+    CheckSpec("pattern_3", "VCP 收缩递减结构", evaluate_vcp_contraction_ladder),
+    CheckSpec("pattern_4", "突破后跟进买盘占优", evaluate_follow_through_count),
+    CheckSpec("pattern_5", "近期好收盘天数占优", evaluate_good_closes),
+    CheckSpec("pattern_6", "未出现三连阴破位", evaluate_no_three_lower_lows),
+    CheckSpec("pattern_7", "未出现放量破 20/50 日线", evaluate_no_high_volume_ma_break),
+    CheckSpec("pattern_8", "近 10 日未见明显放量滞涨", evaluate_no_churning),
+    CheckSpec("pattern_9", "近 7-15 日未进入高潮式加速", evaluate_no_climax_run),
 ]
 
 
@@ -840,6 +1180,8 @@ def build_technical_summary(data: dict[str, Any]) -> str:
     ]
     if base_failures:
         summary_lines.append(f"- 当前未通过项：{'；'.join(base_failures)}")
+    summary_lines.append("### 趋势模板检查明细")
+    summary_lines.extend(build_check_summary_lines(data.get("trendChecks", [])))
 
     rs_detail = str(data.get("rsDetail", "")).strip()
     if rs_detail:
@@ -879,6 +1221,8 @@ def build_technical_summary(data: dict[str, Any]) -> str:
 
     summary_lines.append("### 扩展观察")
     summary_lines.extend(build_check_summary_lines(data.get("advancedTrendChecks", [])))
+    summary_lines.append("### 形态 / 风控检查")
+    summary_lines.extend(build_check_summary_lines(data.get("patternRiskChecks", [])))
     return "\n".join(summary_lines)
 
 
@@ -952,6 +1296,7 @@ def analyze_symbol(
     )
     trend_checks = build_checks(BASE_TREND_SPECS, analysis_context)
     advanced_trend_checks = build_checks(ADVANCED_TREND_SPECS, analysis_context)
+    pattern_risk_checks = build_checks(PATTERN_RISK_SPECS, analysis_context)
     latest = analysis_context.latest
     prev_close = history["Close"].iloc[-2] if len(history) >= 2 else np.nan
     daily_change_pct = None
@@ -1010,6 +1355,7 @@ def analyze_symbol(
         ],
         "trendChecks": serialize_checks(trend_checks),
         "advancedTrendChecks": serialize_checks(advanced_trend_checks),
+        "patternRiskChecks": serialize_checks(pattern_risk_checks),
         "history": serialize_history(history),
     }
     return set_cached(cache_key, result)

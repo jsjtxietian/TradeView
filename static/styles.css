@@ -933,7 +933,7 @@ button:disabled {
 
 .detail-columns {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 14px;
 }
 
@@ -1029,12 +1029,6 @@ button:disabled {
 .empty-state {
   color: var(--muted);
   padding: 28px 0;
-}
-
-@media (max-width: 1100px) {
-  .detail-columns {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 720px) {
