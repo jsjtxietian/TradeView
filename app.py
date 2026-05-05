@@ -32,6 +32,10 @@ DEFAULT_WATCHLIST_GROUPS = [
 PERIOD_TO_DAYS = {"1y": 365, "2y": 730, "3y": 1095, "5y": 1825}
 MEMORY_CACHE_TTL = 1800
 REFRESH_COOLDOWN_SECONDS = 900
+PRICE_MODE_COLUMN = "PriceMode"
+PREFERRED_PRICE_MODE = "adjusted"
+LEGACY_PRICE_MODE = "raw"
+TIINGO_REFRESH_BATCH_SIZE = 50
 
 
 @dataclass
@@ -126,6 +130,36 @@ def get_tiingo_api_key() -> str:
     return get_secret("TIINGO_API_KEY")
 
 
+def get_tiingo_api_keys() -> list[str]:
+    keys: list[str] = []
+    for secret_name in ("TIINGO_API_KEY", "TIINGO_API_KEY_2"):
+        value = get_secret(secret_name)
+        if value and value not in keys:
+            keys.append(value)
+    return keys
+
+
+def get_refresh_api_key_for_index(index: int) -> str:
+    keys = get_tiingo_api_keys()
+    if not keys:
+        return ""
+    batch_index = max(0, index) // TIINGO_REFRESH_BATCH_SIZE
+    if batch_index >= len(keys):
+        batch_index = len(keys) - 1
+    return keys[batch_index]
+
+
+def get_tiingo_api_key_candidates(preferred_api_key: str | None = None) -> list[str]:
+    candidates: list[str] = []
+    preferred = (preferred_api_key or "").strip()
+    if preferred:
+        candidates.append(preferred)
+    for key in get_tiingo_api_keys():
+        if key and key not in candidates:
+            candidates.append(key)
+    return candidates
+
+
 def period_start(period: str) -> str:
     days = PERIOD_TO_DAYS.get(period, 1095)
     start = pd.Timestamp.utcnow().tz_localize(None) - pd.Timedelta(days=days + 20)
@@ -135,6 +169,27 @@ def period_start(period: str) -> str:
 def history_cache_path(symbol: str, period: str) -> Path:
     safe_symbol = symbol.replace("/", "_").replace("\\", "_")
     return CACHE_DIR / f"{safe_symbol}_{period}_history.csv"
+
+
+def annotate_history_price_mode(frame: pd.DataFrame, price_mode: str) -> pd.DataFrame:
+    if frame.empty:
+        return frame.copy()
+    annotated = frame.copy()
+    annotated[PRICE_MODE_COLUMN] = price_mode
+    return annotated
+
+
+def get_history_price_mode(frame: pd.DataFrame) -> str:
+    if frame.empty or PRICE_MODE_COLUMN not in frame.columns:
+        return LEGACY_PRICE_MODE
+    values = frame[PRICE_MODE_COLUMN].dropna().astype(str).str.strip().str.lower().unique().tolist()
+    if len(values) == 1 and values[0]:
+        return values[0]
+    return LEGACY_PRICE_MODE
+
+
+def is_preferred_price_mode(frame: pd.DataFrame) -> bool:
+    return get_history_price_mode(frame) == PREFERRED_PRICE_MODE
 
 
 def is_refresh_cooldown_active(symbol: str, period: str) -> bool:
@@ -153,13 +208,19 @@ def load_history_cache(symbol: str, period: str) -> pd.DataFrame:
     if frame.empty:
         return pd.DataFrame()
     frame["Date"] = pd.to_datetime(frame["Date"]).dt.tz_localize(None)
-    frame.attrs["source_note"] = f"{symbol} 使用本地缓存数据，可能不是最新交易日。"
+    if is_preferred_price_mode(frame):
+        frame.attrs["source_note"] = f"{symbol} 使用本地前复权缓存数据，可能不是最新交易日。"
+    else:
+        frame.attrs["source_note"] = f"{symbol} 使用旧版未复权缓存数据，点击“拉新”后会重建为前复权口径。"
     return frame
 
 
 def save_history_cache(symbol: str, period: str, frame: pd.DataFrame) -> None:
     history_cache_path(symbol, period).parent.mkdir(exist_ok=True)
-    frame.to_csv(history_cache_path(symbol, period), index=False)
+    annotate_history_price_mode(frame, get_history_price_mode(frame)).to_csv(
+        history_cache_path(symbol, period),
+        index=False,
+    )
 
 
 def merge_history_frames(existing: pd.DataFrame, incoming: pd.DataFrame) -> pd.DataFrame:
@@ -178,8 +239,9 @@ def fetch_history_from_tiingo(
     period: str,
     start_date: str | None = None,
     end_date: str | None = None,
+    api_key: str | None = None,
 ) -> pd.DataFrame:
-    api_key = get_tiingo_api_key()
+    api_key = (api_key or get_tiingo_api_key()).strip()
     if not api_key:
         return pd.DataFrame()
 
@@ -205,16 +267,25 @@ def fetch_history_from_tiingo(
         return pd.DataFrame()
 
     frame = pd.DataFrame(payload)
-    frame = frame.rename(
-        columns={
-            "date": "Date",
-            "open": "Open",
-            "high": "High",
-            "low": "Low",
-            "close": "Close",
-            "volume": "Volume",
-        }
-    )
+    adjusted_columns = {
+        "date": "Date",
+        "adjOpen": "Open",
+        "adjHigh": "High",
+        "adjLow": "Low",
+        "adjClose": "Close",
+        "adjVolume": "Volume",
+    }
+    raw_columns = {
+        "date": "Date",
+        "open": "Open",
+        "high": "High",
+        "low": "Low",
+        "close": "Close",
+        "volume": "Volume",
+    }
+    use_adjusted = all(field in frame.columns for field in adjusted_columns)
+    price_mode = PREFERRED_PRICE_MODE if use_adjusted else LEGACY_PRICE_MODE
+    frame = frame.rename(columns=adjusted_columns if use_adjusted else raw_columns)
     expected = ["Date", "Open", "High", "Low", "Close", "Volume"]
     available = [field for field in expected if field in frame.columns]
     frame = frame[available].copy()
@@ -222,7 +293,8 @@ def fetch_history_from_tiingo(
     for field in ["Open", "High", "Low", "Close", "Volume"]:
         if field in frame.columns:
             frame[field] = pd.to_numeric(frame[field], errors="coerce")
-    return frame.dropna(subset=["Date", "Close"]).sort_values("Date").reset_index(drop=True)
+    frame = frame.dropna(subset=["Date", "Close"]).sort_values("Date").reset_index(drop=True)
+    return annotate_history_price_mode(frame, price_mode)
 
 
 def load_history(
@@ -230,6 +302,7 @@ def load_history(
     period: str = DEFAULT_HISTORY_PERIOD,
     force_refresh: bool = False,
     allow_network: bool = True,
+    tiingo_api_key: str | None = None,
 ) -> pd.DataFrame:
     cache_key = ("history", symbol, period)
     cached = get_cached(cache_key)
@@ -237,38 +310,51 @@ def load_history(
         return cached.copy()
 
     disk_cached = load_history_cache(symbol, period)
+    legacy_cache_needs_rebuild = not disk_cached.empty and not is_preferred_price_mode(disk_cached)
     if not force_refresh and not disk_cached.empty:
         return set_cached(cache_key, disk_cached.copy()).copy()
     if not allow_network:
         return pd.DataFrame()
-    if force_refresh and not disk_cached.empty and is_refresh_cooldown_active(symbol, period):
+    if force_refresh and not disk_cached.empty and not legacy_cache_needs_rebuild and is_refresh_cooldown_active(symbol, period):
         disk_cached.attrs["source_note"] = f"{symbol} 刚刚已拉新过，短时间内直接复用本地缓存。"
         return set_cached(cache_key, disk_cached.copy()).copy()
 
     incremental_start = None
     tiingo_had_no_data = False
-    if not disk_cached.empty:
+    if not disk_cached.empty and not legacy_cache_needs_rebuild:
         incremental_start = (disk_cached["Date"].max() + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
 
     tiingo_error: Exception | None = None
-    if get_tiingo_api_key():
-        try:
-            frame = fetch_history_from_tiingo(symbol, period, start_date=incremental_start)
-            if not frame.empty or not disk_cached.empty:
-                merged = merge_history_frames(disk_cached, frame)
-                merged.attrs["source_note"] = (
-                    f"{symbol} 行情已增量更新，价格数据源: Tiingo"
-                    if not disk_cached.empty
-                    else f"{symbol} 行情数据源: Tiingo"
-                )
-                save_history_cache(symbol, period, merged)
-                return set_cached(cache_key, merged.copy()).copy()
-            tiingo_had_no_data = True
-        except Exception as exc:
-            tiingo_error = exc
+    api_keys = get_tiingo_api_key_candidates(tiingo_api_key)
+    if api_keys:
+        for api_key in api_keys:
+            try:
+                frame = fetch_history_from_tiingo(symbol, period, start_date=incremental_start, api_key=api_key)
+                if legacy_cache_needs_rebuild and not frame.empty:
+                    merged = frame.copy()
+                    merged.attrs["source_note"] = f"{symbol} 行情已按前复权口径重建缓存，价格数据源: Tiingo"
+                    save_history_cache(symbol, period, merged)
+                    return set_cached(cache_key, merged.copy()).copy()
+                if not legacy_cache_needs_rebuild and (not frame.empty or not disk_cached.empty):
+                    merged = merge_history_frames(disk_cached, frame)
+                    merged.attrs["source_note"] = (
+                        f"{symbol} 前复权行情已增量更新，价格数据源: Tiingo"
+                        if not disk_cached.empty
+                        else f"{symbol} 前复权行情数据源: Tiingo"
+                    )
+                    save_history_cache(symbol, period, merged)
+                    return set_cached(cache_key, merged.copy()).copy()
+                tiingo_had_no_data = True
+                tiingo_error = None
+                break
+            except Exception as exc:
+                tiingo_error = exc
 
     if not disk_cached.empty:
-        disk_cached.attrs["source_note"] = f"{symbol} 使用本地缓存数据，当前处于离线或接口失败回退状态。"
+        if legacy_cache_needs_rebuild:
+            disk_cached.attrs["source_note"] = f"{symbol} 仍在使用旧版未复权缓存；本次未能完成前复权重建，当前处于离线或接口失败回退状态。"
+        else:
+            disk_cached.attrs["source_note"] = f"{symbol} 使用本地前复权缓存数据，当前处于离线或接口失败回退状态。"
         return set_cached(cache_key, disk_cached.copy()).copy()
 
     if tiingo_error is not None:
@@ -1248,6 +1334,7 @@ def analyze_symbol(
     force_refresh: bool = False,
     allow_network: bool = True,
     refresh_benchmark: bool = False,
+    tiingo_api_key: str | None = None,
 ) -> dict[str, Any]:
     normalized = normalize_symbol(symbol)
     if not normalized:
@@ -1268,6 +1355,7 @@ def analyze_symbol(
         DEFAULT_HISTORY_PERIOD,
         force_refresh=force_refresh,
         allow_network=allow_network,
+        tiingo_api_key=tiingo_api_key,
     )
     if raw_history.empty:
         if allow_network:
@@ -1283,6 +1371,7 @@ def analyze_symbol(
         DEFAULT_HISTORY_PERIOD,
         force_refresh=force_refresh and refresh_benchmark,
         allow_network=allow_network,
+        tiingo_api_key=tiingo_api_key,
     )
     if not raw_benchmark_history.empty:
         benchmark_history = add_indicators(raw_benchmark_history)
@@ -1366,12 +1455,14 @@ def summary_payload(
     force_refresh: bool = False,
     allow_network: bool = True,
     refresh_benchmark: bool = False,
+    tiingo_api_key: str | None = None,
 ) -> dict[str, Any]:
     data = analyze_symbol(
         symbol,
         force_refresh=force_refresh,
         allow_network=allow_network,
         refresh_benchmark=refresh_benchmark,
+        tiingo_api_key=tiingo_api_key,
     )
     return {
         "symbol": data["symbol"],
@@ -1423,6 +1514,8 @@ def watchlist_summary(
         raise HTTPException(status_code=400, detail="缺少有效股票代码。")
 
     benchmark_in_watchlist = DEFAULT_BENCHMARK in normalized_symbols
+    refresh_api_keys = {symbol: get_refresh_api_key_for_index(index) for index, symbol in enumerate(normalized_symbols)}
+    benchmark_refresh_api_key = get_refresh_api_key_for_index(0)
 
     if refresh and not benchmark_in_watchlist:
         clear_symbol_memory_cache(DEFAULT_BENCHMARK)
@@ -1432,6 +1525,7 @@ def watchlist_summary(
                 DEFAULT_HISTORY_PERIOD,
                 force_refresh=True,
                 allow_network=True,
+                tiingo_api_key=benchmark_refresh_api_key,
             )
         except Exception:
             pass
@@ -1448,6 +1542,7 @@ def watchlist_summary(
                     force_refresh=refresh,
                     allow_network=refresh,
                     refresh_benchmark=False,
+                    tiingo_api_key=refresh_api_keys.get(symbol),
                 ),
                 "error": None,
             }
@@ -1486,6 +1581,7 @@ def symbol_detail(
             force_refresh=refresh,
             allow_network=refresh,
             refresh_benchmark=refresh,
+            tiingo_api_key=get_tiingo_api_key(),
         )
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -1505,6 +1601,7 @@ def symbol_prompt(
             force_refresh=False,
             allow_network=False,
             refresh_benchmark=False,
+            tiingo_api_key=None,
         )
         note = str((payload or {}).get("note", "")).strip()
         return {
