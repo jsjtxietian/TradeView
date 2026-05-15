@@ -20,8 +20,8 @@
 {{note_block}}
 
 请你自行搜索并补充：
-1. 最近几个季度的基本面变化，包括营收、EPS、利润率、指引与市场预期。
-2. 是否存在 Mark Minervini 所说的 Code 33 情况：连续三个季度 earnings、sales、profit margins 加速改善。
+1. 最近几个季度的基本面变化，包括营收、EPS、利润率、指引与市场预期；是否存在 Mark Minervini 所说的 Code 33 情况：连续三个季度 earnings、sales、profit margins 加速改善。
+2. 真实的相对强度排名：请优先搜索 Investor's Business Daily / MarketSurge / IBD Stock Checkup 等来源，确认该标的最新可查的 IBD RS Rating / Relative Strength Rating。不要把我提供的本地 RS 代理分数当成 IBD 官方排名；可以用相对 SPY、相对行业 ETF、相对同组龙头的表现作为辅助判断。
 3. 它是否是所属行业/主题里的龙头股；如果不是，谁更像龙头，它和龙头相比差在哪。
 4. 最近一次财报日、下一次预期财报日分别是什么，距离下一次财报还有多久。
 5. 结合我提供的最近 K 线原始量价线索、量价关系和你自行搜索到的信息，判断机构资金更像在吸筹还是派发，并说明线索。
