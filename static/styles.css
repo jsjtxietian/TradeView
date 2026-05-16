@@ -831,6 +831,14 @@ button:disabled {
   flex-wrap: wrap;
 }
 
+.chart-holding-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  min-height: 0;
+}
+
 .chart-stat-pill {
   display: inline-flex;
   align-items: center;
@@ -854,6 +862,34 @@ button:disabled {
 }
 
 .chart-stat-pill.down {
+  background: rgba(180, 35, 24, 0.14);
+  color: var(--danger);
+}
+
+.chart-holding-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(180, 83, 9, 0.12);
+  color: var(--warm);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.chart-holding-pill b {
+  color: var(--text);
+  font-weight: 750;
+}
+
+.chart-holding-pill.up {
+  background: rgba(22, 101, 52, 0.14);
+  color: var(--success);
+}
+
+.chart-holding-pill.down {
   background: rgba(180, 35, 24, 0.14);
   color: var(--danger);
 }

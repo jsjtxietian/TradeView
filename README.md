@@ -193,6 +193,16 @@ There are two analysis groups:
 - base trend template `1-8`
 - extended checks `9-13`
 
+Base implementation note:
+
+- trend `8` uses a local RS proxy score rather than the official IBD RS Rating
+- benchmark is `SPY`
+- the proxy aligns stock and benchmark closes by trading date, then compares weighted excess returns over `63`, `126`, `189`, and `252` trading days
+- weights are `40%`, `20%`, `20%`, and `20%`, so the latest quarter has the largest influence
+- formula: `clip(50 + 100 * weighted_excess_return, 1, 99)`
+- practical interpretation: `70` means about `+20%` weighted excess return versus SPY, `80` about `+30%`, and `90` about `+40%`
+- this is only an approximation of relative strength versus SPY; it is not a cross-sectional market percentile and should not be treated as the official IBD ranking
+
 Extended implementation note:
 
 - trend `9` first finds SPY's largest drawdown window over the latest `63` trading days
@@ -268,6 +278,7 @@ Behavior:
 - no hover preview card
 - note modal stores both free-form text and a local `isHolding` flag
 - holding symbols get a highlighted card background in the watchlist
+- watchlist cards show only floating P/L for holdings; cost basis stays inside the note modal and detail area
 - button `title` text shows:
   - custom note if it exists
   - otherwise `持仓股` when only the holding flag is set

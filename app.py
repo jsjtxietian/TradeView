@@ -1312,7 +1312,50 @@ def build_technical_summary(data: dict[str, Any]) -> str:
     return "\n".join(summary_lines)
 
 
-def build_prompt_from_analysis(data: dict[str, Any], note: str = "") -> str:
+def build_holding_block(holding: dict[str, Any] | None) -> str:
+    if not holding or not holding.get("isHolding"):
+        return "（当前标的未标记为持仓）"
+
+    cost_basis = coerce_float(holding.get("costBasis"))
+    shares = coerce_float(holding.get("shares"))
+    latest_close = coerce_float(holding.get("latestClose"))
+    pnl_pct = coerce_float(holding.get("pnlPct"))
+    pnl_value = coerce_float(holding.get("pnlValue"))
+
+    lines = ["- 当前标的已标记为持仓。"]
+    if cost_basis is not None:
+        lines.append(f"- 成本价：{fmt_price(cost_basis)}")
+    if shares is not None:
+        lines.append(f"- 股数：{shares:g}")
+    if latest_close is not None:
+        lines.append(f"- 当前用于估算的最新收盘价：{fmt_price(latest_close)}")
+    if pnl_pct is not None:
+        lines.append(f"- 当前浮盈亏比例：{fmt_signed_pct(pnl_pct)}")
+    if pnl_value is not None:
+        lines.append(f"- 当前浮盈亏金额：{fmt_signed_price(pnl_value)}")
+    return "\n".join(lines)
+
+
+def coerce_float(value: Any) -> float | None:
+    if value is None or value == "":
+        return None
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not np.isfinite(numeric):
+        return None
+    return numeric
+
+
+def fmt_signed_price(value: float | None) -> str:
+    if value is None or pd.isna(value):
+        return "-"
+    sign = "+" if value > 0 else ""
+    return f"{sign}{value:,.2f}"
+
+
+def build_prompt_from_analysis(data: dict[str, Any], note: str = "", holding: dict[str, Any] | None = None) -> str:
     template = read_prompt_template()
     note_text = note.strip()
     note_block = note_text if note_text else "（无）"
@@ -1320,6 +1363,7 @@ def build_prompt_from_analysis(data: dict[str, Any], note: str = "") -> str:
         "{{symbol}}": str(data.get("symbol", "")).strip(),
         "{{latest_date}}": str(data.get("latestDate", "")).strip(),
         "{{technical_summary}}": build_technical_summary(data),
+        "{{holding_block}}": build_holding_block(holding),
         "{{note}}": note_text,
         "{{note_block}}": note_block,
     }
@@ -1604,9 +1648,10 @@ def symbol_prompt(
             tiingo_api_key=None,
         )
         note = str((payload or {}).get("note", "")).strip()
+        holding = (payload or {}).get("holding")
         return {
             "symbol": normalized,
-            "prompt": build_prompt_from_analysis(data, note=note),
+            "prompt": build_prompt_from_analysis(data, note=note, holding=holding if isinstance(holding, dict) else None),
             "templatePath": str(PROMPT_TEMPLATE_PATH),
         }
     except Exception as exc:

@@ -77,6 +77,7 @@ const elements = {
   detailSection: document.getElementById("detailSection"),
   chartTitle: document.getElementById("chartTitle"),
   chartHeadlineStats: document.getElementById("chartHeadlineStats"),
+  chartHoldingStats: document.getElementById("chartHoldingStats"),
   trendChecks: document.getElementById("trendChecks"),
   advancedTrendChecks: document.getElementById("advancedTrendChecks"),
   patternRiskChecks: document.getElementById("patternRiskChecks"),
@@ -1142,21 +1143,6 @@ function renderChartHeadlineStats(detail) {
     },
     { label: "收盘日成交量", value: detail.latestVolumeText || "-" },
   ];
-  const holding = getHoldingSnapshot(detail.symbol);
-  if (holding) {
-    const holdingParts = [`成本 ${fmtPrice(holding.costBasis)}`, `浮盈亏 ${fmtPct(holding.pnlPct)}`];
-    if (holding.shares != null) {
-      holdingParts.push(`股数 ${holding.shares}`);
-    }
-    if (holding.pnlValue != null) {
-      holdingParts.push(`金额 ${fmtSignedPrice(holding.pnlValue)}`);
-    }
-    stats.push({
-      label: "持仓",
-      value: holdingParts.join(" / "),
-      tone: classifyChangeTone(holding.pnlPct),
-    });
-  }
   elements.chartHeadlineStats.innerHTML = stats
     .map(
       (item) => `
@@ -1167,6 +1153,29 @@ function renderChartHeadlineStats(detail) {
       `,
     )
     .join("");
+  renderChartHoldingStats(detail.symbol);
+}
+
+function renderChartHoldingStats(symbol) {
+  const holding = getHoldingSnapshot(symbol);
+  if (!holding) {
+    elements.chartHoldingStats.innerHTML = "";
+    return;
+  }
+  const tone = classifyChangeTone(holding.pnlPct);
+  const holdingParts = [`浮盈亏 ${fmtPct(holding.pnlPct)}`, `成本 ${fmtPrice(holding.costBasis)}`];
+  if (holding.pnlValue != null) {
+    holdingParts.push(`金额 ${fmtSignedPrice(holding.pnlValue)}`);
+  }
+  if (holding.shares != null) {
+    holdingParts.push(`股数 ${holding.shares}`);
+  }
+  elements.chartHoldingStats.innerHTML = `
+    <span class="chart-holding-pill${tone ? ` ${tone}` : ""}">
+      <b>持仓</b>
+      <span>${holdingParts.join(" / ")}</span>
+    </span>
+  `;
 }
 
 function getChartLib() {
@@ -1532,6 +1541,7 @@ function clearDetail() {
   elements.detailSection.hidden = true;
   elements.chartTitle.textContent = "选择一只股票";
   elements.chartHeadlineStats.innerHTML = "";
+  elements.chartHoldingStats.innerHTML = "";
   hideChartStatus();
   elements.trendChecks.innerHTML = "";
   elements.advancedTrendChecks.innerHTML = "";
@@ -1942,8 +1952,8 @@ function renderHoldingInline(symbol) {
   const tone = classifyChangeTone(holding.pnlPct);
   return `
     <div class="watchlist-holding-line${tone ? ` ${tone}` : ""}">
-      <span>成本 ${fmtPrice(holding.costBasis)}</span>
       <span>浮盈亏 ${fmtPct(holding.pnlPct)}</span>
+      ${holding.pnlValue != null ? `<span>${fmtSignedPrice(holding.pnlValue)}</span>` : ""}
     </div>
   `;
 }
@@ -2062,13 +2072,33 @@ async function copyPromptForActiveSymbol() {
   }
   const liveNote = state.activeNoteSymbol === symbol ? String(elements.noteTextarea.value || "").trim() : "";
   const note = liveNote || getNoteForSymbol(symbol);
+  const holding = buildPromptHoldingPayload(symbol);
   const payload = await fetchJson(`/api/prompt/${encodeURIComponent(symbol)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ note }),
+    body: JSON.stringify({ note, holding }),
   });
   await copyTextToClipboard(String(payload.prompt || ""));
   showToast(`${symbol} 的分析 Prompt 已复制。`);
+}
+
+function buildPromptHoldingPayload(symbol) {
+  const normalizedSymbol = normalizeSymbol(symbol);
+  const isHolding = getHoldingForSymbol(normalizedSymbol);
+  const costBasis = getCostBasisForSymbol(normalizedSymbol);
+  const shares = getSharesForSymbol(normalizedSymbol);
+  const holding = getHoldingSnapshot(normalizedSymbol);
+  if (!isHolding && costBasis == null && shares == null && !holding) {
+    return null;
+  }
+  return {
+    isHolding: true,
+    costBasis,
+    shares,
+    latestClose: holding?.latestClose ?? state.summaries.get(normalizedSymbol)?.data?.latestClose ?? null,
+    pnlPct: holding?.pnlPct ?? null,
+    pnlValue: holding?.pnlValue ?? null,
+  };
 }
 
 function filterWatchlistSymbols(symbols) {
