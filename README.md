@@ -195,11 +195,12 @@ There are two analysis groups:
 
 Base implementation note:
 
-- trend `8` uses a local RS proxy score rather than the official IBD RS Rating
+- trend `8` uses a local relative-to-SPY performance score rather than the official IBD RS Rating
 - benchmark is `SPY`
 - the proxy aligns stock and benchmark closes by trading date, then compares weighted excess returns over `63`, `126`, `189`, and `252` trading days
 - weights are `40%`, `20%`, `20%`, and `20%`, so the latest quarter has the largest influence
 - formula: `clip(50 + 100 * weighted_excess_return, 1, 99)`
+- trend `8` passes at `60`, which means about `+10%` weighted excess return versus SPY
 - practical interpretation: `70` means about `+20%` weighted excess return versus SPY, `80` about `+30%`, and `90` about `+40%`
 - this is only an approximation of relative strength versus SPY; it is not a cross-sectional market percentile and should not be treated as the official IBD ranking
 

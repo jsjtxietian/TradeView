@@ -23,6 +23,7 @@ STATIC_DIR = Path("static")
 PROMPT_TEMPLATE_PATH = Path("prompt_template.md")
 DEFAULT_HISTORY_PERIOD = "3y"
 DEFAULT_BENCHMARK = "SPY"
+RELATIVE_MARKET_SCORE_THRESHOLD = 60
 DEFAULT_WATCHLIST = ["AAPL", "NVDA", "MSFT", "TSLA"]
 DEFAULT_WATCHLIST_GROUPS = [
     {"id": "ai", "name": "AI 区", "symbols": ["NVDA", "MSFT", "MU", "AMD", "AVGO"]},
@@ -383,7 +384,7 @@ def compute_rs_proxy(stock: pd.DataFrame, benchmark: pd.DataFrame) -> tuple[floa
         suffixes=("_stock", "_bench"),
     )
     if len(merged) < max(horizons) + 1:
-        return None, "历史数据不足，无法计算 RS 代理分数"
+        return None, "历史数据不足，无法计算相对 SPY 表现分"
 
     merged = merged.sort_values("Date").reset_index(drop=True)
     weights = [0.4, 0.2, 0.2, 0.2]
@@ -395,7 +396,7 @@ def compute_rs_proxy(stock: pd.DataFrame, benchmark: pd.DataFrame) -> tuple[floa
 
     weighted_excess = float(sum(excess_returns))
     score = float(np.clip(50 + weighted_excess * 100, 1, 99))
-    return score, f"相对 {DEFAULT_BENCHMARK} 的 RS 代理分数: {score:.1f}"
+    return score, f"相对 {DEFAULT_BENCHMARK} 表现分: {score:.1f}"
 
 
 def require_values(*values: float | None) -> bool:
@@ -470,7 +471,7 @@ def evaluate_near_52w_high(context: AnalysisContext) -> tuple[bool | None, str]:
 def evaluate_rs_proxy_threshold(context: AnalysisContext) -> tuple[bool | None, str]:
     if context.rs_score is None:
         return None, context.rs_detail
-    return bool(context.rs_score >= 70), context.rs_detail
+    return bool(context.rs_score >= RELATIVE_MARKET_SCORE_THRESHOLD), context.rs_detail
 
 
 def evaluate_market_pullback_resilience(context: AnalysisContext) -> tuple[bool | None, str]:
@@ -993,7 +994,7 @@ BASE_TREND_SPECS = [
     CheckSpec("trend_5", "当前股价高于 50 日均线", evaluate_price_above_ma50),
     CheckSpec("trend_6", "当前股价较 52 周低点至少高出 30%", evaluate_above_52w_low),
     CheckSpec("trend_7", "当前股价距离 52 周高点不超过 25%", evaluate_near_52w_high),
-    CheckSpec("trend_8", "RS 代理分数不低于 70", evaluate_rs_proxy_threshold),
+    CheckSpec("trend_8", "相对 SPY 表现分不低于 60", evaluate_rs_proxy_threshold),
 ]
 
 ADVANCED_TREND_SPECS = [
@@ -1272,7 +1273,7 @@ def build_technical_summary(data: dict[str, Any]) -> str:
     rs_detail = str(data.get("rsDetail", "")).strip()
     if rs_detail:
         summary_lines.extend([
-            "### 相对强度",
+            "### 相对大盘表现",
             f"- {rs_detail}",
         ])
 
@@ -1408,7 +1409,7 @@ def analyze_symbol(
 
     history = add_indicators(raw_history)
     rs_score = None
-    rs_detail = f"本地未缓存 {DEFAULT_BENCHMARK}，RS 代理分数暂不可用。点击“拉新”后可补齐。"
+    rs_detail = f"本地未缓存 {DEFAULT_BENCHMARK}，相对 SPY 表现分暂不可用。点击“拉新”后可补齐。"
     benchmark_history = pd.DataFrame()
     raw_benchmark_history = raw_history if normalized == DEFAULT_BENCHMARK else load_history(
         DEFAULT_BENCHMARK,
