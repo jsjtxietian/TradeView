@@ -44,16 +44,22 @@ const state = {
   draggingSymbol: "",
   selectedSymbol: null,
   chartMode: "close",
+  compareBenchmark: false,
   currentChartData: [],
+  currentBenchmarkData: [],
+  currentBenchmarkSymbol: "SPY",
   summaries: new Map(),
   details: new Map(),
+  benchmarkChart: null,
   priceChart: null,
   volumeChart: null,
+  benchmarkSeries: null,
   candleSeries: null,
   closeLineSeries: null,
   volumeSeries: null,
   maSeries: [],
   maVisibility: { MA20: true, MA50: true, MA150: true, MA200: true },
+  crosshairSyncing: false,
   chartWheelBound: false,
   watchlistResizeTimer: null,
 };
@@ -71,6 +77,11 @@ const elements = {
   editGroupsButton: document.getElementById("editGroupsButton"),
   refreshButton: document.getElementById("refreshButton"),
   chartMode: document.getElementById("chartMode"),
+  compareBenchmarkToggle: document.getElementById("compareBenchmarkToggle"),
+  benchmarkChartPanel: document.getElementById("benchmarkChartPanel"),
+  benchmarkChartLabel: document.getElementById("benchmarkChartLabel"),
+  benchmarkChartContainer: document.getElementById("benchmarkChartContainer"),
+  stockChartLabel: document.getElementById("stockChartLabel"),
   maToggleGroup: document.getElementById("maToggleGroup"),
   chartHoverCard: document.getElementById("chartHoverCard"),
   messageBar: document.getElementById("messageBar"),
@@ -119,6 +130,7 @@ async function init() {
     normalizeWatchlistGroups(config.watchlistGroups || []),
   );
   elements.chartMode.value = state.chartMode;
+  elements.compareBenchmarkToggle.checked = state.compareBenchmark;
   syncTrendFilterButton();
   syncHoldingFilterButton();
   renderAlerts();
@@ -220,6 +232,14 @@ function bindEvents() {
     state.chartMode = elements.chartMode.value;
     persistChartPrefs();
     applyChartMode();
+  });
+
+  elements.compareBenchmarkToggle.addEventListener("change", () => {
+    state.compareBenchmark = elements.compareBenchmarkToggle.checked;
+    persistChartPrefs();
+    applyChartMode();
+    syncChartRanges(state.priceChart?.timeScale().getVisibleLogicalRange());
+    resizeCharts();
   });
 
   elements.maToggleGroup.addEventListener("change", (event) => {
@@ -1190,12 +1210,21 @@ function renderChartUnavailable(message) {
   placeholder.textContent = message;
   elements.priceChartContainer.innerHTML = "";
   elements.priceChartContainer.appendChild(placeholder);
+  elements.benchmarkChartContainer.innerHTML = "";
   elements.volumeChartContainer.innerHTML = "";
 }
 
 function renderMainChart(detail) {
   const chartData = detail.history || [];
   state.currentChartData = chartData;
+  state.currentBenchmarkData = detail.benchmarkHistory || [];
+  state.currentBenchmarkSymbol = detail.benchmarkSymbol || "SPY";
+  const comparisonAvailable =
+    state.currentBenchmarkData.length > 0 && detail.symbol !== state.currentBenchmarkSymbol;
+  elements.compareBenchmarkToggle.disabled = !comparisonAvailable;
+  elements.compareBenchmarkToggle.checked = state.compareBenchmark && comparisonAvailable;
+  elements.benchmarkChartLabel.textContent = state.currentBenchmarkSymbol;
+  elements.stockChartLabel.textContent = detail.symbol;
   if (!getChartLib()) {
     renderChartUnavailable("图表库未加载，当前无法显示图表。");
     return;
@@ -1223,6 +1252,18 @@ function renderMainChart(detail) {
         time: row.Date,
         value: row.Close,
       })),
+  );
+
+  const benchmarkByDate = new Map(
+    state.currentBenchmarkData
+      .filter((row) => row.Date && row.Close != null)
+      .map((row) => [row.Date, row.Close]),
+  );
+  state.benchmarkSeries.setData(
+    chartData.map((row) => {
+      const value = benchmarkByDate.get(row.Date);
+      return value == null ? { time: row.Date } : { time: row.Date, value };
+    }),
   );
 
   state.volumeSeries.setData(
@@ -1266,10 +1307,49 @@ function createMainChart() {
   }
 
   elements.priceChartContainer.innerHTML = "";
+  elements.benchmarkChartContainer.innerHTML = "";
   elements.volumeChartContainer.innerHTML = "";
 
   const dashedLineStyle = chartLib.LineStyle?.Dashed ?? 2;
   const dottedLineStyle = chartLib.LineStyle?.Dotted ?? 1;
+
+  state.benchmarkChart = chartLib.createChart(elements.benchmarkChartContainer, {
+    layout: {
+      background: { color: "rgba(255,255,255,0)" },
+      textColor: "#617286",
+    },
+    rightPriceScale: {
+      borderColor: "rgba(15, 23, 42, 0.12)",
+      scaleMargins: { top: 0.12, bottom: 0.12 },
+    },
+    timeScale: {
+      visible: false,
+      borderVisible: false,
+      rightOffset: 0,
+      fixRightEdge: true,
+      rightBarStaysOnScroll: true,
+      lockVisibleTimeRangeOnResize: true,
+    },
+    grid: {
+      vertLines: { color: "rgba(15, 23, 42, 0.04)" },
+      horzLines: { color: "rgba(15, 23, 42, 0.05)" },
+    },
+    crosshair: {
+      vertLine: { color: "rgba(180, 83, 9, 0.3)" },
+      horzLine: { color: "rgba(180, 83, 9, 0.2)" },
+    },
+    handleScroll: false,
+    handleScale: false,
+  });
+
+  state.benchmarkSeries = state.benchmarkChart.addSeries(chartLib.LineSeries, {
+    color: "#b45309",
+    lineWidth: 2,
+    title: "",
+    crosshairMarkerVisible: true,
+    lastValueVisible: true,
+    priceLineVisible: false,
+  });
 
   state.priceChart = chartLib.createChart(elements.priceChartContainer, {
     layout: {
@@ -1420,17 +1500,44 @@ function createMainChart() {
         state.priceChart.timeScale().setVisibleLogicalRange(clamped);
         return;
       }
-      state.volumeChart.timeScale().setVisibleLogicalRange(clamped);
+      syncChartRanges(clamped);
     }
   });
 
   state.priceChart.subscribeCrosshairMove((param) => {
+    if (state.crosshairSyncing) {
+      return;
+    }
     if (!param.time || !param.point) {
       hideHoverCard();
+      clearSyncedCrosshairs("price");
       return;
     }
     const row = state.currentChartData.find((item) => item.Date === param.time);
     updateHoverCard(row || state.currentChartData.at(-1), param.point);
+    syncCrosshairs(param.time, "price");
+  });
+
+  state.benchmarkChart.subscribeCrosshairMove((param) => {
+    if (state.crosshairSyncing) {
+      return;
+    }
+    if (!param.time || !param.point) {
+      clearSyncedCrosshairs("benchmark");
+      return;
+    }
+    syncCrosshairs(param.time, "benchmark");
+  });
+
+  state.volumeChart.subscribeCrosshairMove((param) => {
+    if (state.crosshairSyncing) {
+      return;
+    }
+    if (!param.time || !param.point) {
+      clearSyncedCrosshairs("volume");
+      return;
+    }
+    syncCrosshairs(param.time, "volume");
   });
 
   bindChartWheelZoom();
@@ -1445,7 +1552,69 @@ function applyVisibleWindow(history) {
   const visibleBars = Math.min(DEFAULT_VISIBLE_BARS, history.length);
   const range = buildRightAnchoredRange(visibleBars, history.length);
   state.priceChart.timeScale().setVisibleLogicalRange(range);
-  state.volumeChart.timeScale().setVisibleLogicalRange(range);
+  syncChartRanges(range);
+}
+
+function syncChartRanges(range) {
+  if (!range) {
+    return;
+  }
+  state.volumeChart?.timeScale().setVisibleLogicalRange(range);
+  if (state.compareBenchmark && !elements.compareBenchmarkToggle.disabled) {
+    state.benchmarkChart?.timeScale().setVisibleLogicalRange(range);
+  }
+}
+
+function syncCrosshairs(time, source) {
+  const stockRow = state.currentChartData.find((row) => row.Date === time);
+  if (!stockRow) {
+    return;
+  }
+  const benchmarkRow = state.currentBenchmarkData.find((row) => row.Date === time);
+  const stockSeries = state.chartMode === "candles" ? state.candleSeries : state.closeLineSeries;
+
+  state.crosshairSyncing = true;
+  try {
+    if (source !== "price" && state.priceChart && stockSeries) {
+      state.priceChart.setCrosshairPosition(stockRow.Close, time, stockSeries);
+    }
+    if (source !== "volume" && state.volumeChart && state.volumeSeries) {
+      state.volumeChart.setCrosshairPosition(stockRow.Volume, time, state.volumeSeries);
+    }
+    if (
+      source !== "benchmark" &&
+      state.compareBenchmark &&
+      !elements.compareBenchmarkToggle.disabled &&
+      state.benchmarkChart &&
+      state.benchmarkSeries &&
+      benchmarkRow
+    ) {
+      state.benchmarkChart.setCrosshairPosition(
+        benchmarkRow.Close,
+        time,
+        state.benchmarkSeries,
+      );
+    }
+  } finally {
+    state.crosshairSyncing = false;
+  }
+}
+
+function clearSyncedCrosshairs(source) {
+  state.crosshairSyncing = true;
+  try {
+    if (source !== "price") {
+      state.priceChart?.clearCrosshairPosition();
+    }
+    if (source !== "volume") {
+      state.volumeChart?.clearCrosshairPosition();
+    }
+    if (source !== "benchmark") {
+      state.benchmarkChart?.clearCrosshairPosition();
+    }
+  } finally {
+    state.crosshairSyncing = false;
+  }
 }
 
 function bindChartWheelZoom() {
@@ -1477,9 +1646,10 @@ function bindChartWheelZoom() {
 
     const range = buildRightAnchoredRange(nextWidth, dataLength);
     state.priceChart.timeScale().setVisibleLogicalRange(range);
-    state.volumeChart.timeScale().setVisibleLogicalRange(range);
+    syncChartRanges(range);
   };
 
+  elements.benchmarkChartContainer.addEventListener("wheel", handleWheel, { passive: false });
   elements.priceChartContainer.addEventListener("wheel", handleWheel, { passive: false });
   elements.volumeChartContainer.addEventListener("wheel", handleWheel, { passive: false });
   state.chartWheelBound = true;
@@ -1528,7 +1698,7 @@ function clampVisibleRange() {
   }
   const clamped = clampLogicalRange(range, state.currentChartData.length);
   state.priceChart.timeScale().setVisibleLogicalRange(clamped);
-  state.volumeChart.timeScale().setVisibleLogicalRange(clamped);
+  syncChartRanges(clamped);
 }
 
 function buildRightAnchoredRange(width, dataLength) {
@@ -1542,6 +1712,14 @@ function clearDetail() {
   elements.chartTitle.textContent = "选择一只股票";
   elements.chartHeadlineStats.innerHTML = "";
   elements.chartHoldingStats.innerHTML = "";
+  elements.benchmarkChartPanel.hidden = true;
+  elements.benchmarkChartLabel.textContent = "SPY";
+  elements.stockChartLabel.hidden = true;
+  elements.stockChartLabel.textContent = "";
+  elements.compareBenchmarkToggle.disabled = true;
+  elements.compareBenchmarkToggle.checked = false;
+  state.currentChartData = [];
+  state.currentBenchmarkData = [];
   hideChartStatus();
   elements.trendChecks.innerHTML = "";
   elements.advancedTrendChecks.innerHTML = "";
@@ -1551,6 +1729,11 @@ function clearDetail() {
 }
 
 function destroyCharts() {
+  if (state.benchmarkChart) {
+    state.benchmarkChart.remove();
+    state.benchmarkChart = null;
+    state.benchmarkSeries = null;
+  }
   if (state.priceChart) {
     state.priceChart.remove();
     state.priceChart = null;
@@ -1563,11 +1746,18 @@ function destroyCharts() {
     state.volumeChart = null;
     state.volumeSeries = null;
   }
+  elements.benchmarkChartContainer.innerHTML = "";
   elements.priceChartContainer.innerHTML = "";
   elements.volumeChartContainer.innerHTML = "";
 }
 
 function resizeCharts() {
+  if (state.benchmarkChart) {
+    state.benchmarkChart.resize(
+      elements.benchmarkChartContainer.clientWidth,
+      elements.benchmarkChartContainer.clientHeight,
+    );
+  }
   if (state.priceChart) {
     state.priceChart.resize(elements.priceChartContainer.clientWidth, elements.priceChartContainer.clientHeight);
   }
@@ -1597,9 +1787,17 @@ function applyChartMode() {
   if (!state.candleSeries || !state.closeLineSeries) {
     return;
   }
+  const comparisonAvailable =
+    !elements.compareBenchmarkToggle.disabled && state.currentBenchmarkData.length > 0;
+  const comparisonMode = state.compareBenchmark && comparisonAvailable;
   const closeMode = state.chartMode === "close";
   state.candleSeries.applyOptions({ visible: !closeMode });
   state.closeLineSeries.applyOptions({ visible: closeMode });
+  applyMaVisibility();
+  elements.chartMode.disabled = false;
+  elements.maToggleGroup.hidden = false;
+  elements.benchmarkChartPanel.hidden = !comparisonMode;
+  elements.stockChartLabel.hidden = !comparisonMode;
 }
 
 function updateHoverCard(row, point, pinned = false) {
@@ -1707,6 +1905,7 @@ function persistChartPrefs() {
     CHART_PREFS_KEY,
     JSON.stringify({
       chartMode: state.chartMode,
+      compareBenchmark: state.compareBenchmark,
       maVisibility: state.maVisibility,
     }),
   );
@@ -1721,6 +1920,9 @@ function loadChartPrefs() {
     const parsed = JSON.parse(raw);
     if (parsed.chartMode === "candles" || parsed.chartMode === "close") {
       state.chartMode = parsed.chartMode;
+    }
+    if (typeof parsed.compareBenchmark === "boolean") {
+      state.compareBenchmark = parsed.compareBenchmark;
     }
     if (parsed.maVisibility && typeof parsed.maVisibility === "object") {
       for (const key of ["MA20", "MA50", "MA150", "MA200"]) {

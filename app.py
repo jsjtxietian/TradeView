@@ -1166,6 +1166,15 @@ def serialize_history(frame: pd.DataFrame) -> list[dict[str, Any]]:
     return subset.to_dict(orient="records")
 
 
+def serialize_close_history(frame: pd.DataFrame) -> list[dict[str, Any]]:
+    if frame.empty:
+        return []
+    subset = frame[["Date", "Close"]].copy()
+    subset["Date"] = subset["Date"].dt.strftime("%Y-%m-%d")
+    subset = subset.replace({np.nan: None})
+    return subset.to_dict(orient="records")
+
+
 def build_trend_sparkline(frame: pd.DataFrame) -> dict[str, Any]:
     window = frame.tail(min(35, len(frame))).copy()
     if window.empty:
@@ -1491,6 +1500,8 @@ def analyze_symbol(
         "advancedTrendChecks": serialize_checks(advanced_trend_checks),
         "patternRiskChecks": serialize_checks(pattern_risk_checks),
         "history": serialize_history(history),
+        "benchmarkSymbol": DEFAULT_BENCHMARK,
+        "benchmarkHistory": serialize_close_history(benchmark_history),
     }
     return set_cached(cache_key, result)
 

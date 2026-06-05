@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trend Deck</title>
-  <link rel="stylesheet" href="/static/styles.css?v=20260424-01" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260605-03" />
 </head>
 <body>
   <div class="page-shell">
@@ -48,17 +48,39 @@
               <option value="close">收盘价线</option>
               <option value="candles">K线</option>
             </select>
-            <div id="maToggleGroup" class="ma-toggle-group">
-              <label><input type="checkbox" data-ma="MA20" checked /> MA20</label>
-              <label><input type="checkbox" data-ma="MA50" checked /> MA50</label>
-              <label><input type="checkbox" data-ma="MA150" checked /> MA150</label>
-              <label><input type="checkbox" data-ma="MA200" checked /> MA200</label>
+            <label class="compare-toggle">
+              <input type="checkbox" id="compareBenchmarkToggle" />
+              显示 SPY
+            </label>
+            <div id="maToggleGroup" class="ma-toggle-group" aria-label="均线显示">
+              <span class="ma-toggle-prefix">MA</span>
+              <label class="ma-toggle ma20" title="显示或隐藏 MA20">
+                <input type="checkbox" data-ma="MA20" checked />
+                <span>20</span>
+              </label>
+              <label class="ma-toggle ma50" title="显示或隐藏 MA50">
+                <input type="checkbox" data-ma="MA50" checked />
+                <span>50</span>
+              </label>
+              <label class="ma-toggle ma150" title="显示或隐藏 MA150">
+                <input type="checkbox" data-ma="MA150" checked />
+                <span>150</span>
+              </label>
+              <label class="ma-toggle ma200" title="显示或隐藏 MA200">
+                <input type="checkbox" data-ma="MA200" checked />
+                <span>200</span>
+              </label>
             </div>
             <button type="button" id="copyPromptButton" class="secondary chart-copy-button">复制 Prompt</button>
           </div>
         </div>
         <div class="chart-stack">
+          <div id="benchmarkChartPanel" class="benchmark-chart-panel" hidden>
+            <div id="benchmarkChartLabel" class="benchmark-chart-label">SPY</div>
+            <div id="benchmarkChartContainer" class="benchmark-chart-container"></div>
+          </div>
           <div class="price-chart-shell">
+            <div id="stockChartLabel" class="stock-chart-label" hidden></div>
             <div id="priceChartContainer" class="price-chart-container"></div>
             <div id="chartHoverCard" class="chart-hover-card" hidden></div>
           </div>
@@ -164,6 +186,6 @@
   <div id="toast" class="toast" hidden></div>
 
   <script src="https://unpkg.com/lightweight-charts@5.0.0/dist/lightweight-charts.standalone.production.js"></script>
-  <script src="/static/app.js?v=20260424-01" type="module"></script>
+  <script src="/static/app.js?v=20260605-03" type="module"></script>
 </body>
 </html>

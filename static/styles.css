@@ -810,6 +810,26 @@ button:disabled {
   color: var(--muted);
 }
 
+.compare-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 5px 10px;
+  border: 1px solid rgba(11, 132, 165, 0.18);
+  border-radius: 8px;
+  background: rgba(11, 132, 165, 0.08);
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.compare-toggle:has(input:disabled) {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
 .chart-copy-button {
   padding: 8px 12px;
   border-radius: 999px;
@@ -920,24 +940,111 @@ button:disabled {
 }
 
 .ma-toggle-group {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+  display: inline-flex;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid rgba(83, 129, 158, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.58);
   color: var(--muted);
-  font-size: 0.84rem;
+  font-size: 0.78rem;
 }
 
-.ma-toggle-group label {
+.ma-toggle {
+  --ma-color: var(--accent);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 9px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.06);
+  justify-content: center;
+  min-width: 38px;
+  min-height: 32px;
+  padding: 0 9px;
+  border-right: 1px solid rgba(83, 129, 158, 0.16);
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ma-toggle-prefix {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border-right: 1px solid rgba(83, 129, 158, 0.16);
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.ma-toggle:last-child {
+  border-right: 0;
+}
+
+.ma-toggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ma-toggle:has(input:checked) {
+  background: color-mix(in srgb, var(--ma-color) 14%, white);
+  color: var(--ma-color);
+  box-shadow: inset 0 -2px 0 var(--ma-color);
+}
+
+.ma-toggle:has(input:focus-visible) {
+  outline: 2px solid var(--ma-color);
+  outline-offset: -2px;
+}
+
+.ma-toggle.ma20 {
+  --ma-color: #b87500;
+}
+
+.ma-toggle.ma50 {
+  --ma-color: #0077b6;
+}
+
+.ma-toggle.ma150 {
+  --ma-color: #6d597a;
+}
+
+.ma-toggle.ma200 {
+  --ma-color: #1d3557;
 }
 
 .price-chart-shell {
   position: relative;
+}
+
+.benchmark-chart-panel {
+  position: relative;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+.benchmark-chart-container {
+  height: 190px;
+}
+
+.benchmark-chart-label,
+.stock-chart-label {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  z-index: 10;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.benchmark-chart-label {
+  color: var(--warm);
 }
 
 .price-chart-container {
@@ -1102,6 +1209,10 @@ button:disabled {
 
   .price-chart-container {
     height: 320px;
+  }
+
+  .benchmark-chart-container {
+    height: 150px;
   }
 
   .volume-chart-container {
