@@ -80,8 +80,12 @@ const elements = {
   alertsDialog: document.getElementById("alertsDialog"),
   alertsList: document.getElementById("alertsList"),
   closeAlertsButton: document.getElementById("closeAlertsButton"),
-  trendFilterButton: document.getElementById("trendFilterButton"),
-  holdingFilterButton: document.getElementById("holdingFilterButton"),
+  watchlistFilterButton: document.getElementById("watchlistFilterButton"),
+  watchlistFilterCount: document.getElementById("watchlistFilterCount"),
+  watchlistFilterPanel: document.getElementById("watchlistFilterPanel"),
+  trendFilterInput: document.getElementById("trendFilterInput"),
+  holdingFilterInput: document.getElementById("holdingFilterInput"),
+  clearWatchlistFiltersButton: document.getElementById("clearWatchlistFiltersButton"),
   editGroupsButton: document.getElementById("editGroupsButton"),
   refreshButton: document.getElementById("refreshButton"),
   chartMode: document.getElementById("chartMode"),
@@ -154,8 +158,7 @@ async function init() {
   );
   elements.chartMode.value = state.chartMode;
   elements.compareBenchmarkToggle.checked = state.compareBenchmark;
-  syncTrendFilterButton();
-  syncHoldingFilterButton();
+  syncWatchlistFilters();
   renderAlerts();
 
   const storedWatchlist = loadStoredWatchlist();
@@ -205,12 +208,30 @@ function bindEvents() {
     elements.alertsDialog.close();
   });
 
-  elements.trendFilterButton.addEventListener("click", () => {
-    toggleWatchlistFilter("filterTrendTemplateOnly", persistTrendFilter, syncTrendFilterButton);
+  elements.watchlistFilterButton.addEventListener("click", () => {
+    const shouldOpen = elements.watchlistFilterPanel.hidden;
+    elements.watchlistFilterPanel.hidden = !shouldOpen;
+    elements.watchlistFilterButton.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
   });
 
-  elements.holdingFilterButton.addEventListener("click", () => {
-    toggleWatchlistFilter("filterHoldingOnly", persistHoldingFilter, syncHoldingFilterButton);
+  elements.trendFilterInput.addEventListener("change", () => {
+    updateWatchlistFilter("filterTrendTemplateOnly", elements.trendFilterInput.checked);
+  });
+
+  elements.holdingFilterInput.addEventListener("change", () => {
+    updateWatchlistFilter("filterHoldingOnly", elements.holdingFilterInput.checked);
+  });
+
+  elements.clearWatchlistFiltersButton.addEventListener("click", () => {
+    state.filterTrendTemplateOnly = false;
+    state.filterHoldingOnly = false;
+    persistTrendFilter();
+    persistHoldingFilter();
+    syncWatchlistFilters();
+    renderWatchlist();
+    syncSelectionWithFilter().catch((error) => {
+      showMessage(error.message || String(error), true);
+    });
   });
 
   elements.addGroupRowButton.addEventListener("click", () => {
@@ -338,6 +359,22 @@ function bindEvents() {
     resizeCharts();
     queueWatchlistLayoutRefresh();
   });
+
+  document.addEventListener("click", (event) => {
+    if (
+      !elements.watchlistFilterPanel.hidden &&
+      !event.target.closest(".watchlist-filter")
+    ) {
+      closeWatchlistFilterPanel();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !elements.watchlistFilterPanel.hidden) {
+      closeWatchlistFilterPanel();
+      elements.watchlistFilterButton.focus();
+    }
+  });
 }
 
 async function refreshSummaries(forceRefresh = false) {
@@ -360,11 +397,11 @@ async function refreshSummaries(forceRefresh = false) {
     renderWatchlist();
 
     const visibleSymbols = getVisibleWatchlistSymbols();
-    if (state.filterTrendTemplateOnly && (!state.selectedSymbol || !visibleSymbols.includes(state.selectedSymbol))) {
+    if (hasActiveWatchlistFilters() && (!state.selectedSymbol || !visibleSymbols.includes(state.selectedSymbol))) {
       state.selectedSymbol = visibleSymbols[0] || null;
     }
 
-    const selectionPool = state.filterTrendTemplateOnly ? visibleSymbols : state.watchlist;
+    const selectionPool = hasActiveWatchlistFilters() ? visibleSymbols : state.watchlist;
     if (!state.selectedSymbol || !selectionPool.includes(state.selectedSymbol)) {
       const firstAvailable = selectionPool.find((symbol) => state.summaries.get(symbol)?.data);
       state.selectedSymbol = firstAvailable || selectionPool[0] || null;
@@ -497,14 +534,20 @@ function queueWatchlistLayoutRefresh() {
   }, 120);
 }
 
-function toggleWatchlistFilter(stateKey, persistFn, syncButtonFn) {
-  state[stateKey] = !state[stateKey];
-  persistFn();
-  syncButtonFn();
+function updateWatchlistFilter(stateKey, enabled) {
+  state[stateKey] = enabled;
+  persistTrendFilter();
+  persistHoldingFilter();
+  syncWatchlistFilters();
   renderWatchlist();
   syncSelectionWithFilter().catch((error) => {
     showMessage(error.message || String(error), true);
   });
+}
+
+function closeWatchlistFilterPanel() {
+  elements.watchlistFilterPanel.hidden = true;
+  elements.watchlistFilterButton.setAttribute("aria-expanded", "false");
 }
 
 async function loadDetail(symbol, forceRefresh = false) {
@@ -707,7 +750,7 @@ function buildWatchlistSections() {
       emptyText: "这个分组还没有股票。",
       draggable: true,
     }))
-    .filter((section) => section.symbols.length || !state.filterTrendTemplateOnly);
+    .filter((section) => section.symbols.length || !hasActiveWatchlistFilters());
 
   const ungroupedSymbols = filterWatchlistSymbols(
     state.watchlist.filter((symbol) => !findGroupForSymbol(symbol)),
@@ -2887,12 +2930,20 @@ async function syncSelectionWithFilter() {
   await loadDetail(state.selectedSymbol, false);
 }
 
-function syncTrendFilterButton() {
-  elements.trendFilterButton.classList.toggle("active-toggle", state.filterTrendTemplateOnly);
+function hasActiveWatchlistFilters() {
+  return state.filterTrendTemplateOnly || state.filterHoldingOnly;
 }
 
-function syncHoldingFilterButton() {
-  elements.holdingFilterButton.classList.toggle("active-toggle", state.filterHoldingOnly);
+function syncWatchlistFilters() {
+  elements.trendFilterInput.checked = state.filterTrendTemplateOnly;
+  elements.holdingFilterInput.checked = state.filterHoldingOnly;
+  const count =
+    Number(state.filterTrendTemplateOnly) +
+    Number(state.filterHoldingOnly);
+  elements.watchlistFilterCount.hidden = count === 0;
+  elements.watchlistFilterCount.textContent = String(count);
+  elements.watchlistFilterButton.classList.toggle("active-toggle", count > 0);
+  elements.clearWatchlistFiltersButton.disabled = count === 0;
 }
 
 function getWatchlistEmptyMessage() {

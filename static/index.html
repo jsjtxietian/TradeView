@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trend Deck</title>
-  <link rel="stylesheet" href="/static/styles.css?v=20260605-05" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260606-01" />
 </head>
 <body>
   <div class="page-shell">
@@ -20,8 +20,40 @@
             <input id="symbolInput" name="symbol" type="text" placeholder="例如 AAPL 或 NVDA" autocomplete="off" />
             <button type="submit">添加</button>
           </form>
-          <button type="button" id="trendFilterButton" class="secondary">只看趋势模板</button>
-          <button type="button" id="holdingFilterButton" class="secondary">只看持仓</button>
+          <div class="watchlist-filter">
+            <button
+              type="button"
+              id="watchlistFilterButton"
+              class="secondary watchlist-filter-button"
+              aria-expanded="false"
+              aria-controls="watchlistFilterPanel"
+            >
+              <span>筛选</span>
+              <span id="watchlistFilterCount" class="watchlist-filter-count" hidden></span>
+            </button>
+            <div id="watchlistFilterPanel" class="watchlist-filter-panel" hidden>
+              <div class="watchlist-filter-head">
+                <strong>筛选自选股</strong>
+                <button type="button" id="clearWatchlistFiltersButton" class="filter-clear-button">清除</button>
+              </div>
+              <label class="watchlist-filter-option">
+                <span>
+                  <strong>趋势模板</strong>
+                  <small>仅显示通过全部基础趋势检查的股票</small>
+                </span>
+                <input id="trendFilterInput" type="checkbox" />
+                <i aria-hidden="true"></i>
+              </label>
+              <label class="watchlist-filter-option">
+                <span>
+                  <strong>我的持仓</strong>
+                  <small>仅显示已在笔记中标记为持仓的股票</small>
+                </span>
+                <input id="holdingFilterInput" type="checkbox" />
+                <i aria-hidden="true"></i>
+              </label>
+            </div>
+          </div>
           <button type="button" id="editGroupsButton" class="secondary">分组</button>
           <button type="button" id="refreshButton" class="secondary">拉新</button>
           <button type="button" id="tradeReviewButton" class="secondary">交易复盘</button>
@@ -269,6 +301,6 @@
   <div id="toast" class="toast" hidden></div>
 
   <script src="https://unpkg.com/lightweight-charts@5.0.0/dist/lightweight-charts.standalone.production.js"></script>
-  <script src="/static/app.js?v=20260605-11" type="module"></script>
+  <script src="/static/app.js?v=20260606-01" type="module"></script>
 </body>
 </html>
