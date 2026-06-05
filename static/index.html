@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trend Deck</title>
-  <link rel="stylesheet" href="/static/styles.css?v=20260605-03" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260605-05" />
 </head>
 <body>
   <div class="page-shell">
@@ -24,6 +24,7 @@
           <button type="button" id="holdingFilterButton" class="secondary">只看持仓</button>
           <button type="button" id="editGroupsButton" class="secondary">分组</button>
           <button type="button" id="refreshButton" class="secondary">拉新</button>
+          <button type="button" id="tradeReviewButton" class="secondary">交易复盘</button>
           <button type="button" id="alertsButton" class="secondary alerts-button" aria-label="查看提醒">
             <span class="alerts-bell">i</span>
           </button>
@@ -183,9 +184,91 @@
     </form>
   </dialog>
 
+  <dialog id="tradeReviewDialog" class="group-editor-dialog trade-review-dialog">
+    <form id="tradeReviewForm" class="group-editor-shell trade-review-shell">
+      <div class="panel-header">
+        <div>
+          <p class="panel-kicker">Trade Review</p>
+          <h3 id="tradeReviewTitle">交易复盘</h3>
+        </div>
+      </div>
+      <section class="trade-review-choice existing">
+        <div class="trade-review-choice-head">
+          <div>
+            <span class="trade-review-step">打开已有复盘</span>
+            <p>选择后会自动切换到对应股票。</p>
+          </div>
+        </div>
+        <div class="trade-review-choice-row">
+          <select id="tradeReviewSelect" aria-label="选择已有复盘"></select>
+          <button type="button" id="activateTradeReviewButton">进入复盘</button>
+        </div>
+      </section>
+      <section class="trade-review-choice create">
+        <div class="trade-review-choice-head">
+          <div>
+            <span class="trade-review-step">新建复盘</span>
+            <p>先选择股票，再创建一个新的全局复盘编号。</p>
+          </div>
+        </div>
+        <div class="trade-review-choice-row">
+          <select id="tradeSymbolSelect" aria-label="选择新建复盘股票"></select>
+          <button type="button" id="createTradeReviewButton" class="secondary">新建</button>
+        </div>
+      </section>
+      <div class="trade-review-editor-divider">
+        <span>当前复盘交易记录</span>
+      </div>
+      <div class="trade-entry-grid">
+        <label class="note-editor-field">
+          <span>日期</span>
+          <input id="tradeDateInput" type="date" required />
+        </label>
+        <fieldset class="trade-side-field">
+          <legend>类型</legend>
+          <div class="trade-side-options">
+            <label class="buy">
+              <input type="radio" name="tradeSide" value="buy" checked />
+              <span>买入</span>
+            </label>
+            <label class="sell">
+              <input type="radio" name="tradeSide" value="sell" />
+              <span>卖出</span>
+            </label>
+          </div>
+        </fieldset>
+        <label class="note-editor-field">
+          <span>价格</span>
+          <input id="tradePriceInput" type="number" min="0.0001" step="0.0001" required />
+        </label>
+        <label class="note-editor-field">
+          <span>数量</span>
+          <input id="tradeQuantityInput" type="number" min="0.0001" step="0.0001" placeholder="例如 100" required />
+        </label>
+      </div>
+      <label class="note-editor-field">
+        <span>备注</span>
+        <textarea id="tradeNoteInput" rows="3" placeholder="例如：突破枢轴试仓、跌破 MA50 减仓"></textarea>
+      </label>
+      <div class="trade-form-actions">
+        <button type="submit">添加记录</button>
+      </div>
+      <div class="trade-review-section">
+        <div class="trade-review-section-head">
+          <h4>历史记录</h4>
+          <span id="tradeRecordCount"></span>
+        </div>
+        <div id="tradeRecordList" class="trade-record-list"></div>
+      </div>
+      <div class="group-editor-actions">
+        <button type="button" id="closeTradeReviewButton" class="secondary">关闭</button>
+      </div>
+    </form>
+  </dialog>
+
   <div id="toast" class="toast" hidden></div>
 
   <script src="https://unpkg.com/lightweight-charts@5.0.0/dist/lightweight-charts.standalone.production.js"></script>
-  <script src="/static/app.js?v=20260605-03" type="module"></script>
+  <script src="/static/app.js?v=20260605-11" type="module"></script>
 </body>
 </html>

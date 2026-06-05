@@ -48,14 +48,22 @@ const state = {
   currentChartData: [],
   currentBenchmarkData: [],
   currentBenchmarkSymbol: "SPY",
+  tradeReviews: new Map(),
+  allTradeReviews: [],
+  tradeReviewActive: false,
+  tradeReviewSymbol: null,
+  tradeReviewId: null,
   summaries: new Map(),
   details: new Map(),
   benchmarkChart: null,
   priceChart: null,
   volumeChart: null,
-  benchmarkSeries: null,
+  benchmarkCandleSeries: null,
+  benchmarkLineSeries: null,
   candleSeries: null,
   closeLineSeries: null,
+  candleTradePrimitive: null,
+  closeLineTradePrimitive: null,
   volumeSeries: null,
   maSeries: [],
   maVisibility: { MA20: true, MA50: true, MA150: true, MA200: true },
@@ -108,6 +116,21 @@ const elements = {
   noteSharesInput: document.getElementById("noteSharesInput"),
   deleteSymbolButton: document.getElementById("deleteSymbolButton"),
   copyPromptButton: document.getElementById("copyPromptButton"),
+  tradeReviewButton: document.getElementById("tradeReviewButton"),
+  tradeReviewDialog: document.getElementById("tradeReviewDialog"),
+  tradeReviewForm: document.getElementById("tradeReviewForm"),
+  tradeReviewTitle: document.getElementById("tradeReviewTitle"),
+  tradeSymbolSelect: document.getElementById("tradeSymbolSelect"),
+  tradeReviewSelect: document.getElementById("tradeReviewSelect"),
+  createTradeReviewButton: document.getElementById("createTradeReviewButton"),
+  tradeDateInput: document.getElementById("tradeDateInput"),
+  tradePriceInput: document.getElementById("tradePriceInput"),
+  tradeQuantityInput: document.getElementById("tradeQuantityInput"),
+  tradeNoteInput: document.getElementById("tradeNoteInput"),
+  tradeRecordCount: document.getElementById("tradeRecordCount"),
+  tradeRecordList: document.getElementById("tradeRecordList"),
+  activateTradeReviewButton: document.getElementById("activateTradeReviewButton"),
+  closeTradeReviewButton: document.getElementById("closeTradeReviewButton"),
   cancelNoteButton: document.getElementById("cancelNoteButton"),
   saveNoteButton: document.getElementById("saveNoteButton"),
   toast: document.getElementById("toast"),
@@ -217,6 +240,64 @@ function bindEvents() {
   elements.copyPromptButton.addEventListener("click", () => {
     copyPromptForActiveSymbol().catch((error) => {
       showMessage(error.message || String(error), true);
+    });
+  });
+
+  elements.tradeReviewButton.addEventListener("click", () => {
+    if (state.tradeReviewActive) {
+      const symbol = state.tradeReviewSymbol;
+      exitTradeReview();
+      showToast(`${symbol} 已退出复盘模式。`);
+      return;
+    }
+    openTradeReview().catch((error) => {
+      showMessage(error.message || String(error), true);
+    });
+  });
+
+  elements.activateTradeReviewButton.addEventListener("click", () => {
+    activateTradeReview().catch((error) => {
+      showToast(error.message || String(error), true);
+    });
+  });
+
+  elements.closeTradeReviewButton.addEventListener("click", () => {
+    elements.tradeReviewDialog.close();
+  });
+
+  elements.tradeReviewForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    saveTradeRecord().catch((error) => {
+      showToast(error.message || String(error), true);
+    });
+  });
+
+  elements.tradeDateInput.addEventListener("change", () => {
+    const row = state.currentChartData.find((item) => item.Date === elements.tradeDateInput.value);
+    if (row?.Close != null) {
+      elements.tradePriceInput.value = Number(row.Close).toFixed(4);
+    }
+  });
+
+  elements.tradeReviewSelect.addEventListener("change", () => {
+    selectGlobalTradeReview(elements.tradeReviewSelect.value).catch((error) => {
+      showToast(error.message || String(error), true);
+    });
+  });
+
+  elements.createTradeReviewButton.addEventListener("click", () => {
+    createTradeReview().catch((error) => {
+      showToast(error.message || String(error), true);
+    });
+  });
+
+  elements.tradeRecordList.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-trade-delete]");
+    if (!(button instanceof HTMLButtonElement)) {
+      return;
+    }
+    deleteTradeRecord(button.dataset.tradeDelete).catch((error) => {
+      showToast(error.message || String(error), true);
     });
   });
 
@@ -433,11 +514,14 @@ async function loadDetail(symbol, forceRefresh = false) {
   }
 
   try {
-    const detail =
+    const [detail, tradesPayload] = await Promise.all([
       !forceRefresh && state.details.get(symbol)
         ? state.details.get(symbol)
-        : await fetchJson(`/api/symbol/${encodeURIComponent(symbol)}?refresh=${forceRefresh ? "1" : "0"}`);
+        : fetchJson(`/api/symbol/${encodeURIComponent(symbol)}?refresh=${forceRefresh ? "1" : "0"}`),
+      fetchJson(`/api/trades/${encodeURIComponent(symbol)}`),
+    ]);
     state.details.set(symbol, detail);
+    state.tradeReviews.set(symbol, tradesPayload.reviews || []);
     hideMessage();
     renderSelectedDetail();
   } catch (error) {
@@ -901,6 +985,9 @@ function renderWatchlistItem(symbol, sectionId) {
     if (state.selectedSymbol === symbol) {
       return;
     }
+    if (state.tradeReviewActive) {
+      exitTradeReview();
+    }
     state.selectedSymbol = symbol;
     renderWatchlist();
     await loadDetail(symbol, false);
@@ -1202,6 +1289,127 @@ function getChartLib() {
   return globalThis.LightweightCharts || null;
 }
 
+class TradeMarkerPrimitive {
+  constructor() {
+    this.records = [];
+    this.chart = null;
+    this.series = null;
+    this.requestUpdate = null;
+    this.view = {
+      zOrder: () => "top",
+      renderer: () => ({
+        draw: (target) => this.draw(target),
+      }),
+    };
+  }
+
+  attached({ chart, series, requestUpdate }) {
+    this.chart = chart;
+    this.series = series;
+    this.requestUpdate = requestUpdate;
+  }
+
+  detached() {
+    this.chart = null;
+    this.series = null;
+    this.requestUpdate = null;
+  }
+
+  paneViews() {
+    return [this.view];
+  }
+
+  updateAllViews() {}
+
+  setRecords(records) {
+    this.records = records;
+    this.requestUpdate?.();
+  }
+
+  draw(target) {
+    if (!this.chart || !this.series || !this.records.length) {
+      return;
+    }
+    target.useBitmapCoordinateSpace((scope) => {
+      const context = scope.context;
+      const horizontalRatio = scope.horizontalPixelRatio;
+      const verticalRatio = scope.verticalPixelRatio;
+      const width = scope.bitmapSize.width;
+      const height = scope.bitmapSize.height;
+      const lineLength = 62 * verticalRatio;
+      const labelGap = 18 * verticalRatio;
+      const fontSize = 15 * verticalRatio;
+
+      context.save();
+      context.font = `700 ${fontSize}px "Segoe UI", "PingFang SC", sans-serif`;
+      context.textBaseline = "middle";
+
+      for (const record of this.records) {
+        const mediaX = this.chart.timeScale().timeToCoordinate(record.date);
+        const mediaY = this.series.priceToCoordinate(Number(record.price));
+        if (!Number.isFinite(mediaX) || !Number.isFinite(mediaY)) {
+          continue;
+        }
+        const x = mediaX * horizontalRatio;
+        const y = mediaY * verticalRatio;
+        if (x < 0 || x > width || y < 0 || y > height) {
+          continue;
+        }
+
+        const isBuy = record.side === "buy";
+        const color = isBuy ? "#166534" : "#b42318";
+        const direction = isBuy ? 1 : -1;
+        const lineStart = y + direction * 11 * verticalRatio;
+        const lineEnd = y + direction * lineLength;
+        const quantity = record.quantity == null
+          ? ""
+          : ` ${fmtTradeQuantity(record.quantity)}股`;
+        const text = `${isBuy ? "买入" : "卖出"}${quantity} @ ${fmtPrice(record.price)}`;
+
+        context.strokeStyle = color;
+        context.lineWidth = Math.max(1, 1.5 * horizontalRatio);
+        context.beginPath();
+        context.moveTo(x, lineStart);
+        context.lineTo(x, lineEnd);
+        context.stroke();
+
+        context.fillStyle = color;
+        context.beginPath();
+        if (isBuy) {
+          context.moveTo(x, y);
+          context.lineTo(x - 6 * horizontalRatio, y + 11 * verticalRatio);
+          context.lineTo(x + 6 * horizontalRatio, y + 11 * verticalRatio);
+        } else {
+          context.moveTo(x, y);
+          context.lineTo(x - 6 * horizontalRatio, y - 11 * verticalRatio);
+          context.lineTo(x + 6 * horizontalRatio, y - 11 * verticalRatio);
+        }
+        context.closePath();
+        context.fill();
+
+        const textWidth = context.measureText(text).width;
+        const paddingX = 7 * horizontalRatio;
+        const labelHeight = 24 * verticalRatio;
+        const labelCenterY = lineEnd + direction * labelGap;
+        const labelX = Math.max(
+          4 * horizontalRatio,
+          Math.min(width - textWidth - paddingX * 2 - 4 * horizontalRatio, x - textWidth / 2 - paddingX),
+        );
+        const labelY = labelCenterY - labelHeight / 2;
+
+        context.fillStyle = "rgba(255,255,255,0.94)";
+        context.fillRect(labelX, labelY, textWidth + paddingX * 2, labelHeight);
+        context.strokeStyle = color;
+        context.lineWidth = Math.max(1, horizontalRatio);
+        context.strokeRect(labelX, labelY, textWidth + paddingX * 2, labelHeight);
+        context.fillStyle = color;
+        context.fillText(text, labelX + paddingX, labelCenterY);
+      }
+      context.restore();
+    });
+  }
+}
+
 function renderChartUnavailable(message) {
   destroyCharts();
   hideHoverCard();
@@ -1256,14 +1464,27 @@ function renderMainChart(detail) {
 
   const benchmarkByDate = new Map(
     state.currentBenchmarkData
-      .filter((row) => row.Date && row.Close != null)
-      .map((row) => [row.Date, row.Close]),
+      .filter((row) => row.Date)
+      .map((row) => [row.Date, row]),
   );
-  state.benchmarkSeries.setData(
-    chartData.map((row) => {
-      const value = benchmarkByDate.get(row.Date);
-      return value == null ? { time: row.Date } : { time: row.Date, value };
-    }),
+  const alignedBenchmarkData = chartData.map((row) => benchmarkByDate.get(row.Date) || { Date: row.Date });
+  state.benchmarkCandleSeries.setData(
+    alignedBenchmarkData.map((row) =>
+      row.Open == null || row.High == null || row.Low == null || row.Close == null
+        ? { time: row.Date }
+        : {
+            time: row.Date,
+            open: row.Open,
+            high: row.High,
+            low: row.Low,
+            close: row.Close,
+          },
+    ),
+  );
+  state.benchmarkLineSeries.setData(
+    alignedBenchmarkData.map((row) =>
+      row.Close == null ? { time: row.Date } : { time: row.Date, value: row.Close },
+    ),
   );
 
   state.volumeSeries.setData(
@@ -1274,6 +1495,7 @@ function renderMainChart(detail) {
     })),
   );
 
+  applyTradeMarkers(detail.symbol);
   const maFields = [
     ["MA20", "#d48a00"],
     ["MA50", "#0077b6"],
@@ -1342,7 +1564,17 @@ function createMainChart() {
     handleScale: false,
   });
 
-  state.benchmarkSeries = state.benchmarkChart.addSeries(chartLib.LineSeries, {
+  state.benchmarkCandleSeries = state.benchmarkChart.addSeries(chartLib.CandlestickSeries, {
+    upColor: "#0f9d58",
+    downColor: "#db4437",
+    borderVisible: false,
+    wickUpColor: "#0f9d58",
+    wickDownColor: "#db4437",
+    lastValueVisible: true,
+    priceLineVisible: false,
+  });
+
+  state.benchmarkLineSeries = state.benchmarkChart.addSeries(chartLib.LineSeries, {
     color: "#b45309",
     lineWidth: 2,
     title: "",
@@ -1407,7 +1639,10 @@ function createMainChart() {
     lastValueVisible: false,
     priceLineVisible: false,
   });
-
+  state.candleTradePrimitive = new TradeMarkerPrimitive();
+  state.closeLineTradePrimitive = new TradeMarkerPrimitive();
+  state.candleSeries.attachPrimitive(state.candleTradePrimitive);
+  state.closeLineSeries.attachPrimitive(state.closeLineTradePrimitive);
   state.maSeries = [
     state.priceChart.addSeries(chartLib.LineSeries, {
       color: "#d48a00cc",
@@ -1555,6 +1790,23 @@ function applyVisibleWindow(history) {
   syncChartRanges(range);
 }
 
+function applyTradeMarkers(symbol = state.selectedSymbol) {
+  const markersVisible =
+    state.tradeReviewActive &&
+    state.tradeReviewSymbol === symbol &&
+    state.selectedSymbol === symbol;
+  const activeReview = markersVisible
+    ? getTradeReview(symbol, state.tradeReviewId)
+    : null;
+  const records = activeReview?.trades || [];
+  state.candleTradePrimitive?.setRecords(
+    state.chartMode === "candles" ? records : [],
+  );
+  state.closeLineTradePrimitive?.setRecords(
+    state.chartMode === "close" ? records : [],
+  );
+}
+
 function syncChartRanges(range) {
   if (!range) {
     return;
@@ -1586,13 +1838,17 @@ function syncCrosshairs(time, source) {
       state.compareBenchmark &&
       !elements.compareBenchmarkToggle.disabled &&
       state.benchmarkChart &&
-      state.benchmarkSeries &&
+      (state.benchmarkCandleSeries || state.benchmarkLineSeries) &&
       benchmarkRow
     ) {
+      const benchmarkSeries =
+        state.chartMode === "candles"
+          ? state.benchmarkCandleSeries
+          : state.benchmarkLineSeries;
       state.benchmarkChart.setCrosshairPosition(
         benchmarkRow.Close,
         time,
-        state.benchmarkSeries,
+        benchmarkSeries,
       );
     }
   } finally {
@@ -1708,6 +1964,9 @@ function buildRightAnchoredRange(width, dataLength) {
 }
 
 function clearDetail() {
+  if (state.tradeReviewActive) {
+    exitTradeReview();
+  }
   elements.detailSection.hidden = true;
   elements.chartTitle.textContent = "选择一只股票";
   elements.chartHeadlineStats.innerHTML = "";
@@ -1732,13 +1991,16 @@ function destroyCharts() {
   if (state.benchmarkChart) {
     state.benchmarkChart.remove();
     state.benchmarkChart = null;
-    state.benchmarkSeries = null;
+    state.benchmarkCandleSeries = null;
+    state.benchmarkLineSeries = null;
   }
   if (state.priceChart) {
     state.priceChart.remove();
     state.priceChart = null;
     state.candleSeries = null;
     state.closeLineSeries = null;
+    state.candleTradePrimitive = null;
+    state.closeLineTradePrimitive = null;
     state.maSeries = [];
   }
   if (state.volumeChart) {
@@ -1793,11 +2055,14 @@ function applyChartMode() {
   const closeMode = state.chartMode === "close";
   state.candleSeries.applyOptions({ visible: !closeMode });
   state.closeLineSeries.applyOptions({ visible: closeMode });
+  state.benchmarkCandleSeries?.applyOptions({ visible: !closeMode });
+  state.benchmarkLineSeries?.applyOptions({ visible: closeMode });
   applyMaVisibility();
   elements.chartMode.disabled = false;
   elements.maToggleGroup.hidden = false;
   elements.benchmarkChartPanel.hidden = !comparisonMode;
   elements.stockChartLabel.hidden = !comparisonMode;
+  applyTradeMarkers();
 }
 
 function updateHoverCard(row, point, pinned = false) {
@@ -1819,6 +2084,21 @@ function updateHoverCard(row, point, pinned = false) {
     if (state.maVisibility[field]) {
       parts.push(`${field} ${fmtPrice(row[field])}`);
     }
+  }
+  const activeReview =
+    state.tradeReviewActive && state.tradeReviewSymbol === state.selectedSymbol
+      ? getTradeReview(state.selectedSymbol, state.tradeReviewId)
+      : null;
+  const dayTrades = (activeReview?.trades || []).filter(
+    (record) => record.date === row.Date,
+  );
+  for (const record of dayTrades) {
+    const action = record.side === "buy" ? "买入" : "卖出";
+    const note = String(record.note || "").trim();
+    const quantity = record.quantity == null ? "" : ` ${fmtTradeQuantity(record.quantity)} 股`;
+    parts.push(
+      `${action}${quantity} @ ${fmtPrice(record.price)}${note ? ` · ${escapeHtml(note)}` : ""}`,
+    );
   }
 
   elements.chartHoverCard.innerHTML = parts.join("<br />");
@@ -2070,6 +2350,16 @@ function fmtPrice(value) {
   return value == null ? "-" : Number(value).toFixed(2);
 }
 
+function fmtTradeQuantity(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return "-";
+  }
+  return Number.isInteger(numeric)
+    ? numeric.toLocaleString("zh-CN")
+    : numeric.toLocaleString("zh-CN", { maximumFractionDigits: 4 });
+}
+
 function fmtSignedPrice(value) {
   if (value == null || Number.isNaN(Number(value))) {
     return "-";
@@ -2200,6 +2490,263 @@ function bindNoteButton(card, symbol) {
   });
 }
 
+async function openTradeReview() {
+  const storedPayload = await fetchJson("/api/trades");
+  state.allTradeReviews = storedPayload.reviews || [];
+  const candidates = Array.from(
+    new Set([
+      ...state.watchlist,
+      ...(storedPayload.symbols || []),
+      state.tradeReviewSymbol,
+      state.selectedSymbol,
+    ].filter(Boolean)),
+  );
+  if (!candidates.length) {
+    showToast("请先添加一只股票。", true);
+    return;
+  }
+  elements.tradeSymbolSelect.innerHTML = candidates
+    .map((symbol) => `<option value="${escapeHtml(symbol)}">${escapeHtml(symbol)}</option>`)
+    .join("");
+  const symbol = normalizeSymbol(
+    state.tradeReviewSymbol || state.selectedSymbol || candidates[0],
+  );
+  elements.tradeSymbolSelect.value = symbol;
+  populateGlobalTradeReviewSelect(state.tradeReviewId);
+  const selectedReview = getGlobalTradeReview(elements.tradeReviewSelect.value);
+  if (selectedReview) {
+    await selectGlobalTradeReview(selectedReview.id);
+  } else {
+    await selectTradeReviewSymbol(symbol);
+    renderTradeRecords("", "");
+  }
+  syncTradeReviewButton();
+  elements.tradeReviewDialog.showModal();
+}
+
+async function selectTradeReviewSymbol(rawSymbol) {
+  const symbol = normalizeSymbol(rawSymbol);
+  if (!symbol) {
+    return;
+  }
+  state.selectedSymbol = symbol;
+  renderWatchlist();
+  await loadDetail(symbol, false);
+  elements.tradeReviewTitle.textContent = `${symbol} 交易复盘`;
+  const latestRow = state.currentChartData.at(-1);
+  elements.tradeDateInput.value = latestRow?.Date || "";
+  elements.tradePriceInput.value =
+    latestRow?.Close == null ? "" : Number(latestRow.Close).toFixed(4);
+  elements.tradeQuantityInput.value = "";
+  elements.tradeNoteInput.value = "";
+  const buyInput = elements.tradeReviewForm.querySelector('input[name="tradeSide"][value="buy"]');
+  if (buyInput instanceof HTMLInputElement) {
+    buyInput.checked = true;
+  }
+}
+
+function populateGlobalTradeReviewSelect(preferredReviewId = null) {
+  const reviews = state.allTradeReviews;
+  elements.tradeReviewSelect.innerHTML = reviews.length
+    ? reviews
+        .map(
+          (review) =>
+            `<option value="${escapeHtml(review.id)}">#${review.number} · ${escapeHtml(review.symbol)}</option>`,
+        )
+        .join("")
+    : '<option value="">暂无复盘</option>';
+  elements.tradeReviewSelect.disabled = !reviews.length;
+  const selectedId =
+    preferredReviewId && reviews.some((review) => review.id === preferredReviewId)
+      ? preferredReviewId
+      : reviews.at(-1)?.id || "";
+  elements.tradeReviewSelect.value = selectedId;
+}
+
+function getGlobalTradeReview(reviewId) {
+  return state.allTradeReviews.find((review) => review.id === reviewId) || null;
+}
+
+function getTradeReview(symbol, reviewId) {
+  return (state.tradeReviews.get(symbol) || []).find((review) => review.id === reviewId) || null;
+}
+
+async function selectGlobalTradeReview(reviewId) {
+  const review = getGlobalTradeReview(reviewId);
+  if (!review) {
+    renderTradeRecords("", "");
+    return;
+  }
+  elements.tradeSymbolSelect.value = review.symbol;
+  await selectTradeReviewSymbol(review.symbol);
+  elements.tradeReviewSelect.value = review.id;
+  renderTradeRecords(review.symbol, review.id);
+}
+
+async function createTradeReview() {
+  const symbol = normalizeSymbol(elements.tradeSymbolSelect.value);
+  if (!symbol) {
+    throw new Error("请选择复盘股票。");
+  }
+  const review = await fetchJson(`/api/trades/${encodeURIComponent(symbol)}/reviews`, {
+    method: "POST",
+  });
+  const reviews = [...(state.tradeReviews.get(symbol) || []), review];
+  state.tradeReviews.set(symbol, reviews);
+  state.allTradeReviews = [...state.allTradeReviews, review].sort(
+    (left, right) => Number(left.number) - Number(right.number),
+  );
+  populateGlobalTradeReviewSelect(review.id);
+  await selectGlobalTradeReview(review.id);
+  renderTradeRecords(symbol, review.id);
+  showToast(`${symbol} 复盘 #${review.number} 已创建。`);
+}
+
+async function activateTradeReview() {
+  const reviewId = elements.tradeReviewSelect.value;
+  const review = getGlobalTradeReview(reviewId);
+  if (!review) {
+    throw new Error("请先新建一次复盘。");
+  }
+  const symbol = review.symbol;
+  if (state.selectedSymbol !== symbol) {
+    await selectTradeReviewSymbol(symbol);
+  }
+  state.tradeReviewActive = true;
+  state.tradeReviewSymbol = symbol;
+  state.tradeReviewId = reviewId;
+  applyTradeMarkers(symbol);
+  syncTradeReviewButton();
+  elements.tradeReviewDialog.close();
+  elements.detailSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  showToast(`${symbol} 已进入复盘模式。`);
+}
+
+function exitTradeReview() {
+  const previousSymbol = state.tradeReviewSymbol;
+  state.tradeReviewActive = false;
+  state.tradeReviewSymbol = null;
+  state.tradeReviewId = null;
+  if (previousSymbol) {
+    applyTradeMarkers(previousSymbol);
+  } else {
+    state.candleTradePrimitive?.setRecords([]);
+    state.closeLineTradePrimitive?.setRecords([]);
+  }
+  syncTradeReviewButton();
+  hideHoverCard();
+}
+
+function syncTradeReviewButton() {
+  elements.tradeReviewButton.classList.toggle("active-toggle", state.tradeReviewActive);
+  elements.tradeReviewButton.textContent = state.tradeReviewActive
+    ? `退出复盘 · #${
+        getTradeReview(state.tradeReviewSymbol, state.tradeReviewId)?.number || ""
+      } ${state.tradeReviewSymbol}`
+    : "交易复盘";
+}
+
+async function saveTradeRecord() {
+  const reviewId = elements.tradeReviewSelect.value;
+  const selectedReview = getGlobalTradeReview(reviewId);
+  if (!selectedReview) {
+    throw new Error("请先新建一次复盘。");
+  }
+  const symbol = selectedReview.symbol;
+  const tradeDate = elements.tradeDateInput.value;
+  if (!state.currentChartData.some((row) => row.Date === tradeDate)) {
+    throw new Error("该日期不是当前图表中的交易日。");
+  }
+  const selectedSide = elements.tradeReviewForm.querySelector('input[name="tradeSide"]:checked');
+  const record = await fetchJson(
+    `/api/trades/${encodeURIComponent(symbol)}/reviews/${encodeURIComponent(reviewId)}`,
+    {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      date: tradeDate,
+      side: selectedSide?.value || "buy",
+      price: Number(elements.tradePriceInput.value),
+      quantity: Number(elements.tradeQuantityInput.value),
+      note: String(elements.tradeNoteInput.value || "").trim(),
+    }),
+  });
+  const review = getTradeReview(symbol, reviewId);
+  const records = [...(review?.trades || []), record].sort(
+    (left, right) =>
+      String(left.date).localeCompare(String(right.date)) ||
+      String(left.createdAt).localeCompare(String(right.createdAt)),
+  );
+  if (review) {
+    review.trades = records;
+  }
+  elements.tradeNoteInput.value = "";
+  elements.tradeQuantityInput.value = "";
+  renderTradeRecords(symbol, reviewId);
+  applyTradeMarkers(symbol);
+  showToast(`${symbol} 交易记录已添加。`);
+}
+
+async function deleteTradeRecord(tradeId) {
+  const reviewId = elements.tradeReviewSelect.value;
+  const selectedReview = getGlobalTradeReview(reviewId);
+  if (!selectedReview || !tradeId) {
+    return;
+  }
+  const symbol = selectedReview.symbol;
+  await fetchJson(
+    `/api/trades/${encodeURIComponent(symbol)}/reviews/${encodeURIComponent(reviewId)}/${encodeURIComponent(tradeId)}`,
+    { method: "DELETE" },
+  );
+  const review = getTradeReview(symbol, reviewId);
+  if (review) {
+    review.trades = (review.trades || []).filter((record) => record.id !== tradeId);
+  }
+  renderTradeRecords(symbol, reviewId);
+  applyTradeMarkers(symbol);
+  showToast("交易记录已删除。");
+}
+
+function renderTradeRecords(symbol, reviewId) {
+  const review = getTradeReview(symbol, reviewId);
+  const records = [...(review?.trades || [])].sort(
+    (left, right) =>
+      String(right.date).localeCompare(String(left.date)) ||
+      String(right.createdAt).localeCompare(String(left.createdAt)),
+  );
+  elements.tradeRecordCount.textContent = review
+    ? `复盘 #${review.number} · ${records.length} 条`
+    : "尚未新建复盘";
+  if (!records.length) {
+    elements.tradeRecordList.innerHTML = '<div class="trade-record-empty">还没有复盘记录。</div>';
+    return;
+  }
+  elements.tradeRecordList.innerHTML = records
+    .map((record) => {
+      const isBuy = record.side === "buy";
+      const note = String(record.note || "").trim();
+      return `
+        <article class="trade-record-item">
+          <span class="trade-record-side ${isBuy ? "buy" : "sell"}">${isBuy ? "买入" : "卖出"}</span>
+          <div class="trade-record-main">
+            <strong>${escapeHtml(record.date)} · ${
+              record.quantity == null ? "" : `${fmtTradeQuantity(record.quantity)} 股 @ `
+            }${fmtPrice(record.price)}</strong>
+            ${note ? `<p>${escapeHtml(note)}</p>` : ""}
+          </div>
+          <button
+            type="button"
+            class="secondary trade-record-delete"
+            data-trade-delete="${escapeHtml(record.id)}"
+            aria-label="删除该交易记录"
+            title="删除"
+          >删除</button>
+        </article>
+      `;
+    })
+    .join("");
+}
+
 function openNoteEditor(symbol) {
   state.activeNoteSymbol = symbol;
   elements.noteDialogTitle.textContent = `${symbol} 笔记`;
@@ -2248,6 +2795,7 @@ async function deleteActiveSymbol() {
   removeSymbolFromGroups(symbol);
   state.summaries.delete(symbol);
   state.details.delete(symbol);
+  state.tradeReviews.delete(symbol);
   if (state.selectedSymbol === symbol) {
     state.selectedSymbol = state.watchlist[0] || null;
   }

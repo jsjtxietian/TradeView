@@ -2,12 +2,15 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
+from datetime import datetime, timezone
+import json
 import os
 from pathlib import Path
 import re
 import time
 import tomllib
 from typing import Any, Callable
+from uuid import uuid4
 
 from fastapi import Body, FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
@@ -19,6 +22,8 @@ from curl_cffi import requests as curl_requests
 
 CACHE_DIR = Path(".cache")
 CACHE_DIR.mkdir(exist_ok=True)
+TRADE_DIR = Path(".trade")
+TRADE_FILE = TRADE_DIR / "trades.json"
 STATIC_DIR = Path("static")
 PROMPT_TEMPLATE_PATH = Path("prompt_template.md")
 DEFAULT_HISTORY_PERIOD = "3y"
@@ -63,6 +68,130 @@ class AnalysisContext:
 
 
 _memory_cache: dict[tuple[Any, ...], tuple[float, Any]] = {}
+
+
+def load_trade_store() -> dict[str, Any]:
+    if not TRADE_FILE.exists():
+        return {"version": 3, "reviews": []}
+    try:
+        payload = json.loads(TRADE_FILE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"交易复盘文件读取失败: {exc}") from exc
+    if not isinstance(payload, dict) or not isinstance(payload.get("reviews"), list):
+        raise ValueError("交易复盘文件格式无效。")
+    return payload
+
+
+def save_trade_store(payload: dict[str, Any]) -> None:
+    TRADE_DIR.mkdir(exist_ok=True)
+    temp_path = TRADE_FILE.with_suffix(".json.tmp")
+    temp_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    temp_path.replace(TRADE_FILE)
+
+
+def list_symbol_reviews(symbol: str) -> list[dict[str, Any]]:
+    payload = load_trade_store()
+    return sorted(
+        (review for review in payload["reviews"] if review.get("symbol") == symbol),
+        key=lambda item: int(item.get("number", 0)),
+    )
+
+
+def list_all_reviews() -> list[dict[str, Any]]:
+    payload = load_trade_store()
+    return sorted(payload["reviews"], key=lambda item: int(item.get("number", 0)))
+
+
+def create_symbol_review(symbol: str) -> dict[str, Any]:
+    payload = load_trade_store()
+    next_number = max(
+        (int(item.get("number", 0)) for item in payload["reviews"]),
+        default=0,
+    ) + 1
+    review = {
+        "id": uuid4().hex,
+        "number": next_number,
+        "symbol": symbol,
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+        "trades": [],
+    }
+    payload["reviews"].append(review)
+    save_trade_store(payload)
+    return review
+
+
+def find_symbol_review(payload: dict[str, Any], symbol: str, review_id: str) -> dict[str, Any] | None:
+    return next(
+        (
+            item
+            for item in payload["reviews"]
+            if item.get("symbol") == symbol and str(item.get("id")) == review_id
+        ),
+        None,
+    )
+
+
+def create_symbol_trade(symbol: str, review_id: str, data: dict[str, Any]) -> dict[str, Any]:
+    trade_date = str(data.get("date", "")).strip()
+    side = str(data.get("side", "")).strip().lower()
+    note = str(data.get("note", "")).strip()
+    try:
+        parsed_date = datetime.strptime(trade_date, "%Y-%m-%d")
+    except ValueError as exc:
+        raise ValueError("交易日期必须是 YYYY-MM-DD 格式。") from exc
+    if parsed_date.strftime("%Y-%m-%d") != trade_date:
+        raise ValueError("交易日期无效。")
+    if side not in {"buy", "sell"}:
+        raise ValueError("交易类型必须是买入或卖出。")
+    try:
+        price = float(data.get("price"))
+    except (TypeError, ValueError) as exc:
+        raise ValueError("请输入有效的交易价格。") from exc
+    if not np.isfinite(price) or price <= 0:
+        raise ValueError("交易价格必须大于 0。")
+    try:
+        quantity = float(data.get("quantity"))
+    except (TypeError, ValueError) as exc:
+        raise ValueError("请输入有效的交易数量。") from exc
+    if not np.isfinite(quantity) or quantity <= 0:
+        raise ValueError("交易数量必须大于 0。")
+
+    record = {
+        "id": uuid4().hex,
+        "symbol": symbol,
+        "date": trade_date,
+        "side": side,
+        "price": round(price, 4),
+        "quantity": round(quantity, 4),
+        "note": note,
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    }
+    payload = load_trade_store()
+    review = find_symbol_review(payload, symbol, review_id)
+    if review is None:
+        raise ValueError("复盘记录不存在。")
+    review.setdefault("trades", []).append(record)
+    save_trade_store(payload)
+    return record
+
+
+def delete_symbol_trade(symbol: str, review_id: str, trade_id: str) -> bool:
+    payload = load_trade_store()
+    review = find_symbol_review(payload, symbol, review_id)
+    if review is None:
+        return False
+    records = review.get("trades", [])
+    if not isinstance(records, list):
+        return False
+    remaining = [item for item in records if str(item.get("id")) != trade_id]
+    if len(remaining) == len(records):
+        return False
+    review["trades"] = remaining
+    save_trade_store(payload)
+    return True
 
 
 def get_cached(key: tuple[Any, ...]) -> Any | None:
@@ -1166,10 +1295,10 @@ def serialize_history(frame: pd.DataFrame) -> list[dict[str, Any]]:
     return subset.to_dict(orient="records")
 
 
-def serialize_close_history(frame: pd.DataFrame) -> list[dict[str, Any]]:
+def serialize_price_history(frame: pd.DataFrame) -> list[dict[str, Any]]:
     if frame.empty:
         return []
-    subset = frame[["Date", "Close"]].copy()
+    subset = frame[["Date", "Open", "High", "Low", "Close"]].copy()
     subset["Date"] = subset["Date"].dt.strftime("%Y-%m-%d")
     subset = subset.replace({np.nan: None})
     return subset.to_dict(orient="records")
@@ -1501,7 +1630,7 @@ def analyze_symbol(
         "patternRiskChecks": serialize_checks(pattern_risk_checks),
         "history": serialize_history(history),
         "benchmarkSymbol": DEFAULT_BENCHMARK,
-        "benchmarkHistory": serialize_close_history(benchmark_history),
+        "benchmarkHistory": serialize_price_history(benchmark_history),
     }
     return set_cached(cache_key, result)
 
@@ -1641,6 +1770,72 @@ def symbol_detail(
         )
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/trades")
+def trade_review_symbols() -> dict[str, Any]:
+    try:
+        reviews = list_all_reviews()
+        return {
+            "symbols": sorted({str(review["symbol"]) for review in reviews}),
+            "reviews": reviews,
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/api/trades/{symbol}")
+def symbol_trades(symbol: str) -> dict[str, Any]:
+    normalized = normalize_symbol(symbol)
+    if not normalized:
+        raise HTTPException(status_code=400, detail="请输入有效的股票代码。")
+    try:
+        return {"symbol": normalized, "reviews": list_symbol_reviews(normalized)}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/api/trades/{symbol}/reviews")
+def add_symbol_review(symbol: str) -> dict[str, Any]:
+    normalized = normalize_symbol(symbol)
+    if not normalized:
+        raise HTTPException(status_code=400, detail="请输入有效的股票代码。")
+    try:
+        return create_symbol_review(normalized)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/api/trades/{symbol}/reviews/{review_id}")
+def add_symbol_trade(
+    symbol: str,
+    review_id: str,
+    payload: dict[str, Any] = Body(...),
+) -> dict[str, Any]:
+    normalized = normalize_symbol(symbol)
+    if not normalized:
+        raise HTTPException(status_code=400, detail="请输入有效的股票代码。")
+    try:
+        return create_symbol_trade(normalized, review_id, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.delete("/api/trades/{symbol}/reviews/{review_id}/{trade_id}")
+def remove_symbol_trade(symbol: str, review_id: str, trade_id: str) -> dict[str, Any]:
+    normalized = normalize_symbol(symbol)
+    if not normalized or not trade_id.strip():
+        raise HTTPException(status_code=400, detail="交易记录参数无效。")
+    try:
+        if not delete_symbol_trade(normalized, review_id.strip(), trade_id.strip()):
+            raise HTTPException(status_code=404, detail="交易记录不存在。")
+        return {"deleted": True}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @app.post("/api/prompt/{symbol}")

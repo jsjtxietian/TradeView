@@ -370,6 +370,224 @@ button:disabled {
   line-height: 1.6;
 }
 
+.trade-review-dialog {
+  width: min(820px, calc(100vw - 24px));
+}
+
+.trade-review-shell {
+  max-height: min(840px, calc(100vh - 32px));
+  overflow: auto;
+}
+
+.trade-entry-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(130px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.trade-review-choice {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  border-radius: 8px;
+}
+
+.trade-review-choice.existing {
+  border-left: 3px solid var(--accent);
+  background: rgba(11, 132, 165, 0.055);
+}
+
+.trade-review-choice.create {
+  border-left: 3px solid var(--warm);
+  background: rgba(180, 83, 9, 0.045);
+}
+
+.trade-review-choice-head p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.trade-review-step {
+  color: var(--text);
+  font-size: 0.88rem;
+  font-weight: 750;
+}
+
+.trade-review-choice-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.trade-review-choice-row select {
+  width: 100%;
+}
+
+.trade-review-choice-row button {
+  min-width: 96px;
+}
+
+.trade-review-editor-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.trade-review-editor-divider::before,
+.trade-review-editor-divider::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: rgba(15, 23, 42, 0.1);
+}
+
+.trade-side-field {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.trade-side-field legend {
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.trade-side-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+  min-height: 46px;
+  border: 1px solid rgba(83, 129, 158, 0.18);
+  border-radius: 8px;
+}
+
+.trade-side-options label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.trade-side-options label + label {
+  border-left: 1px solid rgba(83, 129, 158, 0.18);
+}
+
+.trade-side-options input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.trade-side-options .buy:has(input:checked) {
+  background: rgba(22, 101, 52, 0.12);
+  color: var(--success);
+}
+
+.trade-side-options .sell:has(input:checked) {
+  background: rgba(180, 35, 24, 0.12);
+  color: var(--danger);
+}
+
+.trade-form-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.trade-review-section {
+  display: grid;
+  gap: 10px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.trade-review-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.trade-review-section-head h4 {
+  margin: 0;
+}
+
+.trade-review-section-head span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.trade-record-list {
+  display: grid;
+  gap: 8px;
+  max-height: 300px;
+  overflow: auto;
+}
+
+.trade-record-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.trade-record-side {
+  min-width: 42px;
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.trade-record-side.buy {
+  color: var(--success);
+}
+
+.trade-record-side.sell {
+  color: var(--danger);
+}
+
+.trade-record-main {
+  min-width: 0;
+}
+
+.trade-record-main strong {
+  display: block;
+  font-size: 0.86rem;
+}
+
+.trade-record-main p {
+  overflow-wrap: anywhere;
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.trade-record-delete {
+  padding: 7px 9px;
+  border-radius: 7px;
+  color: var(--danger);
+}
+
+.trade-record-empty {
+  padding: 18px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.84rem;
+}
+
 .group-editor-list {
   display: grid;
   gap: 12px;
@@ -1195,6 +1413,14 @@ button:disabled {
   }
 
   .note-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .trade-entry-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .trade-review-choice-row {
     grid-template-columns: 1fr;
   }
 
