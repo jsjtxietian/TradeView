@@ -509,6 +509,29 @@ button:disabled {
   overflow: auto;
 }
 
+.trade-review-chooser,
+.trade-review-editor {
+  display: grid;
+  gap: 12px;
+}
+
+.trade-review-chooser[hidden],
+.trade-review-editor[hidden] {
+  display: none;
+}
+
+.trade-review-editor-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.trade-review-editor-head strong {
+  font-size: 0.9rem;
+}
+
 .trade-entry-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(130px, 1fr));
@@ -558,6 +581,11 @@ button:disabled {
 
 .trade-review-choice-row button {
   min-width: 96px;
+}
+
+.trade-review-choice-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .trade-review-editor-divider {
@@ -1561,6 +1589,11 @@ button:disabled {
 
   .trade-review-choice-row {
     grid-template-columns: 1fr;
+  }
+
+  .trade-review-choice-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
   }
 
   .group-editor-row {

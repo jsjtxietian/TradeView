@@ -4,6 +4,7 @@ const CHART_PREFS_KEY = "trenddeck_chart_prefs";
 const NOTES_STORAGE_KEY = "trenddeck_symbol_notes";
 const TREND_FILTER_STORAGE_KEY = "trenddeck_watchlist_filter_template";
 const HOLDING_FILTER_STORAGE_KEY = "trenddeck_watchlist_filter_holding";
+const VOLUME_BELOW_MA50_FILTER_STORAGE_KEY = "trenddeck_watchlist_filter_volume_below_ma50";
 const ALERTS_STORAGE_KEY = "trenddeck_watchlist_alerts";
 const ALERTS_SNAPSHOT_STORAGE_KEY = "trenddeck_watchlist_alerts_snapshot";
 const DEFAULT_VISIBLE_BARS = 126;
@@ -39,6 +40,7 @@ const state = {
   alertsSnapshot: {},
   filterTrendTemplateOnly: false,
   filterHoldingOnly: false,
+  filterVolumeBelowMA50Only: false,
   activeNoteSymbol: null,
   draggingGroupId: null,
   draggingSymbol: "",
@@ -85,6 +87,7 @@ const elements = {
   watchlistFilterPanel: document.getElementById("watchlistFilterPanel"),
   trendFilterInput: document.getElementById("trendFilterInput"),
   holdingFilterInput: document.getElementById("holdingFilterInput"),
+  volumeBelowMA50FilterInput: document.getElementById("volumeBelowMA50FilterInput"),
   clearWatchlistFiltersButton: document.getElementById("clearWatchlistFiltersButton"),
   editGroupsButton: document.getElementById("editGroupsButton"),
   refreshButton: document.getElementById("refreshButton"),
@@ -124,8 +127,13 @@ const elements = {
   tradeReviewDialog: document.getElementById("tradeReviewDialog"),
   tradeReviewForm: document.getElementById("tradeReviewForm"),
   tradeReviewTitle: document.getElementById("tradeReviewTitle"),
+  tradeReviewChooser: document.getElementById("tradeReviewChooser"),
+  tradeReviewEditor: document.getElementById("tradeReviewEditor"),
+  tradeReviewEditorTitle: document.getElementById("tradeReviewEditorTitle"),
   tradeSymbolSelect: document.getElementById("tradeSymbolSelect"),
   tradeReviewSelect: document.getElementById("tradeReviewSelect"),
+  manageTradeReviewButton: document.getElementById("manageTradeReviewButton"),
+  backToTradeReviewChooserButton: document.getElementById("backToTradeReviewChooserButton"),
   createTradeReviewButton: document.getElementById("createTradeReviewButton"),
   tradeDateInput: document.getElementById("tradeDateInput"),
   tradePriceInput: document.getElementById("tradePriceInput"),
@@ -153,6 +161,7 @@ async function init() {
   state.alertsSnapshot = loadStoredAlertsSnapshot();
   state.filterTrendTemplateOnly = loadStoredTrendFilter();
   state.filterHoldingOnly = loadStoredHoldingFilter();
+  state.filterVolumeBelowMA50Only = loadStoredVolumeBelowMA50Filter();
   state.watchlistGroups = loadStoredWatchlistGroups(
     normalizeWatchlistGroups(config.watchlistGroups || []),
   );
@@ -222,11 +231,20 @@ function bindEvents() {
     updateWatchlistFilter("filterHoldingOnly", elements.holdingFilterInput.checked);
   });
 
+  elements.volumeBelowMA50FilterInput.addEventListener("change", () => {
+    updateWatchlistFilter(
+      "filterVolumeBelowMA50Only",
+      elements.volumeBelowMA50FilterInput.checked,
+    );
+  });
+
   elements.clearWatchlistFiltersButton.addEventListener("click", () => {
     state.filterTrendTemplateOnly = false;
     state.filterHoldingOnly = false;
+    state.filterVolumeBelowMA50Only = false;
     persistTrendFilter();
     persistHoldingFilter();
+    persistVolumeBelowMA50Filter();
     syncWatchlistFilters();
     renderWatchlist();
     syncSelectionWithFilter().catch((error) => {
@@ -282,6 +300,16 @@ function bindEvents() {
     });
   });
 
+  elements.manageTradeReviewButton.addEventListener("click", () => {
+    openTradeReviewEditor(elements.tradeReviewSelect.value).catch((error) => {
+      showToast(error.message || String(error), true);
+    });
+  });
+
+  elements.backToTradeReviewChooserButton.addEventListener("click", () => {
+    showTradeReviewChooser();
+  });
+
   elements.closeTradeReviewButton.addEventListener("click", () => {
     elements.tradeReviewDialog.close();
   });
@@ -298,12 +326,6 @@ function bindEvents() {
     if (row?.Close != null) {
       elements.tradePriceInput.value = Number(row.Close).toFixed(4);
     }
-  });
-
-  elements.tradeReviewSelect.addEventListener("change", () => {
-    selectGlobalTradeReview(elements.tradeReviewSelect.value).catch((error) => {
-      showToast(error.message || String(error), true);
-    });
   });
 
   elements.createTradeReviewButton.addEventListener("click", () => {
@@ -538,6 +560,7 @@ function updateWatchlistFilter(stateKey, enabled) {
   state[stateKey] = enabled;
   persistTrendFilter();
   persistHoldingFilter();
+  persistVolumeBelowMA50Filter();
   syncWatchlistFilters();
   renderWatchlist();
   syncSelectionWithFilter().catch((error) => {
@@ -2215,6 +2238,13 @@ function persistHoldingFilter() {
   localStorage.setItem(HOLDING_FILTER_STORAGE_KEY, state.filterHoldingOnly ? "1" : "0");
 }
 
+function persistVolumeBelowMA50Filter() {
+  localStorage.setItem(
+    VOLUME_BELOW_MA50_FILTER_STORAGE_KEY,
+    state.filterVolumeBelowMA50Only ? "1" : "0",
+  );
+}
+
 function persistAlerts() {
   localStorage.setItem(ALERTS_STORAGE_KEY, JSON.stringify(state.alerts));
 }
@@ -2337,6 +2367,14 @@ function loadStoredTrendFilter() {
 function loadStoredHoldingFilter() {
   try {
     return localStorage.getItem(HOLDING_FILTER_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function loadStoredVolumeBelowMA50Filter() {
+  try {
+    return localStorage.getItem(VOLUME_BELOW_MA50_FILTER_STORAGE_KEY) === "1";
   } catch {
     return false;
   }
@@ -2556,15 +2594,32 @@ async function openTradeReview() {
   );
   elements.tradeSymbolSelect.value = symbol;
   populateGlobalTradeReviewSelect(state.tradeReviewId);
-  const selectedReview = getGlobalTradeReview(elements.tradeReviewSelect.value);
-  if (selectedReview) {
-    await selectGlobalTradeReview(selectedReview.id);
-  } else {
-    await selectTradeReviewSymbol(symbol);
-    renderTradeRecords("", "");
-  }
+  showTradeReviewChooser();
   syncTradeReviewButton();
   elements.tradeReviewDialog.showModal();
+}
+
+function showTradeReviewChooser() {
+  elements.tradeReviewChooser.hidden = false;
+  elements.tradeReviewEditor.hidden = true;
+  elements.tradeReviewTitle.textContent = "交易复盘";
+}
+
+function showTradeReviewEditor(review) {
+  elements.tradeReviewChooser.hidden = true;
+  elements.tradeReviewEditor.hidden = false;
+  elements.tradeReviewTitle.textContent = "管理交易记录";
+  elements.tradeReviewEditorTitle.textContent =
+    `复盘 #${review.number} · ${review.symbol}`;
+}
+
+async function openTradeReviewEditor(reviewId) {
+  const review = getGlobalTradeReview(reviewId);
+  if (!review) {
+    throw new Error("请先新建一次复盘。");
+  }
+  await selectGlobalTradeReview(review.id);
+  showTradeReviewEditor(review);
 }
 
 async function selectTradeReviewSymbol(rawSymbol) {
@@ -2599,6 +2654,8 @@ function populateGlobalTradeReviewSelect(preferredReviewId = null) {
         .join("")
     : '<option value="">暂无复盘</option>';
   elements.tradeReviewSelect.disabled = !reviews.length;
+  elements.manageTradeReviewButton.disabled = !reviews.length;
+  elements.activateTradeReviewButton.disabled = !reviews.length;
   const selectedId =
     preferredReviewId && reviews.some((review) => review.id === preferredReviewId)
       ? preferredReviewId
@@ -2641,7 +2698,7 @@ async function createTradeReview() {
   );
   populateGlobalTradeReviewSelect(review.id);
   await selectGlobalTradeReview(review.id);
-  renderTradeRecords(symbol, review.id);
+  showTradeReviewEditor(review);
   showToast(`${symbol} 复盘 #${review.number} 已创建。`);
 }
 
@@ -2652,9 +2709,7 @@ async function activateTradeReview() {
     throw new Error("请先新建一次复盘。");
   }
   const symbol = review.symbol;
-  if (state.selectedSymbol !== symbol) {
-    await selectTradeReviewSymbol(symbol);
-  }
+  await selectGlobalTradeReview(reviewId);
   state.tradeReviewActive = true;
   state.tradeReviewSymbol = symbol;
   state.tradeReviewId = reviewId;
@@ -2903,6 +2958,9 @@ function filterWatchlistSymbols(symbols) {
     if (state.filterHoldingOnly && !getHoldingForSymbol(symbol)) {
       return false;
     }
+    if (state.filterVolumeBelowMA50Only && !data?.latestVolumeBelowMA50) {
+      return false;
+    }
     return true;
   });
 }
@@ -2931,15 +2989,21 @@ async function syncSelectionWithFilter() {
 }
 
 function hasActiveWatchlistFilters() {
-  return state.filterTrendTemplateOnly || state.filterHoldingOnly;
+  return (
+    state.filterTrendTemplateOnly
+    || state.filterHoldingOnly
+    || state.filterVolumeBelowMA50Only
+  );
 }
 
 function syncWatchlistFilters() {
   elements.trendFilterInput.checked = state.filterTrendTemplateOnly;
   elements.holdingFilterInput.checked = state.filterHoldingOnly;
+  elements.volumeBelowMA50FilterInput.checked = state.filterVolumeBelowMA50Only;
   const count =
     Number(state.filterTrendTemplateOnly) +
-    Number(state.filterHoldingOnly);
+    Number(state.filterHoldingOnly) +
+    Number(state.filterVolumeBelowMA50Only);
   elements.watchlistFilterCount.hidden = count === 0;
   elements.watchlistFilterCount.textContent = String(count);
   elements.watchlistFilterButton.classList.toggle("active-toggle", count > 0);
@@ -2947,6 +3011,9 @@ function syncWatchlistFilters() {
 }
 
 function getWatchlistEmptyMessage() {
+  if (state.filterVolumeBelowMA50Only) {
+    return "当前没有满足全部筛选条件的股票；成交量条件按前一交易日与50日均量比较。";
+  }
   if (state.filterTrendTemplateOnly && state.filterHoldingOnly) {
     return "当前没有同时满足趋势模板且标记为持仓的股票。";
   }

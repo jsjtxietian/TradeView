@@ -1589,6 +1589,14 @@ def analyze_symbol(
     is_six_month_low = bool(require_values(latest["Close"], six_month_low) and latest["Close"] <= six_month_low)
     trend_pass_count, trend_total, trend_status = summarize_check_group(trend_checks)
     advanced_trend_pass_count, advanced_trend_total, advanced_trend_status = summarize_check_group(advanced_trend_checks)
+    latest_volume_ma50 = history["Volume"].rolling(50).mean().iloc[-1]
+    latest_volume_below_ma50 = bool(
+        require_values(latest["Volume"], latest_volume_ma50)
+        and latest["Volume"] < latest_volume_ma50
+    )
+    latest_volume_ratio_ma50 = None
+    if require_values(latest["Volume"], latest_volume_ma50) and latest_volume_ma50:
+        latest_volume_ratio_ma50 = float(latest["Volume"] / latest_volume_ma50)
 
     result = {
         "symbol": normalized,
@@ -1596,6 +1604,11 @@ def analyze_symbol(
         "latestCloseText": fmt_price(latest["Close"]),
         "latestVolume": None if pd.isna(latest["Volume"]) else float(latest["Volume"]),
         "latestVolumeText": fmt_volume(latest["Volume"]),
+        "latestVolumeMA50": None if pd.isna(latest_volume_ma50) else float(latest_volume_ma50),
+        "latestVolumeBelowMA50": latest_volume_below_ma50,
+        "latestVolumeRatioMA50": (
+            None if latest_volume_ratio_ma50 is None else round(latest_volume_ratio_ma50, 4)
+        ),
         "latestDate": history["Date"].iloc[-1].strftime("%Y-%m-%d"),
         "dailyChangePct": None if daily_change_pct is None else round(daily_change_pct, 4),
         "dailyChangePctText": fmt_signed_pct(daily_change_pct),
@@ -1655,6 +1668,9 @@ def summary_payload(
         "latestCloseText": data["latestCloseText"],
         "latestVolume": data["latestVolume"],
         "latestVolumeText": data["latestVolumeText"],
+        "latestVolumeMA50": data["latestVolumeMA50"],
+        "latestVolumeBelowMA50": data["latestVolumeBelowMA50"],
+        "latestVolumeRatioMA50": data["latestVolumeRatioMA50"],
         "latestDate": data["latestDate"],
         "dailyChangePct": data["dailyChangePct"],
         "dailyChangePctText": data["dailyChangePctText"],

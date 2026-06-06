@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trend Deck</title>
-  <link rel="stylesheet" href="/static/styles.css?v=20260606-01" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260606-03" />
 </head>
 <body>
   <div class="page-shell">
@@ -50,6 +50,14 @@
                   <small>仅显示已在笔记中标记为持仓的股票</small>
                 </span>
                 <input id="holdingFilterInput" type="checkbox" />
+                <i aria-hidden="true"></i>
+              </label>
+              <label class="watchlist-filter-option">
+                <span>
+                  <strong>成交量低于50日均量</strong>
+                  <small>仅显示前一交易日成交量低于50日均量的股票</small>
+                </span>
+                <input id="volumeBelowMA50FilterInput" type="checkbox" />
                 <i aria-hidden="true"></i>
               </label>
             </div>
@@ -224,73 +232,81 @@
           <h3 id="tradeReviewTitle">交易复盘</h3>
         </div>
       </div>
-      <section class="trade-review-choice existing">
-        <div class="trade-review-choice-head">
-          <div>
-            <span class="trade-review-step">打开已有复盘</span>
-            <p>选择后会自动切换到对应股票。</p>
+      <div id="tradeReviewChooser" class="trade-review-chooser">
+        <section class="trade-review-choice existing">
+          <div class="trade-review-choice-head">
+            <div>
+              <span class="trade-review-step">打开已有复盘</span>
+              <p>进入后在K线图上查看买卖标记。</p>
+            </div>
           </div>
-        </div>
-        <div class="trade-review-choice-row">
-          <select id="tradeReviewSelect" aria-label="选择已有复盘"></select>
-          <button type="button" id="activateTradeReviewButton">进入复盘</button>
-        </div>
-      </section>
-      <section class="trade-review-choice create">
-        <div class="trade-review-choice-head">
-          <div>
-            <span class="trade-review-step">新建复盘</span>
-            <p>先选择股票，再创建一个新的全局复盘编号。</p>
+          <div class="trade-review-choice-row">
+            <select id="tradeReviewSelect" aria-label="选择已有复盘"></select>
+            <div class="trade-review-choice-actions">
+              <button type="button" id="manageTradeReviewButton" class="secondary">管理记录</button>
+              <button type="button" id="activateTradeReviewButton">进入复盘</button>
+            </div>
           </div>
-        </div>
-        <div class="trade-review-choice-row">
-          <select id="tradeSymbolSelect" aria-label="选择新建复盘股票"></select>
-          <button type="button" id="createTradeReviewButton" class="secondary">新建</button>
-        </div>
-      </section>
-      <div class="trade-review-editor-divider">
-        <span>当前复盘交易记录</span>
-      </div>
-      <div class="trade-entry-grid">
-        <label class="note-editor-field">
-          <span>日期</span>
-          <input id="tradeDateInput" type="date" required />
-        </label>
-        <fieldset class="trade-side-field">
-          <legend>类型</legend>
-          <div class="trade-side-options">
-            <label class="buy">
-              <input type="radio" name="tradeSide" value="buy" checked />
-              <span>买入</span>
-            </label>
-            <label class="sell">
-              <input type="radio" name="tradeSide" value="sell" />
-              <span>卖出</span>
-            </label>
+        </section>
+        <section class="trade-review-choice create">
+          <div class="trade-review-choice-head">
+            <div>
+              <span class="trade-review-step">新建复盘</span>
+              <p>选择股票并创建新的全局复盘编号。</p>
+            </div>
           </div>
-        </fieldset>
-        <label class="note-editor-field">
-          <span>价格</span>
-          <input id="tradePriceInput" type="number" min="0.0001" step="0.0001" required />
-        </label>
-        <label class="note-editor-field">
-          <span>数量</span>
-          <input id="tradeQuantityInput" type="number" min="0.0001" step="0.0001" placeholder="例如 100" required />
-        </label>
+          <div class="trade-review-choice-row">
+            <select id="tradeSymbolSelect" aria-label="选择新建复盘股票"></select>
+            <button type="button" id="createTradeReviewButton" class="secondary">新建</button>
+          </div>
+        </section>
       </div>
-      <label class="note-editor-field">
-        <span>备注</span>
-        <textarea id="tradeNoteInput" rows="3" placeholder="例如：突破枢轴试仓、跌破 MA50 减仓"></textarea>
-      </label>
-      <div class="trade-form-actions">
-        <button type="submit">添加记录</button>
-      </div>
-      <div class="trade-review-section">
-        <div class="trade-review-section-head">
-          <h4>历史记录</h4>
-          <span id="tradeRecordCount"></span>
+      <div id="tradeReviewEditor" class="trade-review-editor" hidden>
+        <div class="trade-review-editor-head">
+          <button type="button" id="backToTradeReviewChooserButton" class="secondary">返回</button>
+          <strong id="tradeReviewEditorTitle"></strong>
         </div>
-        <div id="tradeRecordList" class="trade-record-list"></div>
+        <div class="trade-entry-grid">
+          <label class="note-editor-field">
+            <span>日期</span>
+            <input id="tradeDateInput" type="date" required />
+          </label>
+          <fieldset class="trade-side-field">
+            <legend>类型</legend>
+            <div class="trade-side-options">
+              <label class="buy">
+                <input type="radio" name="tradeSide" value="buy" checked />
+                <span>买入</span>
+              </label>
+              <label class="sell">
+                <input type="radio" name="tradeSide" value="sell" />
+                <span>卖出</span>
+              </label>
+            </div>
+          </fieldset>
+          <label class="note-editor-field">
+            <span>价格</span>
+            <input id="tradePriceInput" type="number" min="0.0001" step="0.0001" required />
+          </label>
+          <label class="note-editor-field">
+            <span>数量</span>
+            <input id="tradeQuantityInput" type="number" min="0.0001" step="0.0001" placeholder="例如 100" required />
+          </label>
+        </div>
+        <label class="note-editor-field">
+          <span>备注</span>
+          <textarea id="tradeNoteInput" rows="3" placeholder="例如：突破枢轴试仓、跌破 MA50 减仓"></textarea>
+        </label>
+        <div class="trade-form-actions">
+          <button type="submit">添加记录</button>
+        </div>
+        <div class="trade-review-section">
+          <div class="trade-review-section-head">
+            <h4>记录管理</h4>
+            <span id="tradeRecordCount"></span>
+          </div>
+          <div id="tradeRecordList" class="trade-record-list"></div>
+        </div>
       </div>
       <div class="group-editor-actions">
         <button type="button" id="closeTradeReviewButton" class="secondary">关闭</button>
@@ -301,6 +317,6 @@
   <div id="toast" class="toast" hidden></div>
 
   <script src="https://unpkg.com/lightweight-charts@5.0.0/dist/lightweight-charts.standalone.production.js"></script>
-  <script src="/static/app.js?v=20260606-01" type="module"></script>
+  <script src="/static/app.js?v=20260606-03" type="module"></script>
 </body>
 </html>
