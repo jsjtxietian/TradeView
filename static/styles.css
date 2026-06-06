@@ -1424,7 +1424,7 @@ button:disabled {
 }
 
 .price-chart-container {
-  height: 390px;
+  height: 360px;
 }
 
 .volume-chart-container {
@@ -1606,7 +1606,7 @@ button:disabled {
   }
 
   .price-chart-container {
-    height: 320px;
+    height: 290px;
   }
 
   .benchmark-chart-container {

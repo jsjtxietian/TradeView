@@ -1605,6 +1605,7 @@ function createMainChart() {
     layout: {
       background: { color: "rgba(255,255,255,0)" },
       textColor: "#617286",
+      attributionLogo: false,
     },
     rightPriceScale: {
       borderColor: "rgba(15, 23, 42, 0.12)",
@@ -1653,12 +1654,15 @@ function createMainChart() {
     layout: {
       background: { color: "rgba(255,255,255,0)" },
       textColor: "#102033",
+      attributionLogo: false,
     },
     rightPriceScale: {
       borderColor: "rgba(15, 23, 42, 0.12)",
     },
     timeScale: {
-      borderColor: "rgba(15, 23, 42, 0.12)",
+      visible: false,
+      borderVisible: false,
+      ticksVisible: false,
       rightOffset: 0,
       fixRightEdge: true,
       rightBarStaysOnScroll: true,
@@ -1761,6 +1765,7 @@ function createMainChart() {
     layout: {
       background: { color: "rgba(255,255,255,0)" },
       textColor: "#617286",
+      attributionLogo: false,
     },
     rightPriceScale: {
       borderColor: "rgba(15, 23, 42, 0.12)",
