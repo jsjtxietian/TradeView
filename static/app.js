@@ -67,8 +67,9 @@ const state = {
   candleTradePrimitive: null,
   closeLineTradePrimitive: null,
   volumeSeries: null,
+  volumeMa50Series: null,
   maSeries: [],
-  maVisibility: { MA20: true, MA50: true, MA150: true, MA200: true },
+  maVisibility: { MA20: true, MA50: true, MA150: true, MA200: true, VolumeMA50: true },
   crosshairSyncing: false,
   chartWheelBound: false,
   watchlistResizeTimer: null,
@@ -1560,6 +1561,7 @@ function renderMainChart(detail) {
       color: row.Close >= row.Open ? "#0f9d58aa" : "#db4437aa",
     })),
   );
+  state.volumeMa50Series.setData(buildVolumeMa50Data(chartData));
 
   applyTradeMarkers(detail.symbol);
   const maFields = [
@@ -1795,6 +1797,16 @@ function createMainChart() {
   state.volumeSeries = state.volumeChart.addSeries(chartLib.HistogramSeries, {
     priceFormat: { type: "volume" },
     priceScaleId: "right",
+    lastValueVisible: false,
+    priceLineVisible: false,
+  });
+  state.volumeMa50Series = state.volumeChart.addSeries(chartLib.LineSeries, {
+    color: "#0077b6",
+    lineWidth: 1.5,
+    lineStyle: dashedLineStyle,
+    priceFormat: { type: "volume" },
+    priceScaleId: "right",
+    crosshairMarkerVisible: false,
     lastValueVisible: false,
     priceLineVisible: false,
   });
@@ -2078,6 +2090,7 @@ function destroyCharts() {
     state.volumeChart.remove();
     state.volumeChart = null;
     state.volumeSeries = null;
+    state.volumeMa50Series = null;
   }
   elements.benchmarkChartContainer.innerHTML = "";
   elements.priceChartContainer.innerHTML = "";
@@ -2114,6 +2127,36 @@ function applyMaVisibility() {
       state.maSeries[index].applyOptions({ visible: !!state.maVisibility[field] });
     }
   });
+  state.volumeMa50Series?.applyOptions({
+    visible: !!state.maVisibility.VolumeMA50,
+  });
+}
+
+function buildVolumeMa50Data(chartData) {
+  const window = [];
+  let total = 0;
+  const result = [];
+
+  for (const row of chartData) {
+    const volume = Number(row.Volume);
+    if (!Number.isFinite(volume)) {
+      window.length = 0;
+      total = 0;
+      continue;
+    }
+    window.push(volume);
+    total += volume;
+    if (window.length > 50) {
+      total -= window.shift();
+    }
+    if (window.length === 50) {
+      result.push({
+        time: row.Date,
+        value: total / 50,
+      });
+    }
+  }
+  return result;
 }
 
 function applyChartMode() {
@@ -2283,7 +2326,7 @@ function loadChartPrefs() {
       state.compareBenchmark = parsed.compareBenchmark;
     }
     if (parsed.maVisibility && typeof parsed.maVisibility === "object") {
-      for (const key of ["MA20", "MA50", "MA150", "MA200"]) {
+      for (const key of ["MA20", "MA50", "MA150", "MA200", "VolumeMA50"]) {
         if (typeof parsed.maVisibility[key] === "boolean") {
           state.maVisibility[key] = parsed.maVisibility[key];
         }

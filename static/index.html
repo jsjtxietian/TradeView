@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trend Deck</title>
-  <link rel="stylesheet" href="/static/styles.css?v=20260606-04" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260606-07" />
 </head>
 <body>
   <div class="page-shell">
@@ -111,6 +111,10 @@
                 <input type="checkbox" data-ma="MA200" checked />
                 <span>200</span>
               </label>
+              <label class="ma-toggle volume-ma50" title="显示或隐藏成交量 MA50">
+                <input type="checkbox" data-ma="VolumeMA50" checked />
+                <span>量50</span>
+              </label>
             </div>
             <button type="button" id="copyPromptButton" class="secondary chart-copy-button">复制 Prompt</button>
           </div>
@@ -125,7 +129,9 @@
             <div id="priceChartContainer" class="price-chart-container"></div>
             <div id="chartHoverCard" class="chart-hover-card" hidden></div>
           </div>
-          <div id="volumeChartContainer" class="volume-chart-container"></div>
+          <div class="volume-chart-shell">
+            <div id="volumeChartContainer" class="volume-chart-container"></div>
+          </div>
         </div>
       </section>
 
@@ -317,6 +323,6 @@
   <div id="toast" class="toast" hidden></div>
 
   <script src="https://unpkg.com/lightweight-charts@5.0.0/dist/lightweight-charts.standalone.production.js"></script>
-  <script src="/static/app.js?v=20260606-06" type="module"></script>
+  <script src="/static/app.js?v=20260606-09" type="module"></script>
 </body>
 </html>

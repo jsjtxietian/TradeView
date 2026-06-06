@@ -1391,6 +1391,11 @@ button:disabled {
   --ma-color: #1d3557;
 }
 
+.ma-toggle.volume-ma50 {
+  --ma-color: #0077b6;
+  min-width: 48px;
+}
+
 .price-chart-shell {
   position: relative;
 }
@@ -1429,6 +1434,10 @@ button:disabled {
 
 .volume-chart-container {
   height: 92px;
+}
+
+.volume-chart-shell {
+  position: relative;
 }
 
 .chart-hover-card {
