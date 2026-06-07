@@ -674,6 +674,343 @@ def evaluate_market_pullback_resilience(context: AnalysisContext) -> tuple[bool 
     return passed, detail
 
 
+BUY_LOOKBACK_WINDOWS = {
+    21: "近 1 个月",
+    63: "近 3 个月",
+    126: "近 6 个月",
+}
+
+
+def fmt_short_date(value: pd.Timestamp) -> str:
+    return value.strftime("%m-%d")
+
+
+def calculate_max_drawdown(frame: pd.DataFrame) -> dict[str, Any] | None:
+    clean = frame[["Date", "Close"]].dropna().sort_values("Date").reset_index(drop=True)
+    if len(clean) < 2:
+        return None
+    rolling_peak = clean["Close"].cummax()
+    drawdowns = 1 - clean["Close"] / rolling_peak
+    if drawdowns.isna().all():
+        return None
+    trough_idx = int(drawdowns.idxmax())
+    peak_idx = int(clean["Close"].iloc[: trough_idx + 1].idxmax())
+    return {
+        "drawdown": float(drawdowns.iloc[trough_idx]),
+        "peak_date": clean["Date"].iloc[peak_idx],
+        "trough_date": clean["Date"].iloc[trough_idx],
+    }
+
+
+def get_aligned_lookback_frames(
+    context: AnalysisContext,
+    lookback_days: int,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    common_dates = pd.merge(
+        context.stock[["Date"]],
+        context.benchmark[["Date"]],
+        on="Date",
+        how="inner",
+    ).tail(lookback_days)["Date"]
+    if common_dates.empty:
+        return pd.DataFrame(), pd.DataFrame()
+    dates = set(common_dates.tolist())
+    stock = context.stock[context.stock["Date"].isin(dates)].sort_values("Date").reset_index(drop=True)
+    benchmark = context.benchmark[context.benchmark["Date"].isin(dates)].sort_values("Date").reset_index(drop=True)
+    return stock, benchmark
+
+
+def evaluate_relative_max_drawdown(
+    context: AnalysisContext,
+    lookback_days: int,
+) -> tuple[bool | None, str]:
+    stock, benchmark = get_aligned_lookback_frames(context, lookback_days)
+    window_label = BUY_LOOKBACK_WINDOWS[lookback_days]
+    if len(stock) < min(lookback_days, 15) or len(benchmark) < min(lookback_days, 15):
+        return None, f"{window_label}个股或 {DEFAULT_BENCHMARK} 数据不足"
+    stock_result = calculate_max_drawdown(stock)
+    benchmark_result = calculate_max_drawdown(benchmark)
+    if not stock_result or not benchmark_result:
+        return None, f"{window_label}最大回撤数据不足"
+    stock_drawdown = stock_result["drawdown"]
+    benchmark_drawdown = benchmark_result["drawdown"]
+    limit = benchmark_drawdown * 2.5
+    passed = bool(stock_drawdown <= limit)
+    detail = (
+        f"{DEFAULT_BENCHMARK} {fmt_pct(benchmark_drawdown)} · "
+        f"个股 {fmt_pct(stock_drawdown)} · 阈值 {fmt_pct(limit)}"
+        f"\n{DEFAULT_BENCHMARK} {fmt_short_date(benchmark_result['peak_date'])}至"
+        f"{fmt_short_date(benchmark_result['trough_date'])} · "
+        f"个股 {fmt_short_date(stock_result['peak_date'])}至"
+        f"{fmt_short_date(stock_result['trough_date'])}"
+    )
+    return passed, detail
+
+
+def evaluate_absolute_max_drawdown(
+    context: AnalysisContext,
+    lookback_days: int,
+) -> tuple[bool | None, str]:
+    stock = context.stock.tail(lookback_days)
+    window_label = BUY_LOOKBACK_WINDOWS[lookback_days]
+    result = calculate_max_drawdown(stock)
+    if not result:
+        return None, f"{window_label}最大回撤数据不足"
+    drawdown = result["drawdown"]
+    return (
+        bool(drawdown < 0.35),
+        f"个股 {fmt_pct(drawdown)} · 上限 35%"
+        f"\n{fmt_short_date(result['peak_date'])}至{fmt_short_date(result['trough_date'])}",
+    )
+
+
+def evaluate_leaders_bottom_first(
+    context: AnalysisContext,
+    lookback_days: int,
+) -> tuple[bool | None, str]:
+    stock, benchmark = get_aligned_lookback_frames(context, lookback_days)
+    window_label = BUY_LOOKBACK_WINDOWS[lookback_days]
+    benchmark_result = calculate_max_drawdown(benchmark)
+    if not benchmark_result:
+        return None, f"{window_label} {DEFAULT_BENCHMARK} 回撤数据不足"
+    if benchmark_result["drawdown"] < 0.05:
+        return None, (
+            f"{window_label} {DEFAULT_BENCHMARK} 最大回撤仅 "
+            f"{fmt_pct(benchmark_result['drawdown'])}，尚未形成明确调整"
+        )
+
+    peak_date = benchmark_result["peak_date"]
+    trough_date = benchmark_result["trough_date"]
+    correction = stock[(stock["Date"] >= peak_date) & (stock["Date"] <= trough_date)].copy()
+    if len(correction) < 5 or correction["Low"].dropna().empty:
+        return None, "个股与大盘调整区间对齐后的低点样本不足"
+
+    stock_low_idx = correction["Low"].idxmin()
+    stock_low_date = correction.loc[stock_low_idx, "Date"]
+    stock_low = correction.loc[stock_low_idx, "Low"]
+    later_lows = correction[correction["Date"] > stock_low_date]["Low"].dropna()
+    bottomed_earlier = bool(stock_low_date < trough_date)
+    held_higher_low = bool(
+        bottomed_earlier
+        and not later_lows.empty
+        and later_lows.min() > stock_low
+    )
+    passed = bool(bottomed_earlier and held_higher_low)
+    detail = (
+        f"{DEFAULT_BENCHMARK} 低点 {fmt_short_date(trough_date)} · "
+        f"个股低点 {fmt_short_date(stock_low_date)}"
+    )
+    if passed:
+        detail += "\n个股见低后未再创新低"
+    elif bottomed_earlier:
+        detail += "\n较早见低，但随后再次触及或跌破"
+    else:
+        detail += "\n个股未早于大盘见低"
+    return passed, detail
+
+
+def evaluate_current_volume_below_ma50(context: AnalysisContext) -> tuple[bool | None, str]:
+    if len(context.stock) < 50:
+        return None, "50 日成交量历史不足"
+    volume_ma50 = context.stock["Volume"].rolling(50).mean().iloc[-1]
+    current_volume = context.latest["Volume"]
+    if not require_values(volume_ma50, current_volume) or volume_ma50 == 0:
+        return None, "近期成交量数据不足"
+    ratio = float(current_volume / volume_ma50)
+    return (
+        bool(current_volume < volume_ma50),
+        f"当前 {fmt_volume(current_volume)} · MA50 "
+        f"{fmt_volume(volume_ma50)} · {ratio:.2f}x",
+    )
+
+
+def evaluate_recent_volatility_contraction(context: AnalysisContext) -> tuple[bool | None, str]:
+    if len(context.stock) < 15:
+        return None, "近期波动区间至少需要 15 个交易日数据"
+    tail = context.stock.tail(15).copy()
+    tail["DailyRangePct"] = (tail["High"] - tail["Low"]) / tail["Close"]
+    prior_average = tail.head(5)["DailyRangePct"].replace([np.inf, -np.inf], np.nan).mean()
+    recent_average = tail.tail(10)["DailyRangePct"].replace([np.inf, -np.inf], np.nan).mean()
+    recent_high_close = tail.tail(10)["Close"].max()
+    recent_low_close = tail.tail(10)["Close"].min()
+    total_range = (
+        1 - recent_low_close / recent_high_close
+        if recent_high_close
+        else np.nan
+    )
+    if not require_values(prior_average, recent_average, total_range) or prior_average == 0:
+        return None, "近期波动区间样本不足"
+    passed = bool(total_range < 0.10)
+    return (
+        passed,
+        f"最高收盘至最低收盘 {fmt_pct(total_range)} · 上限 10%"
+        f"\n近 10 日日均单日振幅 {fmt_pct(recent_average)}"
+        f"（再前 5 日 {fmt_pct(prior_average)}）",
+    )
+
+
+def evaluate_eight_week_explosive_gain(context: AnalysisContext) -> tuple[bool | None, str]:
+    window = context.stock.tail(40).copy().reset_index(drop=True)
+    if len(window) < 20:
+        return None, "8 周爆发涨幅历史不足"
+    best_gain = -np.inf
+    best_low_date = None
+    best_high_date = None
+    running_low = np.inf
+    running_low_date = None
+    for _, row in window.iterrows():
+        low = row["Low"]
+        high = row["High"]
+        if require_values(low) and low < running_low:
+            running_low = float(low)
+            running_low_date = row["Date"]
+        if require_values(high) and running_low_date is not None and running_low > 0:
+            gain = float(high / running_low - 1)
+            if gain > best_gain:
+                best_gain = gain
+                best_low_date = running_low_date
+                best_high_date = row["Date"]
+    if not require_values(best_gain) or best_low_date is None or best_high_date is None:
+        return None, "8 周先低后高涨幅数据不足"
+    return (
+        bool(best_gain >= 1.0),
+        f"近 8 周最大先低后高涨幅 {fmt_pct(best_gain)}"
+        f"（{best_low_date.strftime('%Y-%m-%d')} -> {best_high_date.strftime('%Y-%m-%d')}）"
+        " / 门槛 100%",
+    )
+
+
+def find_power_play_setup(context: AnalysisContext) -> dict[str, Any] | None:
+    if len(context.stock) < 60:
+        return None
+    frame = context.stock.tail(110).reset_index(drop=True)
+    best_candidate = None
+    for base_len in range(15, 31):
+        run_end = len(frame) - base_len
+        run = frame.iloc[max(0, run_end - 40) : run_end]
+        base = frame.iloc[run_end:]
+        if len(run) < 30 or len(base) < 15:
+            continue
+        run_low = run["Low"].min()
+        run_high = run["High"].max()
+        base_low_close = base["Close"].min()
+        base_high_close = base["Close"].max()
+        if (
+            not require_values(run_low, run_high, base_low_close, base_high_close)
+            or run_low == 0
+            or base_high_close == 0
+        ):
+            continue
+        candidate = {
+            "base_len": base_len,
+            "run_gain": float(run_high / run_low - 1),
+            "base_drawdown": float(1 - base_low_close / base_high_close),
+        }
+        candidate["passed"] = bool(
+            candidate["run_gain"] >= 1.0
+            and candidate["base_drawdown"] <= 0.20
+        )
+        if best_candidate is None:
+            best_candidate = candidate
+        elif candidate["passed"] and not best_candidate["passed"]:
+            best_candidate = candidate
+        elif candidate["passed"] == best_candidate["passed"]:
+            current_distance = abs(candidate["run_gain"] - 1.0) + candidate["base_drawdown"]
+            best_distance = abs(best_candidate["run_gain"] - 1.0) + best_candidate["base_drawdown"]
+            if current_distance < best_distance:
+                best_candidate = candidate
+    return best_candidate
+
+
+def build_buy_indicator_groups(
+    context: AnalysisContext,
+    lookback_days: int,
+) -> list[dict[str, Any]]:
+    def item(name: str, result: tuple[bool | None, str]) -> dict[str, Any]:
+        return {"name": name, "passed": result[0], "detail": result[1]}
+
+    context_items = [
+        item("相对回撤", evaluate_relative_max_drawdown(context, lookback_days)),
+        item("绝对回撤", evaluate_absolute_max_drawdown(context, lookback_days)),
+        item("Leaders Bottom First", evaluate_leaders_bottom_first(context, lookback_days)),
+    ]
+    volume_item = item("当前成交量低于 50 日均量", evaluate_current_volume_below_ma50(context))
+    contraction_item = item("近 10 日收盘区间小于 10%", evaluate_recent_volatility_contraction(context))
+    power_play = find_power_play_setup(context)
+    if power_play is None:
+        burst_item = {"name": "8 周涨幅达到 100%", "passed": None, "detail": "Power Play 样本不足"}
+        base_item = {"name": "3-6 周收盘区间不超过 20%", "passed": None, "detail": "Power Play 样本不足"}
+    else:
+        burst_item = {
+            "name": "8 周涨幅达到 100%",
+            "passed": bool(power_play["run_gain"] >= 1.0),
+            "detail": f"8 周涨幅 {fmt_pct(power_play['run_gain'])} · 门槛 100%",
+        }
+        base_item = {
+            "name": "3-6 周收盘区间不超过 20%",
+            "passed": bool(power_play["base_drawdown"] <= 0.20),
+            "detail": (
+                f"整理 {power_play['base_len']} 日 · "
+                f"最高收盘至最低收盘 {fmt_pct(power_play['base_drawdown'])} · 上限 20%"
+            ),
+        }
+
+    pattern_a_items = [contraction_item]
+    pattern_b_items = [burst_item, base_item]
+
+    def group(key: str, title: str, subtitle: str, items: list[dict[str, Any]], observational: bool = False) -> dict[str, Any]:
+        states = [entry["passed"] for entry in items]
+        passed = None if any(state is None for state in states) else all(state is True for state in states)
+        return {
+            "key": key,
+            "title": title,
+            "subtitle": subtitle,
+            "passed": passed,
+            "observational": observational,
+            "items": items,
+        }
+
+    return [
+        group(
+            "market_context",
+            "市场与抗跌背景",
+            f"{BUY_LOOKBACK_WINDOWS[lookback_days]}窗口，仅作背景观察",
+            context_items,
+            observational=True,
+        ),
+        group(
+            "common_volume",
+            "共同前提 · 当前缩量",
+            "",
+            [volume_item],
+        ),
+        group(
+            "pattern_a",
+            "形态 A · 标准波动率收缩",
+            "近期平台收紧",
+            pattern_a_items,
+        ),
+        group(
+            "pattern_b",
+            "形态 B · Power Play",
+            "强势爆发 AND 紧凑整理",
+            pattern_b_items,
+        ),
+    ]
+
+
+def flatten_buy_indicator_groups(groups: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    flattened = []
+    seen = set()
+    for group in groups:
+        for item in group["items"]:
+            if item["name"] in seen:
+                continue
+            seen.add(item["name"])
+            flattened.append(item)
+    return flattened
+
+
 def evaluate_volume_price_health(context: AnalysisContext) -> tuple[bool | None, str]:
     if len(context.stock) < 60:
         return None, "量价健康度至少需要约 60 个交易日数据"
@@ -1419,11 +1756,17 @@ def build_technical_summary(data: dict[str, Any]) -> str:
     if range_position is not None:
         summary_lines.append(f"- 近 20 日区间位置：约处在区间的 {range_position * 100:.0f}% 位置")
     summary_lines.append(f"- 近 20 日疑似吸筹日 {accumulation_days} 天；疑似派发日 {distribution_days} 天（定义：涨/跌且成交量高于前一日）")
-    volume_price_health = find_check_detail(data.get("advancedTrendChecks", []), "30个交易日内放量上涨日明显多于放量下跌日")
+    volume_price_health = find_check_detail(
+        data.get("tempAdvancedTrendChecks", []),
+        "30个交易日内放量上涨日明显多于放量下跌日",
+    )
     if volume_price_health:
         status, detail = volume_price_health
         summary_lines.append(f"- 量价健康度：{status}；{detail}")
-    pivot_dry_up = find_check_detail(data.get("advancedTrendChecks", []), "收缩末端成交量极度萎缩")
+    pivot_dry_up = find_check_detail(
+        data.get("tempAdvancedTrendChecks", []),
+        "收缩末端成交量极度萎缩",
+    )
     if pivot_dry_up:
         status, detail = pivot_dry_up
         summary_lines.append(f"- 枢轴缩量线索：{status}；{detail}")
@@ -1444,9 +1787,9 @@ def build_technical_summary(data: dict[str, Any]) -> str:
         for _, row in key_days.iterrows():
             summary_lines.append(f"- {build_raw_session_line(row, row.get('PrevClose'), row.get('VolumeMA50Calc'))}")
 
-    summary_lines.append("### 扩展观察")
+    summary_lines.append("### 买入指标观察（默认近 3 个月回撤窗口）")
     summary_lines.extend(build_check_summary_lines(data.get("advancedTrendChecks", [])))
-    summary_lines.append("### 形态 / 风控检查")
+    summary_lines.append("### 卖出指标观察")
     summary_lines.extend(build_check_summary_lines(data.get("patternRiskChecks", [])))
     return "\n".join(summary_lines)
 
@@ -1567,7 +1910,12 @@ def analyze_symbol(
         rs_detail=rs_detail,
     )
     trend_checks = build_checks(BASE_TREND_SPECS, analysis_context)
-    advanced_trend_checks = build_checks(ADVANCED_TREND_SPECS, analysis_context)
+    temp_advanced_trend_checks = build_checks(ADVANCED_TREND_SPECS, analysis_context)
+    buy_indicator_groups_by_window = {
+        str(days): build_buy_indicator_groups(analysis_context, days)
+        for days in BUY_LOOKBACK_WINDOWS
+    }
+    advanced_trend_checks = flatten_buy_indicator_groups(buy_indicator_groups_by_window["63"])
     pattern_risk_checks = build_checks(PATTERN_RISK_SPECS, analysis_context)
     latest = analysis_context.latest
     prev_close = history["Close"].iloc[-2] if len(history) >= 2 else np.nan
@@ -1588,7 +1936,12 @@ def analyze_symbol(
     is_six_month_high = bool(require_values(latest["Close"], six_month_high) and latest["Close"] >= six_month_high)
     is_six_month_low = bool(require_values(latest["Close"], six_month_low) and latest["Close"] <= six_month_low)
     trend_pass_count, trend_total, trend_status = summarize_check_group(trend_checks)
-    advanced_trend_pass_count, advanced_trend_total, advanced_trend_status = summarize_check_group(advanced_trend_checks)
+    advanced_trend_pass_count, advanced_trend_total, advanced_trend_status = summarize_check_group(
+        [
+            CheckResult(item["name"], item["passed"], item["detail"])
+            for item in advanced_trend_checks
+        ]
+    )
     latest_volume_ma50 = history["Volume"].rolling(50).mean().iloc[-1]
     latest_volume_below_ma50 = bool(
         require_values(latest["Volume"], latest_volume_ma50)
@@ -1639,7 +1992,10 @@ def analyze_symbol(
             if note
         ],
         "trendChecks": serialize_checks(trend_checks),
-        "advancedTrendChecks": serialize_checks(advanced_trend_checks),
+        "advancedTrendChecks": advanced_trend_checks,
+        "buyIndicatorGroupsByWindow": buy_indicator_groups_by_window,
+        "buyIndicatorWindow": 63,
+        "tempAdvancedTrendChecks": serialize_checks(temp_advanced_trend_checks),
         "patternRiskChecks": serialize_checks(pattern_risk_checks),
         "history": serialize_history(history),
         "benchmarkSymbol": DEFAULT_BENCHMARK,

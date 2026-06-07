@@ -1465,9 +1465,137 @@ button:disabled {
   gap: 14px;
 }
 
+.indicator-window-toggle {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid rgba(83, 129, 158, 0.2);
+  border-radius: 7px;
+}
+
+.indicator-window-toggle button {
+  min-width: 42px;
+  padding: 6px 9px;
+  border-radius: 0;
+  border-right: 1px solid rgba(83, 129, 158, 0.16);
+  background: transparent;
+  color: var(--muted);
+  box-shadow: none;
+  font-size: 0.76rem;
+}
+
+.indicator-window-toggle button:last-child {
+  border-right: 0;
+}
+
+.indicator-window-toggle button.active {
+  background: rgba(14, 116, 144, 0.12);
+  color: var(--accent);
+}
+
+.temp-check-panel {
+  margin-top: 14px;
+}
+
+.temp-check-panel summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.temp-check-panel[open] summary {
+  margin-bottom: 14px;
+}
+
 .check-list {
   display: grid;
   gap: 12px;
+}
+
+.buy-indicator-group > header,
+.buy-indicator-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.buy-indicator-group > header > span {
+  display: grid;
+  gap: 2px;
+}
+
+.buy-indicator-group small {
+  color: var(--muted);
+  font-size: 0.73rem;
+  font-weight: 500;
+}
+
+.buy-indicator-group {
+  overflow: hidden;
+  border: 1px solid rgba(83, 129, 158, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.buy-indicator-group > header {
+  padding: 11px 12px;
+  background: rgba(15, 23, 42, 0.035);
+}
+
+.buy-indicator-group.observational > header {
+  background: rgba(93, 113, 134, 0.07);
+}
+
+.buy-indicator-group.common-condition {
+  border-color: rgba(180, 83, 9, 0.24);
+}
+
+.buy-indicator-group.common-condition > header {
+  background: rgba(180, 83, 9, 0.08);
+}
+
+.buy-indicator-items {
+  display: grid;
+}
+
+.buy-indicator-item {
+  align-items: flex-start;
+  padding: 10px 12px;
+  border-top: 1px solid rgba(83, 129, 158, 0.1);
+}
+
+.buy-indicator-item > div {
+  min-width: 0;
+}
+
+.buy-indicator-item strong {
+  font-size: 0.84rem;
+}
+
+.buy-indicator-item-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.buy-indicator-item-title .check-rule-button {
+  width: 20px;
+  height: 20px;
+  font-size: 0.7rem;
+}
+
+.buy-indicator-item p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  white-space: pre-line;
+}
+
+.buy-indicator-item .check-state,
+.buy-indicator-group > header .check-state {
+  margin-left: 0;
 }
 
 .check-item {
@@ -1527,11 +1655,20 @@ button:disabled {
 }
 
 .check-state {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 28px;
   margin-left: auto;
-  font-size: 0.8rem;
-  padding: 4px 8px;
-  border-radius: 999px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
   background: rgba(12, 34, 56, 0.08);
+  font-family: Arial, sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .check-state.pass {
@@ -1547,6 +1684,7 @@ button:disabled {
 .check-state.fail {
   background: rgba(180, 35, 24, 0.14);
   color: var(--danger);
+  font-size: 0.9rem;
 }
 
 .check-state.subdued {

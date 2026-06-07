@@ -11,6 +11,15 @@ const DEFAULT_VISIBLE_BARS = 126;
 const WATCHLIST_COLUMN_MIN_WIDTH = 280;
 const WATCHLIST_COLUMN_GAP = 10;
 const SUBDUED_CHECK_NAMES = new Set(["近期波动明显收窄", "收缩末端成交量极度萎缩"]);
+const BUY_CHECK_RULES = {
+  "相对回撤": "在所选窗口内，个股与 SPY 分别按收盘价独立计算最大峰谷回撤；个股不得超过 SPY 最大回撤的 2.5 倍。",
+  "绝对回撤": "在所选窗口内，按收盘价计算个股最大峰谷回撤，要求小于 35%。",
+  "Leaders Bottom First": "定位 SPY 最大回撤段，个股需更早见低，并在 SPY 见低前不再跌破该低点。",
+  "当前成交量低于 50 日均量": "最新交易日成交量低于包含该交易日在内的 50 日平均成交量。",
+  "近 10 日收盘区间小于 10%": "最近 10 个交易日按最高收盘价和最低收盘价计算：1 - 最低收盘 / 最高收盘。",
+  "8 周涨幅达到 100%": "整理开始前约 8 周内，最低价到之后最高价的最大上涨幅度达到 100%。",
+  "3-6 周收盘区间不超过 20%": "依次检查最近 15 至 30 个交易日，按最高收盘价和最低收盘价计算整理区间。",
+};
 const ADVANCED_CHECK_RULES = {
   "回撤小于大盘或形成更高低点": "近63个交易日先定位 SPY 最大回撤段，再比较个股同时间窗内的最大回撤；若个股近期低点抬高，也视为加分项。",
   "30个交易日内放量上涨日明显多于放量下跌日": "近30日仅统计成交量高于 1.05 倍 50 日均量的交易日；强度 = abs(日涨跌幅) * (Volume / VolumeMA50)。",
@@ -41,6 +50,7 @@ const state = {
   filterTrendTemplateOnly: false,
   filterHoldingOnly: false,
   filterVolumeBelowMA50Only: false,
+  buyIndicatorWindow: 63,
   activeNoteSymbol: null,
   draggingGroupId: null,
   draggingSymbol: "",
@@ -108,6 +118,8 @@ const elements = {
   trendChecks: document.getElementById("trendChecks"),
   advancedTrendChecks: document.getElementById("advancedTrendChecks"),
   patternRiskChecks: document.getElementById("patternRiskChecks"),
+  tempAdvancedTrendChecks: document.getElementById("tempAdvancedTrendChecks"),
+  buyIndicatorWindow: document.getElementById("buyIndicatorWindow"),
   chartStatusNote: document.getElementById("chartStatusNote"),
   priceChartContainer: document.getElementById("priceChartContainer"),
   volumeChartContainer: document.getElementById("volumeChartContainer"),
@@ -155,7 +167,11 @@ init().catch((error) => {
 
 async function init() {
   bindEvents();
-  const config = await fetchJson("/api/config");
+  const [config, tradesPayload] = await Promise.all([
+    fetchJson("/api/config"),
+    fetchJson("/api/trades"),
+  ]);
+  state.allTradeReviews = tradesPayload.reviews || [];
   loadChartPrefs();
   state.notes = loadStoredNotes();
   state.alerts = loadStoredAlerts();
@@ -376,6 +392,15 @@ function bindEvents() {
     persistChartPrefs();
     applyMaVisibility();
     updateHoverCard(state.currentChartData.at(-1), null, true);
+  });
+
+  elements.buyIndicatorWindow.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-buy-window]");
+    if (!(button instanceof HTMLButtonElement)) {
+      return;
+    }
+    state.buyIndicatorWindow = Number(button.dataset.buyWindow) || 63;
+    renderBuyIndicatorChecks();
   });
 
   window.addEventListener("resize", () => {
@@ -608,17 +633,81 @@ function renderSelectedDetail() {
   renderChartHeadlineStats(detail);
   renderChartStatus(detail);
   renderChecks(elements.trendChecks, detail.trendChecks);
-  renderChecks(elements.advancedTrendChecks, detail.advancedTrendChecks, {
+  renderBuyIndicatorChecks();
+  renderChecks(elements.patternRiskChecks, detail.patternRiskChecks, {
+    ruleTooltips: PATTERN_RISK_RULES,
+  });
+  renderChecks(elements.tempAdvancedTrendChecks, detail.tempAdvancedTrendChecks, {
     trimPrefix: true,
     ruleTooltips: ADVANCED_CHECK_RULES,
     subduedNames: SUBDUED_CHECK_NAMES,
   });
-  renderChecks(elements.patternRiskChecks, detail.patternRiskChecks, {
-    ruleTooltips: PATTERN_RISK_RULES,
-  });
   logDetailMessages(detail);
   renderMainChart(detail);
   syncMaToggleInputs();
+}
+
+function renderBuyIndicatorChecks() {
+  const detail = state.details.get(state.selectedSymbol);
+  if (!detail) {
+    elements.advancedTrendChecks.innerHTML = "";
+    return;
+  }
+  const windowKey = String(state.buyIndicatorWindow);
+  const groups = detail.buyIndicatorGroupsByWindow?.[windowKey] || [];
+  for (const button of elements.buyIndicatorWindow.querySelectorAll("[data-buy-window]")) {
+    button.classList.toggle(
+      "active",
+      Number(button.dataset.buyWindow) === state.buyIndicatorWindow,
+    );
+  }
+  renderBuyIndicatorGroups(groups);
+}
+
+function renderBuyIndicatorGroups(groups) {
+  elements.advancedTrendChecks.innerHTML = groups.map(renderBuyIndicatorGroup).join("");
+}
+
+function renderBuyIndicatorGroup(group) {
+  return `
+    <section class="buy-indicator-group${group.observational ? " observational" : ""}${group.key === "common_volume" ? " common-condition" : ""}">
+      <header>
+        <span>
+          <strong>${escapeHtml(group.title)}</strong>
+          ${group.subtitle ? `<small>${escapeHtml(group.subtitle)}</small>` : ""}
+        </span>
+        ${group.observational ? "" : renderCompactCheckState(group.passed)}
+      </header>
+      <div class="buy-indicator-items">
+        ${(group.items || []).map((item) => `
+          <div class="buy-indicator-item">
+            <div>
+              <div class="buy-indicator-item-title">
+                <strong>${escapeHtml(item.name)}</strong>
+                ${BUY_CHECK_RULES[item.name] ? `
+                  <button
+                    type="button"
+                    class="check-rule-button"
+                    title="${escapeHtml(BUY_CHECK_RULES[item.name])}"
+                    aria-label="${escapeHtml(item.name)}计算规则"
+                  >i</button>
+                ` : ""}
+              </div>
+              <p>${escapeHtml(item.detail || "")}</p>
+            </div>
+            ${renderCompactCheckState(item.passed)}
+          </div>
+        `).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderCompactCheckState(passed) {
+  const label = passed === true ? "通过" : passed === false ? "未通过" : "待确认";
+  const icon = passed === true ? "✓" : passed === false ? "✕" : "?";
+  const stateClass = passed === true ? "pass" : passed === false ? "fail" : "pending";
+  return `<span class="check-state ${stateClass}" title="${label}" aria-label="${label}">${icon}</span>`;
 }
 
 function normalizeWatchlistGroups(groups) {
@@ -1266,6 +1355,7 @@ function renderChecks(container, checks, options = {}) {
     const node = document.createElement("article");
     node.className = "check-item";
     const stateLabel = item.passed === true ? "通过" : item.passed === false ? "未通过" : "待确认";
+    const stateIcon = item.passed === true ? "✓" : item.passed === false ? "✕" : "?";
     const stateClass = item.passed === true ? "pass" : item.passed === false ? "fail" : "pending";
     const displayName = options.trimPrefix ? stripCheckNamePrefix(item.name) : item.name;
     const isSubdued = options.subduedNames?.has(displayName);
@@ -1295,7 +1385,9 @@ function renderChecks(container, checks, options = {}) {
     if (isSubdued) {
       state.classList.add("subdued");
     }
-    state.textContent = stateLabel;
+    state.textContent = stateIcon;
+    state.title = stateLabel;
+    state.setAttribute("aria-label", stateLabel);
     header.appendChild(state);
 
     const detail = document.createElement("p");
@@ -2066,6 +2158,7 @@ function clearDetail() {
   elements.trendChecks.innerHTML = "";
   elements.advancedTrendChecks.innerHTML = "";
   elements.patternRiskChecks.innerHTML = "";
+  elements.tempAdvancedTrendChecks.innerHTML = "";
   hideHoverCard();
   destroyCharts();
 }
@@ -3003,7 +3096,11 @@ function filterWatchlistSymbols(symbols) {
     if (state.filterTrendTemplateOnly && !isTrendTemplateMatch(data)) {
       return false;
     }
-    if (state.filterHoldingOnly && !getHoldingForSymbol(symbol)) {
+    if (
+      state.filterHoldingOnly
+      && !getHoldingForSymbol(symbol)
+      && !hasTradeReviewForSymbol(symbol)
+    ) {
       return false;
     }
     if (state.filterVolumeBelowMA50Only && !data?.latestVolumeBelowMA50) {
@@ -3011,6 +3108,13 @@ function filterWatchlistSymbols(symbols) {
     }
     return true;
   });
+}
+
+function hasTradeReviewForSymbol(symbol) {
+  const normalizedSymbol = normalizeSymbol(symbol);
+  return state.allTradeReviews.some(
+    (review) => normalizeSymbol(review?.symbol) === normalizedSymbol,
+  );
 }
 
 function isTrendTemplateMatch(data) {
@@ -3063,13 +3167,13 @@ function getWatchlistEmptyMessage() {
     return "当前没有满足全部筛选条件的股票；成交量条件按前一交易日与50日均量比较。";
   }
   if (state.filterTrendTemplateOnly && state.filterHoldingOnly) {
-    return "当前没有同时满足趋势模板且标记为持仓的股票。";
+    return "当前没有同时满足趋势模板且属于当前或曾经持仓的股票。";
   }
   if (state.filterTrendTemplateOnly) {
     return "当前没有满足 8 个趋势模板条件的股票。";
   }
   if (state.filterHoldingOnly) {
-    return "当前没有标记为持仓的股票。";
+    return "当前没有标记为持仓或出现在交易复盘中的股票。";
   }
   return "当前没有自选股，请先添加股票。";
 }

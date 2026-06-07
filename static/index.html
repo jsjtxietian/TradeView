@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trend Deck</title>
-  <link rel="stylesheet" href="/static/styles.css?v=20260606-07" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260607-10" />
 </head>
 <body>
   <div class="page-shell">
@@ -46,8 +46,8 @@
               </label>
               <label class="watchlist-filter-option">
                 <span>
-                  <strong>我的持仓</strong>
-                  <small>仅显示已在笔记中标记为持仓的股票</small>
+                  <strong>我的持仓与曾经持仓</strong>
+                  <small>显示当前持仓或交易复盘中出现过的股票</small>
                 </span>
                 <input id="holdingFilterInput" type="checkbox" />
                 <i aria-hidden="true"></i>
@@ -147,7 +147,12 @@
         <section class="panel">
           <div class="panel-header">
             <div>
-              <h3>趋势扩展检查</h3>
+              <h3>买入指标观察</h3>
+            </div>
+            <div id="buyIndicatorWindow" class="indicator-window-toggle" aria-label="回撤观察窗口">
+              <button type="button" data-buy-window="21">1月</button>
+              <button type="button" data-buy-window="63" class="active">3月</button>
+              <button type="button" data-buy-window="126">6月</button>
             </div>
           </div>
           <div id="advancedTrendChecks" class="check-list"></div>
@@ -155,12 +160,16 @@
         <section class="panel">
           <div class="panel-header">
             <div>
-              <h3>形态 / 风控检查</h3>
+              <h3>卖出指标观察</h3>
             </div>
           </div>
           <div id="patternRiskChecks" class="check-list"></div>
         </section>
       </div>
+      <details class="panel temp-check-panel">
+        <summary>Temp · 旧扩展指标</summary>
+        <div id="tempAdvancedTrendChecks" class="check-list"></div>
+      </details>
     </section>
   </div>
 
@@ -323,6 +332,6 @@
   <div id="toast" class="toast" hidden></div>
 
   <script src="https://unpkg.com/lightweight-charts@5.0.0/dist/lightweight-charts.standalone.production.js"></script>
-  <script src="/static/app.js?v=20260606-09" type="module"></script>
+  <script src="/static/app.js?v=20260607-10" type="module"></script>
 </body>
 </html>
