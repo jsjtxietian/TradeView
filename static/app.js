@@ -10,6 +10,7 @@ const ALERTS_SNAPSHOT_STORAGE_KEY = "trenddeck_watchlist_alerts_snapshot";
 const DEFAULT_VISIBLE_BARS = 126;
 const WATCHLIST_COLUMN_MIN_WIDTH = 280;
 const WATCHLIST_COLUMN_GAP = 10;
+const CHART_PRICE_SCALE_MIN_WIDTH = 96;
 const SUBDUED_CHECK_NAMES = new Set(["近期波动明显收窄", "收缩末端成交量极度萎缩"]);
 const BUY_CHECK_RULES = {
   "个股最大回撤不超过 SPY 的 2.5 倍": "在所选窗口内，个股与 SPY 分别按收盘价独立计算最大峰谷回撤；个股不得超过 SPY 最大回撤的 2.5 倍。",
@@ -1764,6 +1765,7 @@ function createMainChart() {
     rightPriceScale: {
       borderColor: "rgba(15, 23, 42, 0.12)",
       scaleMargins: { top: 0.12, bottom: 0.12 },
+      minimumWidth: CHART_PRICE_SCALE_MIN_WIDTH,
     },
     timeScale: {
       visible: false,
@@ -1812,6 +1814,7 @@ function createMainChart() {
     },
     rightPriceScale: {
       borderColor: "rgba(15, 23, 42, 0.12)",
+      minimumWidth: CHART_PRICE_SCALE_MIN_WIDTH,
     },
     timeScale: {
       visible: false,
@@ -1924,6 +1927,7 @@ function createMainChart() {
     rightPriceScale: {
       borderColor: "rgba(15, 23, 42, 0.12)",
       scaleMargins: { top: 0.16, bottom: 0.06 },
+      minimumWidth: CHART_PRICE_SCALE_MIN_WIDTH,
     },
     timeScale: {
       borderColor: "rgba(15, 23, 42, 0.12)",
