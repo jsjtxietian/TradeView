@@ -1966,6 +1966,30 @@ def build_check_summary_lines(checks: list[dict[str, Any]]) -> list[str]:
     return lines
 
 
+def build_indicator_group_summary_lines(
+    groups: list[dict[str, Any]],
+    signal_semantics: bool = False,
+) -> list[str]:
+    lines: list[str] = []
+    for group in groups:
+        title = str(group.get("title", "")).strip()
+        subtitle = str(group.get("subtitle", "")).strip()
+        header = f"- **{title}**"
+        if subtitle:
+            header += f"：{subtitle}"
+        lines.append(header)
+        for item in group.get("items", []):
+            passed = item.get("passed")
+            if signal_semantics:
+                status = "未触发" if passed is True else "已触发" if passed is False else "待确认"
+            else:
+                status = "通过" if passed is True else "未通过" if passed is False else "待确认"
+            name = strip_check_name_prefix(item.get("name", ""))
+            detail = str(item.get("detail", "")).strip().replace("\n", "；")
+            lines.append(f"  - {name}：{status}；{detail}")
+    return lines
+
+
 def find_check_detail(checks: list[dict[str, Any]], target_name: str) -> tuple[str, str] | None:
     for item in checks:
         name = strip_check_name_prefix(item.get("name", ""))
@@ -2195,9 +2219,20 @@ def build_technical_summary(data: dict[str, Any]) -> str:
             summary_lines.append(f"- {build_raw_session_line(row, row.get('PrevClose'), row.get('VolumeMA50Calc'))}")
 
     summary_lines.append("### 买入指标观察（默认近 3 个月回撤窗口）")
-    summary_lines.extend(build_check_summary_lines(data.get("advancedTrendChecks", [])))
-    summary_lines.append("### 卖出指标观察")
-    summary_lines.extend(build_check_summary_lines(data.get("patternRiskChecks", [])))
+    buy_groups = data.get("buyIndicatorGroupsByWindow", {}).get("63", [])
+    if buy_groups:
+        summary_lines.extend(build_indicator_group_summary_lines(buy_groups))
+    else:
+        summary_lines.extend(build_check_summary_lines(data.get("advancedTrendChecks", [])))
+
+    summary_lines.append("### 卖出指标观察（默认近 10 个交易日信号窗口）")
+    sell_groups = data.get("sellIndicatorGroupsByWindow", {}).get("10", [])
+    if sell_groups:
+        summary_lines.extend(
+            build_indicator_group_summary_lines(sell_groups, signal_semantics=True)
+        )
+    else:
+        summary_lines.extend(build_check_summary_lines(data.get("patternRiskChecks", [])))
     return "\n".join(summary_lines)
 
 

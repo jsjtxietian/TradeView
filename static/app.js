@@ -442,7 +442,9 @@ async function refreshSummaries(forceRefresh = false) {
     return;
   }
 
-  setRefreshLoading(true);
+  if (forceRefresh) {
+    setRefreshLoading(true);
+  }
   try {
     const query = encodeURIComponent(state.watchlist.join(","));
     const payload = await fetchJson(`/api/watchlist/summary?symbols=${query}&refresh=${forceRefresh ? "1" : "0"}`);
@@ -473,7 +475,9 @@ async function refreshSummaries(forceRefresh = false) {
   } catch (error) {
     showMessage(error.message || String(error), true);
   } finally {
-    setRefreshLoading(false);
+    if (forceRefresh) {
+      setRefreshLoading(false);
+    }
   }
 }
 
