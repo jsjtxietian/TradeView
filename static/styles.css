@@ -1687,6 +1687,23 @@ button:disabled {
   font-size: 0.9rem;
 }
 
+.check-state.warning {
+  background: rgba(217, 119, 6, 0.16);
+  color: #b45309;
+  font-size: 0.9rem;
+}
+
+.check-state.signal-triggered {
+  background: rgba(180, 35, 24, 0.14);
+  color: var(--danger);
+}
+
+.check-state.signal-idle {
+  background: rgba(93, 113, 134, 0.09);
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
 .check-state.subdued {
   background: rgba(93, 113, 134, 0.12);
   color: var(--muted);

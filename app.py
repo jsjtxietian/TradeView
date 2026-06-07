@@ -930,8 +930,8 @@ def build_buy_indicator_groups(
         return {"name": name, "passed": result[0], "detail": result[1]}
 
     context_items = [
-        item("相对回撤", evaluate_relative_max_drawdown(context, lookback_days)),
-        item("绝对回撤", evaluate_absolute_max_drawdown(context, lookback_days)),
+        item("个股最大回撤不超过 SPY 的 2.5 倍", evaluate_relative_max_drawdown(context, lookback_days)),
+        item("个股最大回撤小于 35%", evaluate_absolute_max_drawdown(context, lookback_days)),
         item("Leaders Bottom First", evaluate_leaders_bottom_first(context, lookback_days)),
     ]
     volume_item = item("当前成交量低于 50 日均量", evaluate_current_volume_below_ma50(context))
@@ -980,19 +980,19 @@ def build_buy_indicator_groups(
         ),
         group(
             "common_volume",
-            "共同前提 · 当前缩量",
+            "当前缩量",
             "",
             [volume_item],
         ),
         group(
             "pattern_a",
-            "形态 A · 标准波动率收缩",
+            "标准波动率收缩",
             "近期平台收紧",
             pattern_a_items,
         ),
         group(
             "pattern_b",
-            "形态 B · Power Play",
+            "Power Play",
             "强势爆发 AND 紧凑整理",
             pattern_b_items,
         ),
@@ -1450,6 +1450,413 @@ def evaluate_no_climax_run(context: AnalysisContext) -> tuple[bool | None, str]:
         f"\n近 {best_window['window']} 日累计涨幅 {fmt_signed_pct(best_window['move'])}"
     )
     return (not danger), detail
+
+
+SELL_LOOKBACK_WINDOWS = {
+    5: "近 5 日",
+    10: "近 10 日",
+    20: "近 20 日",
+}
+
+
+def find_recent_climax_advance(
+    context: AnalysisContext,
+) -> tuple[bool | None, str]:
+    if len(context.stock) < 16:
+        return None, "高潮涨幅至少需要 16 个交易日数据"
+
+    frame = context.stock.tail(16).reset_index(drop=True)
+    best: dict[str, Any] | None = None
+    end_index = len(frame) - 1
+    for window in range(5, 16):
+        start_index = end_index - window
+        start_close = frame["Close"].iloc[start_index]
+        end_close = frame["Close"].iloc[end_index]
+        if not require_values(start_close, end_close) or start_close == 0:
+            continue
+        move = float(end_close / start_close - 1)
+        candidate = {
+            "window": window,
+            "move": move,
+            "start": frame["Date"].iloc[start_index],
+            "end": frame["Date"].iloc[end_index],
+        }
+        if best is None or candidate["move"] > best["move"]:
+            best = candidate
+
+    if best is None:
+        return None, "近期高潮涨幅数据不足"
+
+    danger = bool(best["move"] >= 0.25)
+    return (
+        not danger,
+        f"截至最新日最佳 {best['window']} 日涨幅 {fmt_signed_pct(best['move'])}"
+        f" · 警戒线 25%"
+        f"\n{fmt_short_date(best['start'])} 至 {fmt_short_date(best['end'])}",
+    )
+
+
+def find_accelerated_up_day_density(
+    context: AnalysisContext,
+) -> tuple[bool | None, str]:
+    if len(context.stock) < 16:
+        return None, "上涨日密度至少需要 16 个交易日数据"
+
+    frame = context.stock.tail(16).copy().reset_index(drop=True)
+    frame["UpDay"] = frame["Close"].diff() > 0
+    best: dict[str, Any] | None = None
+    end_index = len(frame) - 1
+    for window in range(7, 16):
+        start_index = end_index - window
+        comparisons = frame["UpDay"].iloc[start_index + 1 : end_index + 1]
+        up_days = int(comparisons.sum())
+        down_days = int(window - up_days)
+        up_ratio = float(up_days / window)
+        start_close = frame["Close"].iloc[start_index]
+        end_close = frame["Close"].iloc[end_index]
+        move = (
+            float(end_close / start_close - 1)
+            if require_values(start_close, end_close) and start_close
+            else np.nan
+        )
+        candidate = {
+            "window": window,
+            "up_days": up_days,
+            "down_days": down_days,
+            "up_ratio": up_ratio,
+            "move": move,
+            "end": frame["Date"].iloc[end_index],
+        }
+        candidate_rank = (
+            candidate["up_ratio"],
+            candidate["move"] if pd.notna(candidate["move"]) else -np.inf,
+        )
+        best_rank = (
+            best["up_ratio"],
+            best["move"] if best is not None and pd.notna(best["move"]) else -np.inf,
+        ) if best is not None else None
+        if best is None or candidate_rank > best_rank:
+            best = candidate
+
+    if best is None or not require_values(best["move"]):
+        return None, "上涨日密度数据不足"
+
+    danger = bool(best["up_ratio"] >= 0.70 and best["move"] >= 0.10)
+    return (
+        not danger,
+        f"最佳 {best['window']} 日：上涨 {best['up_days']} 天 / 下跌 {best['down_days']} 天"
+        f" · 上涨日占比 {best['up_ratio']:.0%}"
+        f"\n截至 {fmt_short_date(best['end'])} · 同期涨幅 "
+        f"{fmt_signed_pct(best['move'])} · 警戒线 70% 且涨幅至少 10%",
+    )
+
+
+def approximate_stage_two_advance(stock: pd.DataFrame) -> dict[str, Any] | None:
+    frame = stock.tail(252).copy().reset_index(drop=True)
+    if len(frame) < 30:
+        return None
+
+    search_end = max(1, len(frame) - 5)
+    candidates: list[dict[str, Any]] = []
+    for index in range(10, search_end):
+        left = frame["Close"].iloc[max(0, index - 10) : index + 1]
+        if frame["Close"].iloc[index] != left.min():
+            continue
+        subsequent_high = frame["Close"].iloc[index + 1 :].max()
+        start_close = frame["Close"].iloc[index]
+        if not require_values(start_close, subsequent_high) or start_close == 0:
+            continue
+        advance = float(subsequent_high / start_close - 1)
+        if advance >= 0.30:
+            candidates.append({"index": index, "advance": advance, "fallback": False})
+
+    if candidates:
+        selected = max(candidates, key=lambda candidate: candidate["index"])
+    else:
+        fallback_frame = frame.tail(min(126, len(frame)))
+        selected = {
+            "index": int(fallback_frame["Close"].idxmin()),
+            "advance": np.nan,
+            "fallback": True,
+        }
+
+    move = frame.iloc[selected["index"] :].copy().reset_index(drop=True)
+    if len(move) < 6:
+        return None
+    start_close = move["Close"].iloc[0]
+    peak_close = move["Close"].max()
+    advance = (
+        float(peak_close / start_close - 1)
+        if require_values(start_close, peak_close) and start_close
+        else np.nan
+    )
+    return {
+        "frame": move,
+        "start_date": move["Date"].iloc[0],
+        "advance": advance,
+        "fallback": selected["fallback"],
+    }
+
+
+def find_long_move_exhaustion_signs(
+    context: AnalysisContext,
+    signal_days: int,
+) -> list[dict[str, Any]]:
+    def item(name: str, safe: bool | None, detail: str) -> dict[str, Any]:
+        return {"name": name, "passed": safe, "detail": detail}
+
+    names = [
+        "长升段最大上涨日出现在观察期",
+        "长升段最宽振幅日出现在观察期",
+        "观察期内出现衰竭缺口",
+    ]
+    if len(context.stock) < 30:
+        detail = "长升段末端观察至少需要 30 个交易日数据"
+        return [item(name, None, detail) for name in names]
+
+    stage = approximate_stage_two_advance(context.stock)
+    if stage is None:
+        detail = "近期低点之后的长升段样本不足"
+        return [item(name, None, detail) for name in names]
+    move = stage["frame"].copy()
+
+    move["PrevClose"] = move["Close"].shift(1)
+    move["PrevHigh"] = move["High"].shift(1)
+    move["DayReturn"] = move["Close"] / move["PrevClose"] - 1
+    move["DailySpread"] = (move["High"] - move["Low"]) / move["PrevClose"]
+    move["GapUp"] = move["Open"] / move["PrevHigh"] - 1
+    recent_start = max(0, len(move) - signal_days)
+
+    largest_up_index = int(move["DayReturn"].idxmax()) if move["DayReturn"].notna().any() else -1
+    widest_spread_index = int(move["DailySpread"].idxmax()) if move["DailySpread"].notna().any() else -1
+    largest_up_recent = largest_up_index >= recent_start
+    widest_spread_recent = widest_spread_index >= recent_start
+
+    largest_up_detail = "长升段上涨日数据不足"
+    if largest_up_index >= 0:
+        row = move.iloc[largest_up_index]
+        largest_up_detail = (
+            f"最大上涨日 {fmt_short_date(row['Date'])} · {fmt_signed_pct(row['DayReturn'])}"
+        )
+
+    widest_spread_detail = "长升段振幅数据不足"
+    if widest_spread_index >= 0:
+        row = move.iloc[widest_spread_index]
+        widest_spread_detail = (
+            f"最宽振幅日 {fmt_short_date(row['Date'])} · {fmt_pct(row['DailySpread'])}"
+        )
+
+    recent = move.tail(signal_days)
+    exhaustion_gaps = recent[recent["GapUp"] >= 0.02]
+    gap_danger = not exhaustion_gaps.empty
+    if gap_danger:
+        gap_row = exhaustion_gaps.sort_values("GapUp", ascending=False).iloc[0]
+        gap_detail = (
+            f"{SELL_LOOKBACK_WINDOWS[signal_days]}最大向上缺口 {fmt_short_date(gap_row['Date'])}"
+            f" · {fmt_pct(gap_row['GapUp'])}"
+            f"\n开盘价相对前一日最高价 · 警戒线 2%"
+        )
+    else:
+        max_gap = recent["GapUp"].replace([np.inf, -np.inf], np.nan).max()
+        gap_detail = (
+            f"{SELL_LOOKBACK_WINDOWS[signal_days]}最大向上缺口 "
+            f"{fmt_pct(max_gap)} · 警戒线 2%"
+        )
+
+    return [
+        item(names[0], not largest_up_recent, largest_up_detail),
+        item(names[1], not widest_spread_recent, widest_spread_detail),
+        item(names[2], not gap_danger, gap_detail),
+    ]
+
+
+def find_weakness_signals(
+    context: AnalysisContext,
+    signal_days: int,
+) -> list[dict[str, Any]]:
+    def item(
+        name: str,
+        safe: bool | None,
+        detail: str,
+        severity: str | None = None,
+    ) -> dict[str, Any]:
+        return {
+            "name": name,
+            "passed": safe,
+            "detail": detail,
+            "severity": severity if safe is False else None,
+        }
+
+    stage = approximate_stage_two_advance(context.stock)
+    names = [
+        "出现本轮最大单日 / 单周跌幅",
+        "下跌日出现阶段高额成交量",
+    ]
+    if stage is None:
+        return [item(name, None, "Stage 2 近似区间样本不足") for name in names]
+
+    frame = stage["frame"].copy()
+    frame["PrevClose"] = frame["Close"].shift(1)
+    frame["DayReturn"] = frame["Close"] / frame["PrevClose"] - 1
+    frame["WeekReturn"] = frame["Close"] / frame["Close"].shift(5) - 1
+    frame["PriorWorstDay"] = frame["DayReturn"].shift(1).cummin()
+    frame["PriorWorstWeek"] = frame["WeekReturn"].shift(1).cummin()
+    frame["PriorMaxVolume"] = frame["Volume"].shift(1).cummax()
+    frame["PriorVolumeMA20"] = frame["Volume"].shift(1).rolling(20, min_periods=10).mean()
+    frame["PriorVolumeP90"] = (
+        frame["Volume"].shift(1).expanding(min_periods=10).quantile(0.90)
+    )
+    recent = frame.tail(signal_days).copy()
+    daily_hits = recent[
+        (recent["DayReturn"] < 0)
+        & recent["PriorWorstDay"].notna()
+        & (recent["DayReturn"] <= recent["PriorWorstDay"])
+    ]
+    daily_danger = not daily_hits.empty
+    daily_row = daily_hits.sort_values("DayReturn").iloc[0] if daily_danger else recent.loc[recent["DayReturn"].idxmin()]
+    prior_day = daily_row["PriorWorstDay"]
+    daily_detail = (
+        f"{fmt_short_date(daily_row['Date'])} 跌幅 {fmt_signed_pct(daily_row['DayReturn'])}"
+        f" · 此前最差 {fmt_signed_pct(prior_day)}"
+    )
+
+    weekly_hits = recent[
+        (recent["WeekReturn"] < 0)
+        & recent["PriorWorstWeek"].notna()
+        & (recent["WeekReturn"] <= recent["PriorWorstWeek"])
+    ]
+    weekly_danger = not weekly_hits.empty
+    weekly_row = weekly_hits.sort_values("WeekReturn").iloc[0] if weekly_danger else recent.loc[recent["WeekReturn"].idxmin()]
+    prior_week = weekly_row["PriorWorstWeek"]
+    weekly_detail = (
+        f"截至 {fmt_short_date(weekly_row['Date'])} 的 5 日跌幅 "
+        f"{fmt_signed_pct(weekly_row['WeekReturn'])} · 此前最差 {fmt_signed_pct(prior_week)}"
+    )
+
+    unusually_high_volume = (
+        recent["PriorVolumeMA20"].notna()
+        & (recent["Volume"] >= recent["PriorVolumeMA20"] * 1.5)
+    )
+    top_decile_volume = (
+        recent["PriorVolumeP90"].notna()
+        & (recent["Volume"] >= recent["PriorVolumeP90"])
+    )
+    volume_hits = recent[
+        (recent["DayReturn"] < 0)
+        & (unusually_high_volume | top_decile_volume)
+    ]
+    volume_danger = not volume_hits.empty
+    if volume_danger:
+        volume_row = volume_hits.sort_values("Volume", ascending=False).iloc[0]
+    else:
+        negative_recent = recent[recent["DayReturn"] < 0]
+        volume_row = (
+            negative_recent.sort_values("Volume", ascending=False).iloc[0]
+            if not negative_recent.empty
+            else recent.iloc[-1]
+        )
+    prior_max_volume = volume_row["PriorMaxVolume"]
+    volume_ma20_ratio = (
+        float(volume_row["Volume"] / volume_row["PriorVolumeMA20"])
+        if require_values(volume_row["Volume"], volume_row["PriorVolumeMA20"])
+        and volume_row["PriorVolumeMA20"]
+        else np.nan
+    )
+    volume_p90_ratio = (
+        float(volume_row["Volume"] / volume_row["PriorVolumeP90"])
+        if require_values(volume_row["Volume"], volume_row["PriorVolumeP90"])
+        and volume_row["PriorVolumeP90"]
+        else np.nan
+    )
+    is_stage_high = bool(
+        require_values(volume_row["Volume"], prior_max_volume)
+        and volume_row["Volume"] >= prior_max_volume
+    )
+    volume_detail = (
+        f"{fmt_short_date(volume_row['Date'])} 涨跌 {fmt_signed_pct(volume_row['DayReturn'])}"
+        f" · 成交量 {fmt_volume(volume_row['Volume'])}"
+    )
+    if volume_danger:
+        reasons = []
+        if require_values(volume_ma20_ratio) and volume_ma20_ratio >= 1.5:
+            reasons.append("高于 20 日均量 1.5 倍")
+        if require_values(volume_p90_ratio) and volume_p90_ratio >= 1:
+            reasons.append("进入阶段成交量前 10%")
+        volume_detail += f"\n{'、'.join(reasons)}"
+        if is_stage_high:
+            volume_detail += " · 创阶段最高量"
+
+    return [
+        item(
+            names[0],
+            not (daily_danger or weekly_danger),
+            f"单日：{daily_detail.splitlines()[0]}"
+            f"\n单周：{weekly_detail.splitlines()[0]}",
+            "critical",
+        ),
+        item(names[1], not volume_danger, volume_detail, "warning"),
+    ]
+
+
+def build_sell_indicator_groups(
+    context: AnalysisContext,
+    signal_days: int,
+) -> list[dict[str, Any]]:
+    def item(name: str, result: tuple[bool | None, str]) -> dict[str, Any]:
+        return {"name": name, "passed": result[0], "detail": result[1]}
+
+    def group(
+        key: str,
+        title: str,
+        subtitle: str,
+        items: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        states = [entry["passed"] for entry in items]
+        passed = None if any(state is None for state in states) else all(state is True for state in states)
+        return {
+            "key": key,
+            "title": title,
+            "subtitle": subtitle,
+            "passed": passed,
+            "attention": True,
+            "items": items,
+        }
+
+    strength_items = [
+        item(
+            "Climax Top：近 1-3 周上涨至少 25%",
+            find_recent_climax_advance(context),
+        ),
+        item(
+            "上涨日密度：出现高密度加速上涨",
+            find_accelerated_up_day_density(context),
+        ),
+        *find_long_move_exhaustion_signs(context, signal_days),
+    ]
+    stage = approximate_stage_two_advance(context.stock)
+    if stage is None:
+        stage_summary = "Stage 2 近似区间样本不足"
+    else:
+        stage_summary = (
+            f"Stage 2 近似起点 {fmt_short_date(stage['start_date'])}"
+            f" · 阶段最大涨幅 {fmt_signed_pct(stage['advance'])}"
+        )
+        if stage["fallback"]:
+            stage_summary += " · 起点回退为近半年最低收盘"
+    return [
+        group(
+            "selling_into_strength",
+            "Selling Into Strength",
+            stage_summary,
+            strength_items,
+        ),
+        group(
+            "selling_into_weakness",
+            "Selling Into Weakness",
+            "",
+            find_weakness_signals(context, signal_days),
+        ),
+    ]
 
 
 BASE_TREND_SPECS = [
@@ -1916,7 +2323,13 @@ def analyze_symbol(
         for days in BUY_LOOKBACK_WINDOWS
     }
     advanced_trend_checks = flatten_buy_indicator_groups(buy_indicator_groups_by_window["63"])
-    pattern_risk_checks = build_checks(PATTERN_RISK_SPECS, analysis_context)
+    sell_indicator_groups_by_window = {
+        str(days): build_sell_indicator_groups(analysis_context, days)
+        for days in SELL_LOOKBACK_WINDOWS
+    }
+    sell_indicator_groups = sell_indicator_groups_by_window["10"]
+    pattern_risk_checks = flatten_buy_indicator_groups(sell_indicator_groups)
+    temp_pattern_risk_checks = build_checks(PATTERN_RISK_SPECS, analysis_context)
     latest = analysis_context.latest
     prev_close = history["Close"].iloc[-2] if len(history) >= 2 else np.nan
     daily_change_pct = None
@@ -1995,8 +2408,13 @@ def analyze_symbol(
         "advancedTrendChecks": advanced_trend_checks,
         "buyIndicatorGroupsByWindow": buy_indicator_groups_by_window,
         "buyIndicatorWindow": 63,
-        "tempAdvancedTrendChecks": serialize_checks(temp_advanced_trend_checks),
-        "patternRiskChecks": serialize_checks(pattern_risk_checks),
+        "tempAdvancedTrendChecks": serialize_checks(
+            temp_advanced_trend_checks + temp_pattern_risk_checks
+        ),
+        "patternRiskChecks": pattern_risk_checks,
+        "sellIndicatorGroups": sell_indicator_groups,
+        "sellIndicatorGroupsByWindow": sell_indicator_groups_by_window,
+        "sellIndicatorWindow": 10,
         "history": serialize_history(history),
         "benchmarkSymbol": DEFAULT_BENCHMARK,
         "benchmarkHistory": serialize_price_history(benchmark_history),

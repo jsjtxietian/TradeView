@@ -36,10 +36,16 @@
 
 请你自行搜索并补充：
 1. 最近几个季度的基本面变化，包括营收、EPS、利润率、指引与市场预期；是否存在 Mark Minervini 所说的 Code 33 情况：连续三个季度 earnings、sales、profit margins 加速改善。
-2. 不要把我提供的本地“相对 SPY 表现分”当成 IBD 官方 RS Rating。它只是用标的股价相对 SPY 的加权超额收益，衡量标的是不是比大盘强；真实的相对强度排名可以搜索找找看。
+2. 不要把我提供的本地“相对 SPY 表现分”当成 IBD 官方 RS Rating。它只是用标的股价相对 SPY 的加权超额收益，衡量标的是不是比大盘强，真实的相对强度排名可以搜索找找看。
 3. 它是否是所属行业/主题里的龙头股；所属行业/主题当前是否处在强化阶段，最近的重要新闻、财报、产品周期或政策催化。
 4. 最近一次财报日、下一次预期财报日分别是什么，距离下一次财报还有多久。
-5. 结合我提供的最近 K 线原始量价线索、量价关系和你自行搜索到的信息（包括该标的的机构持股比例等信息），判断机构资金更像在吸筹还是派发，并说明线索。
+5. 结合我提供的最近 K 线原始量价线索以及一些趋势原则和你自行搜索到的信息（包括该标的的机构持股比例等信息），判断机构资金更像在吸筹还是派发，并说明线索。
+6. 是否要买入和卖出，也考虑一些形态，比如Mark Minervini之前提出的 Selling into Strength—Specific Things to Watch
+   * New highs from late fourth and fifth stage bases
+   * P/E expansion by twice or more during late-stage price action
+   * Climax run or blow-off top (price up 25 to 50 percent or more in one to three weeks)
+   * On extended stocks, 70 percent or more up days versus down days over a 7- to 15-day period
+   * Once the stock is extended, 6 to 10 days of accelerated advance with all but 2 or 3 days being down
 
 最后请按下面结构输出：
 1. 目前更像“可考虑买入 / 继续观察 / 暂不考虑”哪一种，如果有持仓，则建议如何操作。

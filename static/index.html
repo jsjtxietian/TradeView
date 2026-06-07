@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trend Deck</title>
-  <link rel="stylesheet" href="/static/styles.css?v=20260607-10" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260607-24" />
 </head>
 <body>
   <div class="page-shell">
@@ -162,12 +162,17 @@
             <div>
               <h3>卖出指标观察</h3>
             </div>
+            <div id="sellIndicatorWindow" class="indicator-window-toggle" aria-label="卖出信号观察窗口">
+              <button type="button" data-sell-window="5">5日</button>
+              <button type="button" data-sell-window="10" class="active">10日</button>
+              <button type="button" data-sell-window="20">20日</button>
+            </div>
           </div>
           <div id="patternRiskChecks" class="check-list"></div>
         </section>
       </div>
       <details class="panel temp-check-panel">
-        <summary>Temp · 旧扩展指标</summary>
+        <summary>Temp · 旧指标</summary>
         <div id="tempAdvancedTrendChecks" class="check-list"></div>
       </details>
     </section>
@@ -332,6 +337,6 @@
   <div id="toast" class="toast" hidden></div>
 
   <script src="https://unpkg.com/lightweight-charts@5.0.0/dist/lightweight-charts.standalone.production.js"></script>
-  <script src="/static/app.js?v=20260607-10" type="module"></script>
+  <script src="/static/app.js?v=20260607-24" type="module"></script>
 </body>
 </html>

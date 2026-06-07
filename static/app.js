@@ -12,8 +12,8 @@ const WATCHLIST_COLUMN_MIN_WIDTH = 280;
 const WATCHLIST_COLUMN_GAP = 10;
 const SUBDUED_CHECK_NAMES = new Set(["近期波动明显收窄", "收缩末端成交量极度萎缩"]);
 const BUY_CHECK_RULES = {
-  "相对回撤": "在所选窗口内，个股与 SPY 分别按收盘价独立计算最大峰谷回撤；个股不得超过 SPY 最大回撤的 2.5 倍。",
-  "绝对回撤": "在所选窗口内，按收盘价计算个股最大峰谷回撤，要求小于 35%。",
+  "个股最大回撤不超过 SPY 的 2.5 倍": "在所选窗口内，个股与 SPY 分别按收盘价独立计算最大峰谷回撤；个股不得超过 SPY 最大回撤的 2.5 倍。",
+  "个股最大回撤小于 35%": "在所选窗口内，按收盘价计算个股最大峰谷回撤，要求小于 35%。",
   "Leaders Bottom First": "定位 SPY 最大回撤段，个股需更早见低，并在 SPY 见低前不再跌破该低点。",
   "当前成交量低于 50 日均量": "最新交易日成交量低于包含该交易日在内的 50 日平均成交量。",
   "近 10 日收盘区间小于 10%": "最近 10 个交易日按最高收盘价和最低收盘价计算：1 - 最低收盘 / 最高收盘。",
@@ -28,15 +28,13 @@ const ADVANCED_CHECK_RULES = {
   "收缩末端成交量极度萎缩": "近10日均量需明显低于 50 日均量，最新成交量接近盘整低位，且近10日振幅不宜超过 8%。",
 };
 const PATTERN_RISK_RULES = {
-  "MVP 动量量价共振": "严格按简化版 MVP：近15个交易日至少12天上涨、累计涨幅至少20%、近15日均量至少高于此前30日均量25%。",
-  "Power Play 高位紧凑旗形": "用近8周最大推进幅度近似前期暴涨，再看最近10-30日是否形成不超过20%的紧凑整理；低价股放宽到25%。",
-  "VCP 收缩递减结构": "简化版 VCP：近55日切成5段，观察振幅是否逐段收窄、末段是否较首段明显压缩，且末段成交量低于50日均量。",
-  "突破后跟进买盘占优": "近10日若识别到放量突破，则统计突破后4日与8日上涨天数；4天至少3涨或8天至少6涨更健康。",
-  "近期好收盘天数占优": "近10日按收盘在日内区间的位置计数；收于区间上半部算好收盘，下半部算弱收盘。",
-  "未出现三连阴破位": "看最近6日是否出现连续3天更低低点，同时近3日均量高于近20日常态；若出现则视为破位风险。",
-  "未出现放量破 20/50 日线": "若最新收盘跌破MA20或MA50，且当日成交量至少高于对应均量25%，则视为放量破均线风险。",
-  "近 10 日未见明显放量滞涨": "近10日若出现量比至少1.5倍、日涨跌幅绝对值不超过1%、且收盘不强的交易日，则记为放量滞涨。",
-  "近 7-15 日未进入高潮式加速": "在最近7到15日窗口内，若上涨天数占比超过70%且累计涨幅达到25%，视为高潮式加速风险升温。",
+  "Climax Top：近 1-3 周上涨至少 25%": "固定检查截至最新交易日的 5 至 15 日窗口，不受卖出观察期选择影响；按首尾收盘价计算涨幅，最佳窗口达到 25% 即触发 Climax Top 警报。",
+  "上涨日密度：出现高密度加速上涨": "固定检查截至最新交易日的 7 至 15 日窗口，不受卖出观察期选择影响；上涨日占比达到 70% 且同期涨幅至少 10%，才触发警报。",
+  "长升段最大上涨日出现在观察期": "近一年内寻找最近一个随后至少上涨 30% 的阶段低点作为 Stage 2 近似起点；若本轮最大单日涨幅出现在所选观察期，则触发警报。",
+  "长升段最宽振幅日出现在观察期": "从 Stage 2 近似起点开始计算；若本轮最大日内振幅出现在所选观察期，则触发警报。振幅按（最高价 - 最低价）/ 前收盘计算。",
+  "观察期内出现衰竭缺口": "所选观察期内若开盘价高于前一日最高价至少 2%，则记为可能的衰竭缺口并触发警报。",
+  "出现本轮最大单日 / 单周跌幅": "从 Stage 2 近似起点开始，比较近期单日跌幅和滚动 5 日跌幅。任一跌幅达到或超过此前最差纪录，就触发直接卖出信号。",
+  "下跌日出现阶段高额成交量": "所选观察期内，下跌日成交量进入 Stage 2 以来历史前 10%，或达到此前 20 日平均成交量的 1.5 倍，任一满足即触发；若创阶段最高成交量会单独说明。",
 };
 
 let toastTimer = null;
@@ -51,6 +49,7 @@ const state = {
   filterHoldingOnly: false,
   filterVolumeBelowMA50Only: false,
   buyIndicatorWindow: 63,
+  sellIndicatorWindow: 10,
   activeNoteSymbol: null,
   draggingGroupId: null,
   draggingSymbol: "",
@@ -120,6 +119,7 @@ const elements = {
   patternRiskChecks: document.getElementById("patternRiskChecks"),
   tempAdvancedTrendChecks: document.getElementById("tempAdvancedTrendChecks"),
   buyIndicatorWindow: document.getElementById("buyIndicatorWindow"),
+  sellIndicatorWindow: document.getElementById("sellIndicatorWindow"),
   chartStatusNote: document.getElementById("chartStatusNote"),
   priceChartContainer: document.getElementById("priceChartContainer"),
   volumeChartContainer: document.getElementById("volumeChartContainer"),
@@ -403,6 +403,15 @@ function bindEvents() {
     renderBuyIndicatorChecks();
   });
 
+  elements.sellIndicatorWindow.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-sell-window]");
+    if (!(button instanceof HTMLButtonElement)) {
+      return;
+    }
+    state.sellIndicatorWindow = Number(button.dataset.sellWindow) || 10;
+    renderSellIndicatorChecks();
+  });
+
   window.addEventListener("resize", () => {
     resizeCharts();
     queueWatchlistLayoutRefresh();
@@ -634,9 +643,7 @@ function renderSelectedDetail() {
   renderChartStatus(detail);
   renderChecks(elements.trendChecks, detail.trendChecks);
   renderBuyIndicatorChecks();
-  renderChecks(elements.patternRiskChecks, detail.patternRiskChecks, {
-    ruleTooltips: PATTERN_RISK_RULES,
-  });
+  renderSellIndicatorChecks();
   renderChecks(elements.tempAdvancedTrendChecks, detail.tempAdvancedTrendChecks, {
     trimPrefix: true,
     ruleTooltips: ADVANCED_CHECK_RULES,
@@ -668,7 +675,32 @@ function renderBuyIndicatorGroups(groups) {
   elements.advancedTrendChecks.innerHTML = groups.map(renderBuyIndicatorGroup).join("");
 }
 
+function renderSellIndicatorChecks() {
+  const detail = state.details.get(state.selectedSymbol);
+  if (!detail) {
+    elements.patternRiskChecks.innerHTML = "";
+    return;
+  }
+  const windowKey = String(state.sellIndicatorWindow);
+  const groups = detail.sellIndicatorGroupsByWindow?.[windowKey]
+    || detail.sellIndicatorGroups
+    || [];
+  for (const button of elements.sellIndicatorWindow.querySelectorAll("[data-sell-window]")) {
+    button.classList.toggle(
+      "active",
+      Number(button.dataset.sellWindow) === state.sellIndicatorWindow,
+    );
+  }
+  elements.patternRiskChecks.innerHTML = groups
+    .map((group) => renderIndicatorGroup(group, PATTERN_RISK_RULES))
+    .join("");
+}
+
 function renderBuyIndicatorGroup(group) {
+  return renderIndicatorGroup(group, BUY_CHECK_RULES);
+}
+
+function renderIndicatorGroup(group, ruleTooltips) {
   return `
     <section class="buy-indicator-group${group.observational ? " observational" : ""}${group.key === "common_volume" ? " common-condition" : ""}">
       <header>
@@ -676,7 +708,9 @@ function renderBuyIndicatorGroup(group) {
           <strong>${escapeHtml(group.title)}</strong>
           ${group.subtitle ? `<small>${escapeHtml(group.subtitle)}</small>` : ""}
         </span>
-        ${group.observational ? "" : renderCompactCheckState(group.passed)}
+        ${group.observational || group.attention
+          ? ""
+          : renderCompactCheckState(group.passed)}
       </header>
       <div class="buy-indicator-items">
         ${(group.items || []).map((item) => `
@@ -684,18 +718,22 @@ function renderBuyIndicatorGroup(group) {
             <div>
               <div class="buy-indicator-item-title">
                 <strong>${escapeHtml(item.name)}</strong>
-                ${BUY_CHECK_RULES[item.name] ? `
+                ${ruleTooltips[item.name] ? `
                   <button
                     type="button"
                     class="check-rule-button"
-                    title="${escapeHtml(BUY_CHECK_RULES[item.name])}"
+                    title="${escapeHtml(ruleTooltips[item.name])}"
                     aria-label="${escapeHtml(item.name)}计算规则"
                   >i</button>
                 ` : ""}
               </div>
-              <p>${escapeHtml(item.detail || "")}</p>
+              <p>${escapeHtml(group.attention
+                ? `${observationStatusLabel(item.passed)} · ${item.detail || ""}`
+                : item.detail || "")}</p>
             </div>
-            ${renderCompactCheckState(item.passed)}
+            ${group.attention
+              ? renderObservationState(item.passed)
+              : renderCompactCheckState(item.passed, item.severity)}
           </div>
         `).join("")}
       </div>
@@ -703,11 +741,33 @@ function renderBuyIndicatorGroup(group) {
   `;
 }
 
-function renderCompactCheckState(passed) {
-  const label = passed === true ? "通过" : passed === false ? "未通过" : "待确认";
+function renderCompactCheckState(passed, severity = null) {
+  const label = passed === true
+    ? "通过"
+    : passed === false
+      ? severity === "critical" ? "严重卖出信号" : severity === "warning" ? "卖出预警" : "未通过"
+      : "待确认";
   const icon = passed === true ? "✓" : passed === false ? "✕" : "?";
-  const stateClass = passed === true ? "pass" : passed === false ? "fail" : "pending";
+  const stateClass = passed === true
+    ? "pass"
+    : passed === false
+      ? severity === "warning" ? "warning" : "fail"
+      : "pending";
   return `<span class="check-state ${stateClass}" title="${label}" aria-label="${label}">${icon}</span>`;
+}
+
+function renderObservationState(passed) {
+  if (passed === false) {
+    return '<span class="check-state signal-triggered" title="已触发" aria-label="已触发">!</span>';
+  }
+  if (passed === true) {
+    return '<span class="check-state signal-idle" title="未触发" aria-label="未触发">—</span>';
+  }
+  return renderCompactCheckState(passed);
+}
+
+function observationStatusLabel(passed) {
+  return passed === false ? "已触发" : passed === true ? "未触发" : "待确认";
 }
 
 function normalizeWatchlistGroups(groups) {
