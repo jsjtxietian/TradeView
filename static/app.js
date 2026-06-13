@@ -60,8 +60,7 @@ const state = {
   currentChartData: [],
   currentBenchmarkData: [],
   currentBenchmarkSymbol: "SPY",
-  tradeReviews: new Map(),
-  allTradeReviews: [],
+  allTrades: [],
   tradeReviewActive: false,
   tradeReviewSymbol: null,
   tradeReviewId: null,
@@ -83,6 +82,7 @@ const state = {
   crosshairSyncing: false,
   chartWheelBound: false,
   watchlistResizeTimer: null,
+  watchlistPersistTimer: null,
 };
 
 const elements = {
@@ -139,24 +139,26 @@ const elements = {
   copyPromptButton: document.getElementById("copyPromptButton"),
   tradeReviewButton: document.getElementById("tradeReviewButton"),
   tradeReviewDialog: document.getElementById("tradeReviewDialog"),
+  tradeEditorDialog: document.getElementById("tradeEditorDialog"),
   tradeReviewForm: document.getElementById("tradeReviewForm"),
-  tradeReviewTitle: document.getElementById("tradeReviewTitle"),
-  tradeReviewChooser: document.getElementById("tradeReviewChooser"),
+  tradeReviewList: document.getElementById("tradeReviewList"),
   tradeReviewEditor: document.getElementById("tradeReviewEditor"),
   tradeReviewEditorTitle: document.getElementById("tradeReviewEditorTitle"),
+  tradeSymbolField: document.getElementById("tradeSymbolField"),
+  tradeEntryEditor: document.getElementById("tradeEntryEditor"),
   tradeSymbolSelect: document.getElementById("tradeSymbolSelect"),
-  tradeReviewSelect: document.getElementById("tradeReviewSelect"),
-  manageTradeReviewButton: document.getElementById("manageTradeReviewButton"),
-  backToTradeReviewChooserButton: document.getElementById("backToTradeReviewChooserButton"),
+  tradeOverallNoteInput: document.getElementById("tradeOverallNoteInput"),
   createTradeReviewButton: document.getElementById("createTradeReviewButton"),
+  saveTradeNoteButton: document.getElementById("saveTradeNoteButton"),
+  tradeSubmitButton: document.getElementById("tradeSubmitButton"),
   tradeDateInput: document.getElementById("tradeDateInput"),
   tradePriceInput: document.getElementById("tradePriceInput"),
   tradeQuantityInput: document.getElementById("tradeQuantityInput"),
   tradeNoteInput: document.getElementById("tradeNoteInput"),
   tradeRecordCount: document.getElementById("tradeRecordCount"),
   tradeRecordList: document.getElementById("tradeRecordList"),
-  activateTradeReviewButton: document.getElementById("activateTradeReviewButton"),
   closeTradeReviewButton: document.getElementById("closeTradeReviewButton"),
+  closeTradeEditorButton: document.getElementById("closeTradeEditorButton"),
   cancelNoteButton: document.getElementById("cancelNoteButton"),
   saveNoteButton: document.getElementById("saveNoteButton"),
   toast: document.getElementById("toast"),
@@ -168,11 +170,12 @@ init().catch((error) => {
 
 async function init() {
   bindEvents();
-  const [config, tradesPayload] = await Promise.all([
+  const [config, tradesPayload, watchlistPayload] = await Promise.all([
     fetchJson("/api/config"),
     fetchJson("/api/trades"),
+    fetchJson("/api/watchlist/state"),
   ]);
-  state.allTradeReviews = tradesPayload.reviews || [];
+  state.allTrades = tradesPayload.trades || [];
   loadChartPrefs();
   state.notes = loadStoredNotes();
   state.alerts = loadStoredAlerts();
@@ -180,16 +183,24 @@ async function init() {
   state.filterTrendTemplateOnly = loadStoredTrendFilter();
   state.filterHoldingOnly = loadStoredHoldingFilter();
   state.filterVolumeBelowMA50Only = loadStoredVolumeBelowMA50Filter();
-  state.watchlistGroups = loadStoredWatchlistGroups(
-    normalizeWatchlistGroups(config.watchlistGroups || []),
-  );
+  const fallbackGroups = normalizeWatchlistGroups(config.watchlistGroups || []);
+  const storedWatchlist = loadStoredWatchlist();
+  if (watchlistPayload.configured) {
+    state.watchlist = normalizeWatchlist(watchlistPayload.watchlist || []);
+    state.watchlistGroups = normalizeWatchlistGroups(watchlistPayload.groups || []);
+    mirrorWatchlistStateLocally();
+  } else {
+    state.watchlist = storedWatchlist.length
+      ? storedWatchlist
+      : normalizeWatchlist(config.defaultWatchlist || ["AAPL"]);
+    state.watchlistGroups = loadStoredWatchlistGroups(fallbackGroups);
+    await saveWatchlistState();
+  }
   elements.chartMode.value = state.chartMode;
   elements.compareBenchmarkToggle.checked = state.compareBenchmark;
   syncWatchlistFilters();
   renderAlerts();
 
-  const storedWatchlist = loadStoredWatchlist();
-  state.watchlist = storedWatchlist.length ? storedWatchlist : config.defaultWatchlist || ["AAPL"];
   state.selectedSymbol = state.watchlist[0] || null;
   await refreshSummaries();
 }
@@ -312,24 +323,12 @@ function bindEvents() {
     });
   });
 
-  elements.activateTradeReviewButton.addEventListener("click", () => {
-    activateTradeReview().catch((error) => {
-      showToast(error.message || String(error), true);
-    });
-  });
-
-  elements.manageTradeReviewButton.addEventListener("click", () => {
-    openTradeReviewEditor(elements.tradeReviewSelect.value).catch((error) => {
-      showToast(error.message || String(error), true);
-    });
-  });
-
-  elements.backToTradeReviewChooserButton.addEventListener("click", () => {
-    showTradeReviewChooser();
-  });
-
   elements.closeTradeReviewButton.addEventListener("click", () => {
     elements.tradeReviewDialog.close();
+  });
+
+  elements.closeTradeEditorButton.addEventListener("click", () => {
+    elements.tradeEditorDialog.close();
   });
 
   elements.tradeReviewForm.addEventListener("submit", (event) => {
@@ -346,10 +345,41 @@ function bindEvents() {
     }
   });
 
-  elements.createTradeReviewButton.addEventListener("click", () => {
-    createTradeReview().catch((error) => {
+  elements.tradeSymbolSelect.addEventListener("change", () => {
+    if (state.tradeReviewId != null) {
+      return;
+    }
+    selectTradeReviewSymbol(elements.tradeSymbolSelect.value).catch((error) => {
       showToast(error.message || String(error), true);
     });
+  });
+
+  elements.createTradeReviewButton.addEventListener("click", () => {
+    openNewTradeEditor().catch((error) => {
+      showToast(error.message || String(error), true);
+    });
+  });
+
+  elements.saveTradeNoteButton.addEventListener("click", () => {
+    saveTradeReviewNote().catch((error) => {
+      showToast(error.message || String(error), true);
+    });
+  });
+
+  elements.tradeReviewList.addEventListener("click", (event) => {
+    const activateButton = event.target.closest("[data-trade-activate]");
+    if (activateButton instanceof HTMLButtonElement) {
+      activateTradeReview(Number(activateButton.dataset.tradeActivate)).catch((error) => {
+        showToast(error.message || String(error), true);
+      });
+      return;
+    }
+    const editButton = event.target.closest("[data-trade-edit]");
+    if (editButton instanceof HTMLButtonElement) {
+      openTradeReviewEditor(Number(editButton.dataset.tradeEdit)).catch((error) => {
+        showToast(error.message || String(error), true);
+      });
+    }
   });
 
   elements.tradeRecordList.addEventListener("click", (event) => {
@@ -357,13 +387,21 @@ function bindEvents() {
     if (!(button instanceof HTMLButtonElement)) {
       return;
     }
-    deleteTradeRecord(button.dataset.tradeDelete).catch((error) => {
+    deleteTradeRecord(Number(button.dataset.tradeDelete)).catch((error) => {
       showToast(error.message || String(error), true);
     });
   });
 
   elements.saveNoteButton.addEventListener("click", () => {
     saveNote();
+  });
+
+  elements.noteHoldingCheckbox.addEventListener("change", () => {
+    if (elements.noteHoldingCheckbox.checked) {
+      return;
+    }
+    elements.noteCostBasisInput.value = "";
+    elements.noteSharesInput.value = "";
   });
 
   elements.noteDialog.addEventListener("close", () => {
@@ -620,14 +658,10 @@ async function loadDetail(symbol, forceRefresh = false) {
   }
 
   try {
-    const [detail, tradesPayload] = await Promise.all([
-      !forceRefresh && state.details.get(symbol)
-        ? state.details.get(symbol)
-        : fetchJson(`/api/symbol/${encodeURIComponent(symbol)}?refresh=${forceRefresh ? "1" : "0"}`),
-      fetchJson(`/api/trades/${encodeURIComponent(symbol)}`),
-    ]);
+    const detail = !forceRefresh && state.details.get(symbol)
+      ? state.details.get(symbol)
+      : await fetchJson(`/api/symbol/${encodeURIComponent(symbol)}?refresh=${forceRefresh ? "1" : "0"}`);
     state.details.set(symbol, detail);
-    state.tradeReviews.set(symbol, tradesPayload.reviews || []);
     hideMessage();
     renderSelectedDetail();
   } catch (error) {
@@ -1580,15 +1614,16 @@ class TradeMarkerPrimitive {
           continue;
         }
 
-        const isBuy = record.side === "buy";
-        const color = isBuy ? "#166534" : "#b42318";
-        const direction = isBuy ? 1 : -1;
+        const action = record.action || "buy";
+        const isSell = action === "sell";
+        const color = isSell ? "#b42318" : action === "add" ? "#0e7490" : "#166534";
+        const direction = isSell ? -1 : 1;
         const lineStart = y + direction * 11 * verticalRatio;
         const lineEnd = y + direction * lineLength;
         const quantity = record.quantity == null
           ? ""
           : ` ${fmtTradeQuantity(record.quantity)}股`;
-        const text = `${isBuy ? "买入" : "卖出"}${quantity} @ ${fmtPrice(record.price)}`;
+        const text = `${getTradeActionLabel(action)}${quantity} @ ${fmtPrice(record.price)}`;
 
         context.strokeStyle = color;
         context.lineWidth = Math.max(1, 1.5 * horizontalRatio);
@@ -1599,7 +1634,7 @@ class TradeMarkerPrimitive {
 
         context.fillStyle = color;
         context.beginPath();
-        if (isBuy) {
+        if (!isSell) {
           context.moveTo(x, y);
           context.lineTo(x - 6 * horizontalRatio, y + 11 * verticalRatio);
           context.lineTo(x + 6 * horizontalRatio, y + 11 * verticalRatio);
@@ -2041,7 +2076,7 @@ function applyTradeMarkers(symbol = state.selectedSymbol) {
   const activeReview = markersVisible
     ? getTradeReview(symbol, state.tradeReviewId)
     : null;
-  const records = activeReview?.trades || [];
+  const records = activeReview?.transactions || [];
   state.candleTradePrimitive?.setRecords(
     state.chartMode === "candles" ? records : [],
   );
@@ -2364,11 +2399,11 @@ function updateHoverCard(row, point, pinned = false) {
     state.tradeReviewActive && state.tradeReviewSymbol === state.selectedSymbol
       ? getTradeReview(state.selectedSymbol, state.tradeReviewId)
       : null;
-  const dayTrades = (activeReview?.trades || []).filter(
+  const dayTrades = (activeReview?.transactions || []).filter(
     (record) => record.date === row.Date,
   );
   for (const record of dayTrades) {
-    const action = record.side === "buy" ? "买入" : "卖出";
+    const action = getTradeActionLabel(record.action);
     const note = String(record.note || "").trim();
     const quantity = record.quantity == null ? "" : ` ${fmtTradeQuantity(record.quantity)} 股`;
     parts.push(
@@ -2429,10 +2464,41 @@ function hideChartStatus() {
 
 function persistWatchlist() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.watchlist));
+  scheduleWatchlistStatePersist();
 }
 
 function persistWatchlistGroups() {
   localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(state.watchlistGroups));
+  scheduleWatchlistStatePersist();
+}
+
+function mirrorWatchlistStateLocally() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.watchlist));
+  localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(state.watchlistGroups));
+}
+
+function scheduleWatchlistStatePersist() {
+  if (state.watchlistPersistTimer) {
+    clearTimeout(state.watchlistPersistTimer);
+  }
+  state.watchlistPersistTimer = setTimeout(() => {
+    state.watchlistPersistTimer = null;
+    saveWatchlistState().catch((error) => {
+      showToast(error.message || String(error), true);
+    });
+  }, 80);
+}
+
+async function saveWatchlistState() {
+  await fetchJson("/api/watchlist/state", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      watchlist: state.watchlist,
+      groups: state.watchlistGroups,
+    }),
+  });
+  mirrorWatchlistStateLocally();
 }
 
 function persistNotes() {
@@ -2505,10 +2571,17 @@ function loadStoredWatchlist() {
       return [];
     }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.map(normalizeSymbol).filter(Boolean) : [];
+    return Array.isArray(parsed) ? normalizeWatchlist(parsed) : [];
   } catch {
     return [];
   }
+}
+
+function normalizeWatchlist(symbols) {
+  if (!Array.isArray(symbols)) {
+    return [];
+  }
+  return [...new Set(symbols.map((symbol) => normalizeSymbol(String(symbol))).filter(Boolean))];
 }
 
 function loadStoredWatchlistGroups(fallback) {
@@ -2782,53 +2855,143 @@ function bindNoteButton(card, symbol) {
 
 async function openTradeReview() {
   const storedPayload = await fetchJson("/api/trades");
-  state.allTradeReviews = storedPayload.reviews || [];
-  const candidates = Array.from(
-    new Set([
-      ...state.watchlist,
-      ...(storedPayload.symbols || []),
-      state.tradeReviewSymbol,
-      state.selectedSymbol,
-    ].filter(Boolean)),
-  );
-  if (!candidates.length) {
-    showToast("请先添加一只股票。", true);
-    return;
-  }
-  elements.tradeSymbolSelect.innerHTML = candidates
-    .map((symbol) => `<option value="${escapeHtml(symbol)}">${escapeHtml(symbol)}</option>`)
-    .join("");
-  const symbol = normalizeSymbol(
-    state.tradeReviewSymbol || state.selectedSymbol || candidates[0],
-  );
-  elements.tradeSymbolSelect.value = symbol;
-  populateGlobalTradeReviewSelect(state.tradeReviewId);
-  showTradeReviewChooser();
+  state.allTrades = storedPayload.trades || [];
+  renderTradeReviewList();
   syncTradeReviewButton();
   elements.tradeReviewDialog.showModal();
 }
 
-function showTradeReviewChooser() {
-  elements.tradeReviewChooser.hidden = false;
-  elements.tradeReviewEditor.hidden = true;
-  elements.tradeReviewTitle.textContent = "交易复盘";
+function getTradeSortDate(trade) {
+  const transactions = trade.transactions || [];
+  const sellDates = transactions
+    .filter((transaction) => transaction.action === "sell")
+    .map((transaction) => String(transaction.date || ""));
+  const allDates = transactions.map((transaction) => String(transaction.date || ""));
+  return sellDates.sort().at(-1) || allDates.sort().at(-1) || "";
 }
 
-function showTradeReviewEditor(review) {
-  elements.tradeReviewChooser.hidden = true;
-  elements.tradeReviewEditor.hidden = false;
-  elements.tradeReviewTitle.textContent = "管理交易记录";
-  elements.tradeReviewEditorTitle.textContent =
-    `复盘 #${review.number} · ${review.symbol}`;
-}
-
-async function openTradeReviewEditor(reviewId) {
-  const review = getGlobalTradeReview(reviewId);
-  if (!review) {
-    throw new Error("请先新建一次复盘。");
+function renderTradeReviewList() {
+  const trades = [...state.allTrades].sort(
+    (left, right) =>
+      getTradeSortDate(right).localeCompare(getTradeSortDate(left))
+      || Number(right.id) - Number(left.id),
+  );
+  if (!trades.length) {
+    elements.tradeReviewList.innerHTML =
+      '<div class="trade-record-empty">还没有交易复盘。</div>';
+    return;
   }
-  await selectGlobalTradeReview(review.id);
-  showTradeReviewEditor(review);
+  elements.tradeReviewList.innerHTML = trades
+    .map((trade) => {
+      const transactions = trade.transactions || [];
+      const lastDate = getTradeSortDate(trade);
+      const pnl = calculateTradePnl(trade);
+      const note = String(trade.note || "").trim();
+      const chartSymbol = normalizeSymbol(trade.symbol);
+      const canViewChart = !!state.summaries.get(chartSymbol)?.data;
+      return `
+        <article class="trade-review-list-item">
+          <div class="trade-review-list-id">#${trade.id}</div>
+          <div class="trade-review-list-main">
+            <div class="trade-review-list-summary">
+              <strong>${escapeHtml(trade.symbol)}</strong>
+              ${lastDate ? `<time>${escapeHtml(lastDate)}</time>` : ""}
+              <span class="trade-review-pnl ${pnl.tone}">${escapeHtml(pnl.label)}</span>
+            </div>
+            ${note ? `<p>${escapeHtml(note)}</p>` : ""}
+          </div>
+          <div class="trade-review-list-actions">
+            <button type="button" class="secondary" data-trade-edit="${trade.id}">编辑</button>
+            <button
+              type="button"
+              data-trade-activate="${trade.id}"
+              ${canViewChart ? "" : 'disabled title="当前没有可用的图表数据"'}
+            >查看复盘</button>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function calculateTradePnl(trade) {
+  let buyCost = 0;
+  let sellProceeds = 0;
+  for (const transaction of trade.transactions || []) {
+    const quantity = Number(transaction.quantity || 0);
+    const amount = quantity * Number(transaction.price || 0);
+    if (transaction.action === "sell") {
+      sellProceeds += amount;
+    } else {
+      buyCost += amount;
+    }
+  }
+  if (!buyCost) {
+    return { label: "暂无盈亏", tone: "neutral" };
+  }
+  const pnl = sellProceeds - buyCost;
+  const pnlPct = pnl / buyCost;
+  const currency = String(trade.currency || "USD").toUpperCase();
+  return {
+    label: `盈亏 ${pnl >= 0 ? "+" : ""}${fmtPrice(pnl)} ${currency} · ${fmtPct(pnlPct)}`,
+    tone: pnl > 0 ? "positive" : pnl < 0 ? "negative" : "neutral",
+  };
+}
+
+function populateTradeSymbolSelect(preferredSymbol = "") {
+  const candidates = Array.from(
+    new Set([
+      ...state.watchlist,
+      ...state.allTrades.map((trade) => trade.symbol),
+      preferredSymbol,
+      state.selectedSymbol,
+    ].filter(Boolean)),
+  );
+  if (!candidates.length) {
+    throw new Error("请先添加一只股票。");
+  }
+  elements.tradeSymbolSelect.innerHTML = candidates
+    .map((symbol) => `<option value="${escapeHtml(symbol)}">${escapeHtml(symbol)}</option>`)
+    .join("");
+  elements.tradeSymbolSelect.value = normalizeSymbol(preferredSymbol || state.selectedSymbol || candidates[0]);
+}
+
+async function openNewTradeEditor() {
+  populateTradeSymbolSelect(state.selectedSymbol);
+  state.tradeReviewId = null;
+  elements.tradeReviewEditorTitle.textContent = "新建交易复盘";
+  elements.tradeSymbolSelect.disabled = false;
+  elements.tradeSymbolField.hidden = false;
+  elements.tradeReviewEditor.hidden = false;
+  elements.tradeEntryEditor.hidden = false;
+  elements.tradeOverallNoteInput.value = "";
+  elements.saveTradeNoteButton.hidden = true;
+  elements.tradeSubmitButton.textContent = "创建交易";
+  await selectTradeReviewSymbol(elements.tradeSymbolSelect.value);
+  renderTradeRecords(null);
+  elements.tradeEditorDialog.showModal();
+}
+
+async function openTradeReviewEditor(tradeId) {
+  const trade = getGlobalTradeReview(tradeId);
+  if (!trade) {
+    throw new Error("交易复盘不存在。");
+  }
+  state.tradeReviewId = Number(trade.id);
+  populateTradeSymbolSelect(trade.symbol);
+  elements.tradeSymbolSelect.value = trade.symbol;
+  elements.tradeSymbolSelect.disabled = true;
+  elements.tradeSymbolField.hidden = true;
+  elements.tradeReviewEditorTitle.textContent = `交易 #${trade.id} · ${trade.symbol}`;
+  elements.tradeOverallNoteInput.value = String(trade.note || "");
+  elements.tradeReviewEditor.hidden = false;
+  elements.tradeEntryEditor.hidden = false;
+  elements.saveTradeNoteButton.hidden = false;
+  elements.tradeSubmitButton.textContent = "添加记录";
+  await selectTradeReviewSymbol(trade.symbol);
+  renderTradeRecords(trade.id);
+  elements.tradeReviewDialog.close();
+  elements.tradeEditorDialog.showModal();
 }
 
 async function selectTradeReviewSymbol(rawSymbol) {
@@ -2839,57 +3002,25 @@ async function selectTradeReviewSymbol(rawSymbol) {
   state.selectedSymbol = symbol;
   renderWatchlist();
   await loadDetail(symbol, false);
-  elements.tradeReviewTitle.textContent = `${symbol} 交易复盘`;
   const latestRow = state.currentChartData.at(-1);
   elements.tradeDateInput.value = latestRow?.Date || "";
   elements.tradePriceInput.value =
     latestRow?.Close == null ? "" : Number(latestRow.Close).toFixed(4);
   elements.tradeQuantityInput.value = "";
   elements.tradeNoteInput.value = "";
-  const buyInput = elements.tradeReviewForm.querySelector('input[name="tradeSide"][value="buy"]');
+  const buyInput = elements.tradeReviewForm.querySelector('input[name="tradeAction"][value="buy"]');
   if (buyInput instanceof HTMLInputElement) {
     buyInput.checked = true;
   }
 }
 
-function populateGlobalTradeReviewSelect(preferredReviewId = null) {
-  const reviews = state.allTradeReviews;
-  elements.tradeReviewSelect.innerHTML = reviews.length
-    ? reviews
-        .map(
-          (review) =>
-            `<option value="${escapeHtml(review.id)}">#${review.number} · ${escapeHtml(review.symbol)}</option>`,
-        )
-        .join("")
-    : '<option value="">暂无复盘</option>';
-  elements.tradeReviewSelect.disabled = !reviews.length;
-  elements.manageTradeReviewButton.disabled = !reviews.length;
-  elements.activateTradeReviewButton.disabled = !reviews.length;
-  const selectedId =
-    preferredReviewId && reviews.some((review) => review.id === preferredReviewId)
-      ? preferredReviewId
-      : reviews.at(-1)?.id || "";
-  elements.tradeReviewSelect.value = selectedId;
+function getGlobalTradeReview(tradeId) {
+  return state.allTrades.find((trade) => Number(trade.id) === Number(tradeId)) || null;
 }
 
-function getGlobalTradeReview(reviewId) {
-  return state.allTradeReviews.find((review) => review.id === reviewId) || null;
-}
-
-function getTradeReview(symbol, reviewId) {
-  return (state.tradeReviews.get(symbol) || []).find((review) => review.id === reviewId) || null;
-}
-
-async function selectGlobalTradeReview(reviewId) {
-  const review = getGlobalTradeReview(reviewId);
-  if (!review) {
-    renderTradeRecords("", "");
-    return;
-  }
-  elements.tradeSymbolSelect.value = review.symbol;
-  await selectTradeReviewSymbol(review.symbol);
-  elements.tradeReviewSelect.value = review.id;
-  renderTradeRecords(review.symbol, review.id);
+function getTradeReview(symbol, tradeId) {
+  const trade = getGlobalTradeReview(tradeId);
+  return trade?.symbol === normalizeSymbol(symbol) ? trade : null;
 }
 
 async function createTradeReview() {
@@ -2897,36 +3028,53 @@ async function createTradeReview() {
   if (!symbol) {
     throw new Error("请选择复盘股票。");
   }
-  const review = await fetchJson(`/api/trades/${encodeURIComponent(symbol)}/reviews`, {
+  const trade = await fetchJson("/api/trades", {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      symbol,
+      currency: "USD",
+      note: String(elements.tradeOverallNoteInput.value || "").trim(),
+    }),
   });
-  const reviews = [...(state.tradeReviews.get(symbol) || []), review];
-  state.tradeReviews.set(symbol, reviews);
-  state.allTradeReviews = [...state.allTradeReviews, review].sort(
-    (left, right) => Number(left.number) - Number(right.number),
+  state.allTrades = [...state.allTrades, trade].sort(
+    (left, right) => Number(left.id) - Number(right.id),
   );
-  populateGlobalTradeReviewSelect(review.id);
-  await selectGlobalTradeReview(review.id);
-  showTradeReviewEditor(review);
-  showToast(`${symbol} 复盘 #${review.number} 已创建。`);
+  state.tradeReviewId = Number(trade.id);
+  return trade;
 }
 
-async function activateTradeReview() {
-  const reviewId = elements.tradeReviewSelect.value;
-  const review = getGlobalTradeReview(reviewId);
-  if (!review) {
-    throw new Error("请先新建一次复盘。");
+async function saveTradeReviewNote() {
+  const trade = getGlobalTradeReview(state.tradeReviewId);
+  if (!trade) {
+    throw new Error("交易复盘不存在。");
   }
-  const symbol = review.symbol;
-  await selectGlobalTradeReview(reviewId);
+  const note = String(elements.tradeOverallNoteInput.value || "").trim();
+  const updated = await fetchJson(`/api/trades/${trade.id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ note }),
+  });
+  trade.note = updated.note || "";
+  renderTradeReviewList();
+  showToast("整体复盘已保存。");
+}
+
+async function activateTradeReview(tradeId) {
+  const trade = getGlobalTradeReview(tradeId);
+  if (!trade) {
+    throw new Error("交易复盘不存在。");
+  }
+  const symbol = trade.symbol;
+  await selectTradeReviewSymbol(symbol);
   state.tradeReviewActive = true;
   state.tradeReviewSymbol = symbol;
-  state.tradeReviewId = reviewId;
+  state.tradeReviewId = Number(trade.id);
   applyTradeMarkers(symbol);
   syncTradeReviewButton();
   elements.tradeReviewDialog.close();
   elements.detailSection.scrollIntoView({ behavior: "smooth", block: "start" });
-  showToast(`${symbol} 已进入复盘模式。`);
+  showToast(`${symbol} 交易 #${trade.id} 已显示在图表上。`);
 }
 
 function exitTradeReview() {
@@ -2947,94 +3095,93 @@ function exitTradeReview() {
 function syncTradeReviewButton() {
   elements.tradeReviewButton.classList.toggle("active-toggle", state.tradeReviewActive);
   elements.tradeReviewButton.textContent = state.tradeReviewActive
-    ? `退出复盘 · #${
-        getTradeReview(state.tradeReviewSymbol, state.tradeReviewId)?.number || ""
-      } ${state.tradeReviewSymbol}`
+    ? `取消复盘 · #${state.tradeReviewId || ""} ${state.tradeReviewSymbol}`
     : "交易复盘";
 }
 
 async function saveTradeRecord() {
-  const reviewId = elements.tradeReviewSelect.value;
-  const selectedReview = getGlobalTradeReview(reviewId);
-  if (!selectedReview) {
-    throw new Error("请先新建一次复盘。");
+  let trade = getGlobalTradeReview(state.tradeReviewId);
+  const symbol = trade?.symbol || normalizeSymbol(elements.tradeSymbolSelect.value);
+  if (!symbol) {
+    throw new Error("请选择复盘股票。");
   }
-  const symbol = selectedReview.symbol;
   const tradeDate = elements.tradeDateInput.value;
   if (!state.currentChartData.some((row) => row.Date === tradeDate)) {
     throw new Error("该日期不是当前图表中的交易日。");
   }
-  const selectedSide = elements.tradeReviewForm.querySelector('input[name="tradeSide"]:checked');
+  const isNewTrade = !trade;
+  if (isNewTrade) {
+    trade = await createTradeReview();
+  }
+  const selectedAction = elements.tradeReviewForm.querySelector('input[name="tradeAction"]:checked');
   const record = await fetchJson(
-    `/api/trades/${encodeURIComponent(symbol)}/reviews/${encodeURIComponent(reviewId)}`,
+    `/api/trades/${trade.id}/transactions`,
     {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       date: tradeDate,
-      side: selectedSide?.value || "buy",
-      price: Number(elements.tradePriceInput.value),
       quantity: Number(elements.tradeQuantityInput.value),
+      price: Number(elements.tradePriceInput.value),
+      action: selectedAction?.value || "buy",
       note: String(elements.tradeNoteInput.value || "").trim(),
     }),
   });
-  const review = getTradeReview(symbol, reviewId);
-  const records = [...(review?.trades || []), record].sort(
-    (left, right) =>
-      String(left.date).localeCompare(String(right.date)) ||
-      String(left.createdAt).localeCompare(String(right.createdAt)),
-  );
-  if (review) {
-    review.trades = records;
+  trade.transactions.push(record);
+  if (isNewTrade) {
+    elements.tradeReviewEditorTitle.textContent = `交易 #${trade.id} · ${trade.symbol}`;
+    elements.tradeSymbolSelect.disabled = true;
+    elements.tradeSymbolField.hidden = true;
+    elements.saveTradeNoteButton.hidden = false;
+    elements.tradeSubmitButton.textContent = "添加记录";
   }
   elements.tradeNoteInput.value = "";
   elements.tradeQuantityInput.value = "";
-  renderTradeRecords(symbol, reviewId);
+  renderTradeRecords(trade.id);
   applyTradeMarkers(symbol);
-  showToast(`${symbol} 交易记录已添加。`);
+  renderTradeReviewList();
+  showToast(isNewTrade ? `${symbol} 交易 #${trade.id} 已创建。` : `${symbol} 交易记录已添加。`);
 }
 
-async function deleteTradeRecord(tradeId) {
-  const reviewId = elements.tradeReviewSelect.value;
-  const selectedReview = getGlobalTradeReview(reviewId);
-  if (!selectedReview || !tradeId) {
+async function deleteTradeRecord(transactionIndex) {
+  const trade = getGlobalTradeReview(state.tradeReviewId);
+  if (!trade || !Number.isInteger(transactionIndex)) {
     return;
   }
-  const symbol = selectedReview.symbol;
   await fetchJson(
-    `/api/trades/${encodeURIComponent(symbol)}/reviews/${encodeURIComponent(reviewId)}/${encodeURIComponent(tradeId)}`,
+    `/api/trades/${trade.id}/transactions/${transactionIndex}`,
     { method: "DELETE" },
   );
-  const review = getTradeReview(symbol, reviewId);
-  if (review) {
-    review.trades = (review.trades || []).filter((record) => record.id !== tradeId);
-  }
-  renderTradeRecords(symbol, reviewId);
-  applyTradeMarkers(symbol);
+  trade.transactions.splice(transactionIndex, 1);
+  renderTradeRecords(trade.id);
+  applyTradeMarkers(trade.symbol);
+  renderTradeReviewList();
   showToast("交易记录已删除。");
 }
 
-function renderTradeRecords(symbol, reviewId) {
-  const review = getTradeReview(symbol, reviewId);
-  const records = [...(review?.trades || [])].sort(
-    (left, right) =>
-      String(right.date).localeCompare(String(left.date)) ||
-      String(right.createdAt).localeCompare(String(left.createdAt)),
-  );
-  elements.tradeRecordCount.textContent = review
-    ? `复盘 #${review.number} · ${records.length} 条`
-    : "尚未新建复盘";
+function getTradeActionLabel(action) {
+  return action === "sell" ? "卖出" : action === "add" ? "加仓" : "买入";
+}
+
+function renderTradeRecords(tradeId) {
+  const trade = getGlobalTradeReview(tradeId);
+  const records = (trade?.transactions || [])
+    .map((record, index) => ({ record, index }))
+    .sort((left, right) => String(right.record.date).localeCompare(String(left.record.date)));
+  elements.tradeRecordCount.textContent = trade
+    ? `交易 #${trade.id} · ${records.length} 条`
+    : "尚未创建交易";
   if (!records.length) {
     elements.tradeRecordList.innerHTML = '<div class="trade-record-empty">还没有复盘记录。</div>';
     return;
   }
   elements.tradeRecordList.innerHTML = records
-    .map((record) => {
-      const isBuy = record.side === "buy";
+    .map(({ record, index }) => {
+      const action = record.action || "buy";
       const note = String(record.note || "").trim();
       return `
         <article class="trade-record-item">
-          <span class="trade-record-side ${isBuy ? "buy" : "sell"}">${isBuy ? "买入" : "卖出"}</span>
+          <span class="trade-record-side ${action}">${getTradeActionLabel(action)}</span>
           <div class="trade-record-main">
             <strong>${escapeHtml(record.date)} · ${
               record.quantity == null ? "" : `${fmtTradeQuantity(record.quantity)} 股 @ `
@@ -3044,7 +3191,7 @@ function renderTradeRecords(symbol, reviewId) {
           <button
             type="button"
             class="secondary trade-record-delete"
-            data-trade-delete="${escapeHtml(record.id)}"
+            data-trade-delete="${index}"
             aria-label="删除该交易记录"
             title="删除"
           >删除</button>
@@ -3072,10 +3219,10 @@ function saveNote() {
   }
   const symbol = normalizeSymbol(state.activeNoteSymbol);
   const value = String(elements.noteTextarea.value || "").trim();
-  const costBasis = parsePositiveNumber(elements.noteCostBasisInput.value);
-  const shares = parsePositiveNumber(elements.noteSharesInput.value);
-  const isHolding = !!elements.noteHoldingCheckbox.checked || costBasis != null || shares != null;
-  if (value || isHolding || costBasis != null || shares != null) {
+  const isHolding = !!elements.noteHoldingCheckbox.checked;
+  const costBasis = isHolding ? parsePositiveNumber(elements.noteCostBasisInput.value) : null;
+  const shares = isHolding ? parsePositiveNumber(elements.noteSharesInput.value) : null;
+  if (value || isHolding) {
     state.notes[symbol] = {
       text: value,
       isHolding,
@@ -3102,7 +3249,6 @@ async function deleteActiveSymbol() {
   removeSymbolFromGroups(symbol);
   state.summaries.delete(symbol);
   state.details.delete(symbol);
-  state.tradeReviews.delete(symbol);
   if (state.selectedSymbol === symbol) {
     state.selectedSymbol = state.watchlist[0] || null;
   }
@@ -3180,8 +3326,8 @@ function filterWatchlistSymbols(symbols) {
 
 function hasTradeReviewForSymbol(symbol) {
   const normalizedSymbol = normalizeSymbol(symbol);
-  return state.allTradeReviews.some(
-    (review) => normalizeSymbol(review?.symbol) === normalizedSymbol,
+  return state.allTrades.some(
+    (trade) => normalizeSymbol(trade?.symbol) === normalizedSymbol,
   );
 }
 

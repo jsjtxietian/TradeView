@@ -509,100 +509,132 @@ button:disabled {
   overflow: auto;
 }
 
-.trade-review-chooser,
+.trade-review-list-head {
+  align-items: center;
+}
+
+.trade-review-list-head h3 {
+  margin: 0;
+}
+
+.trade-review-list {
+  display: grid;
+  gap: 10px;
+  max-height: min(620px, calc(100vh - 190px));
+  overflow: auto;
+}
+
+.trade-review-list-item {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.trade-review-list-id {
+  color: rgba(71, 85, 105, 0.72);
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.trade-review-list-main {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.trade-review-list-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.trade-review-list-summary strong {
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.trade-review-list-summary time {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.trade-review-pnl {
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.trade-review-pnl.positive {
+  color: var(--success);
+}
+
+.trade-review-pnl.negative {
+  color: var(--danger);
+}
+
+.trade-review-pnl.neutral {
+  color: var(--muted);
+}
+
+.trade-review-list-main p {
+  overflow: hidden;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trade-review-list-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.trade-review-list-actions button {
+  min-width: 82px;
+  padding: 9px 12px;
+}
+
+.trade-overall-note {
+  min-height: 64px !important;
+}
+
+.trade-entry-note {
+  min-height: 46px !important;
+}
+
+.trade-entry-submit {
+  min-width: 0;
+  width: 112px;
+  min-height: 46px;
+  justify-self: end;
+}
+
 .trade-review-editor {
   display: grid;
   gap: 12px;
 }
 
-.trade-review-chooser[hidden],
 .trade-review-editor[hidden] {
   display: none;
 }
 
-.trade-review-editor-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-}
-
-.trade-review-editor-head strong {
-  font-size: 0.9rem;
-}
-
 .trade-entry-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(130px, 1fr));
+  grid-template-columns: 142px 234px 104px 96px minmax(112px, 1fr);
   gap: 12px;
   align-items: end;
 }
 
-.trade-review-choice {
-  display: grid;
-  gap: 12px;
-  padding: 14px;
-  border: 1px solid rgba(15, 23, 42, 0.09);
-  border-radius: 8px;
-}
-
-.trade-review-choice.existing {
-  border-left: 3px solid var(--accent);
-  background: rgba(11, 132, 165, 0.055);
-}
-
-.trade-review-choice.create {
-  border-left: 3px solid var(--warm);
-  background: rgba(180, 83, 9, 0.045);
-}
-
-.trade-review-choice-head p {
-  margin: 3px 0 0;
-  color: var(--muted);
-  font-size: 0.78rem;
-}
-
-.trade-review-step {
-  color: var(--text);
-  font-size: 0.88rem;
-  font-weight: 750;
-}
-
-.trade-review-choice-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
-}
-
-.trade-review-choice-row select {
+.trade-entry-grid input {
   width: 100%;
-}
-
-.trade-review-choice-row button {
-  min-width: 96px;
-}
-
-.trade-review-choice-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.trade-review-editor-divider {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--muted);
-  font-size: 0.76rem;
-  font-weight: 700;
-}
-
-.trade-review-editor-divider::before,
-.trade-review-editor-divider::after {
-  content: "";
-  height: 1px;
-  flex: 1;
-  background: rgba(15, 23, 42, 0.1);
+  min-width: 0;
 }
 
 .trade-side-field {
@@ -620,7 +652,7 @@ button:disabled {
 
 .trade-side-options {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   overflow: hidden;
   min-height: 46px;
   border: 1px solid rgba(83, 129, 158, 0.18);
@@ -650,6 +682,11 @@ button:disabled {
 .trade-side-options .buy:has(input:checked) {
   background: rgba(22, 101, 52, 0.12);
   color: var(--success);
+}
+
+.trade-side-options .add:has(input:checked) {
+  background: rgba(14, 116, 144, 0.12);
+  color: var(--accent);
 }
 
 .trade-side-options .sell:has(input:checked) {
@@ -711,6 +748,10 @@ button:disabled {
 
 .trade-record-side.buy {
   color: var(--success);
+}
+
+.trade-record-side.add {
+  color: var(--accent);
 }
 
 .trade-record-side.sell {
@@ -1751,11 +1792,12 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
-  .trade-review-choice-row {
-    grid-template-columns: 1fr;
+  .trade-review-list-item {
+    grid-template-columns: 38px minmax(0, 1fr);
   }
 
-  .trade-review-choice-actions {
+  .trade-review-list-actions {
+    grid-column: 1 / -1;
     display: grid;
     grid-template-columns: 1fr 1fr;
   }

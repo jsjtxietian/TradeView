@@ -364,3 +364,21 @@ These choices are deliberate to keep:
 - offline support strong
 - implementation maintainable
 - homepage visually dense but still readable
+# IBKR 交易导入
+
+建议每次从 IBKR 下载 YTD Transaction History。导出的时间范围可以与之前重叠，
+追加阶段会按股票、币种和完整成交明细去重。
+
+先生成独立 JSON 供检查：
+
+```powershell
+python tools/import_ibkr_transactions.py convert ibkr-transactions-ytd.csv --output ibkr-trades.json
+```
+
+确认后追加到应用数据：
+
+```powershell
+python tools/import_ibkr_transactions.py append ibkr-trades.json --output .trade/trades.json
+```
+
+重复运行 append 不会重复写入已有交易。整体复盘 `note` 不参与去重。

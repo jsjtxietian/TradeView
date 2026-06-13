@@ -1,3 +1,6 @@
 .streamlit/secrets.toml
 __pycache__/
 .trade/
+U*.TRANSACTIONS.*.csv
+U*.TRADES.json
+U*.YTD*.TRADES.json
