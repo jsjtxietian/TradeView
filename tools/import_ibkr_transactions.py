@@ -168,6 +168,19 @@ def write_json(path: Path, payload: list[dict[str, Any]]) -> None:
     )
 
 
+def trade_chronology_key(trade: dict[str, Any]) -> tuple[str, str, str]:
+    dates = sorted(
+        str(transaction.get("date", ""))
+        for transaction in trade.get("transactions", [])
+        if transaction.get("date")
+    )
+    return (
+        dates[0] if dates else "",
+        dates[-1] if dates else "",
+        str(trade.get("symbol", "")),
+    )
+
+
 def trade_signature(trade: dict[str, Any]) -> str:
     transactions = sorted(
         trade.get("transactions", []),
@@ -197,7 +210,7 @@ def append_trades(
     next_id = max((int(trade.get("id", 0)) for trade in existing), default=0) + 1
     added = 0
     duplicates = 0
-    for raw_trade in source:
+    for raw_trade in sorted(source, key=trade_chronology_key):
         symbol = str(raw_trade.get("symbol", "")).strip().upper()
         currency = str(raw_trade.get("currency", "")).strip().upper()
         transactions = raw_trade.get("transactions")
@@ -217,8 +230,6 @@ def append_trades(
         signatures.add(signature)
         next_id += 1
         added += 1
-    for index, trade in enumerate(existing, start=1):
-        trade["id"] = index
     write_json(output_path, existing)
     return existing, added, duplicates
 
@@ -230,7 +241,10 @@ def main() -> None:
         converted, skipped = split_closed_trades(transactions, args.start_date)
         standalone = [
             {"id": index, **trade}
-            for index, trade in enumerate(converted, start=1)
+            for index, trade in enumerate(
+                sorted(converted, key=trade_chronology_key),
+                start=1,
+            )
         ]
         write_json(args.output, standalone)
         print(f"读取股票买卖记录: {len(transactions)}")

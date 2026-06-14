@@ -382,3 +382,5 @@ python tools/import_ibkr_transactions.py append ibkr-trades.json --output .trade
 ```
 
 重复运行 append 不会重复写入已有交易。整体复盘 `note` 不参与去重。
+独立转换结果按每笔交易的首次操作日期正序编号；append 保留已有 ID，
+并将新识别的完整交易按时间顺序追加到末尾。网页仍按最后卖出日期倒序展示。
