@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>交易数据统计</title>
+  <link rel="stylesheet" href="/static/styles.css?v=20260614-32" />
+  <link rel="stylesheet" href="/static/review.css?v=20260614-3" />
+</head>
+<body>
+  <main class="review-page">
+    <header class="review-page-header">
+      <div>
+        <a class="review-back-link" href="/">返回自选股</a>
+        <h1>交易数据统计</h1>
+        <p id="reviewCoverage"></p>
+      </div>
+      <label class="review-range-filter">
+        <span>统计区间</span>
+        <select id="reviewRange" aria-label="选择交易统计区间">
+          <option value="all">开户至今</option>
+          <option value="1m">近 1 个月</option>
+          <option value="3m">近 3 个月</option>
+          <option value="6m">近 6 个月</option>
+          <option value="ytd">今年至今</option>
+          <option value="12m">近 12 个月</option>
+        </select>
+      </label>
+    </header>
+
+    <section id="reviewSummary" class="review-summary" aria-label="交易核心统计"></section>
+
+    <section class="review-chart-section">
+      <div class="review-section-head">
+        <div>
+          <h2>盈亏分布</h2>
+          <p>每个完整多头或空头交易周期的收益率</p>
+        </div>
+        <div class="review-chart-legend" aria-label="盈亏分布图图例">
+          <span><i class="loss"></i>亏损</span>
+          <span><i class="win"></i>盈利</span>
+        </div>
+      </div>
+      <div id="reviewDistribution" class="review-distribution"></div>
+    </section>
+
+    <section class="review-detail-grid">
+      <article>
+        <div class="review-extreme-card-head">
+          <h2>最大盈利</h2>
+          <div class="review-mode-toggle" aria-label="切换最大盈利排名方式">
+            <button type="button" data-extreme-mode="percent" class="active">按比例</button>
+            <button type="button" data-extreme-mode="amount">按金额</button>
+          </div>
+        </div>
+        <div id="reviewLargestWins" class="review-extreme-list"></div>
+      </article>
+      <article>
+        <div class="review-extreme-card-head">
+          <h2>最大亏损</h2>
+          <div class="review-mode-toggle" aria-label="切换最大亏损排名方式">
+            <button type="button" data-extreme-mode="percent" class="active">按比例</button>
+            <button type="button" data-extreme-mode="amount">按金额</button>
+          </div>
+        </div>
+        <div id="reviewLargestLosses" class="review-extreme-list"></div>
+      </article>
+    </section>
+  </main>
+
+  <script src="/static/review.js?v=20260614-3" type="module"></script>
+</body>
+</html>

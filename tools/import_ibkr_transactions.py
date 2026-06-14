@@ -111,45 +111,88 @@ def split_closed_trades(
         )
         position = 0.0
         current: list[dict[str, Any]] = []
-        ignored_unmatched_sales = False
-        for item in ordered:
-            if item["side"] == "sell" and item["quantity"] > position + QUANTITY_EPSILON:
-                position = 0.0
-                current = []
-                ignored_unmatched_sales = True
-                continue
-            action = "sell"
-            if item["side"] == "buy":
-                action = "buy" if position <= QUANTITY_EPSILON else "add"
-                position += item["quantity"]
-            else:
-                position -= item["quantity"]
+        current_direction: str | None = None
+
+        def append_record(
+            item: dict[str, Any],
+            action: str,
+            quantity: float,
+        ) -> None:
             current.append({
                 "date": item["date"],
-                "quantity": item["quantity"],
+                "quantity": round(quantity, 4),
                 "price": item["price"],
                 "action": action,
                 "note": "",
             })
+
+        def finish_current(item: dict[str, Any]) -> None:
+            nonlocal current, current_direction
+            if not start_date or any(
+                transaction["date"] >= start_date
+                for transaction in current
+            ):
+                trades.append({
+                    "symbol": symbol,
+                    "currency": item["currency"],
+                    "direction": current_direction,
+                    "note": "",
+                    "transactions": current,
+                })
+            current = []
+            current_direction = None
+
+        for item in ordered:
+            quantity = item["quantity"]
             if abs(position) <= QUANTITY_EPSILON:
-                if not start_date or any(
-                    transaction["date"] >= start_date
-                    for transaction in current
-                ):
-                    trades.append({
-                        "symbol": symbol,
-                        "currency": item["currency"],
-                        "note": "",
-                        "transactions": current,
-                    })
-                current = []
                 position = 0.0
+                if item["side"] == "buy":
+                    current_direction = "long"
+                    append_record(item, "buy", quantity)
+                    position = quantity
+                else:
+                    current_direction = "short"
+                    append_record(item, "short", quantity)
+                    position = -quantity
+                continue
+
+            if position > 0:
+                if item["side"] == "buy":
+                    append_record(item, "add", quantity)
+                    position += quantity
+                    continue
+                closing_quantity = min(position, quantity)
+                append_record(item, "sell", closing_quantity)
+                position -= closing_quantity
+                quantity -= closing_quantity
+                if abs(position) <= QUANTITY_EPSILON:
+                    position = 0.0
+                    finish_current(item)
+                if quantity > QUANTITY_EPSILON:
+                    current_direction = "short"
+                    append_record(item, "short", quantity)
+                    position = -quantity
+                continue
+
+            if item["side"] == "sell":
+                append_record(item, "add_short", quantity)
+                position -= quantity
+                continue
+            closing_quantity = min(abs(position), quantity)
+            append_record(item, "cover", closing_quantity)
+            position += closing_quantity
+            quantity -= closing_quantity
+            if abs(position) <= QUANTITY_EPSILON:
+                position = 0.0
+                finish_current(item)
+            if quantity > QUANTITY_EPSILON:
+                current_direction = "long"
+                append_record(item, "buy", quantity)
+                position += quantity
+
         if current and (not start_date or any(item["date"] >= start_date for item in current)):
-            skipped[symbol] = "筛选区间内有交易，但截至报表结束仍未清仓"
-        elif ignored_unmatched_sales and not any(
-            trade["symbol"] == symbol for trade in trades
-        ):
-            skipped[symbol] = "存在早于完整建仓记录的卖出，且未找到符合条件的完整清仓轮次"
+            direction_label = "多头" if current_direction == "long" else "空头"
+            skipped[symbol] = f"筛选区间内有交易，但截至报表结束仍有未平仓{direction_label}持仓"
     return trades, skipped
 
 
@@ -186,7 +229,14 @@ def trade_signature(trade: dict[str, Any]) -> str:
         trade.get("transactions", []),
         key=lambda item: (
             str(item.get("date", "")),
-            {"buy": 0, "add": 1, "sell": 2}.get(str(item.get("action", "")), 9),
+            {
+                "buy": 0,
+                "add": 1,
+                "sell": 2,
+                "short": 3,
+                "add_short": 4,
+                "cover": 5,
+            }.get(str(item.get("action", "")), 9),
             float(item.get("price", 0)),
             float(item.get("quantity", 0)),
             str(item.get("note", "")),
@@ -195,6 +245,7 @@ def trade_signature(trade: dict[str, Any]) -> str:
     comparable = {
         "symbol": trade.get("symbol"),
         "currency": str(trade.get("currency", "USD")).upper(),
+        "direction": str(trade.get("direction", "long")).lower(),
         "transactions": transactions,
     }
     return json.dumps(comparable, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
@@ -213,12 +264,19 @@ def append_trades(
     for raw_trade in sorted(source, key=trade_chronology_key):
         symbol = str(raw_trade.get("symbol", "")).strip().upper()
         currency = str(raw_trade.get("currency", "")).strip().upper()
+        direction = str(raw_trade.get("direction", "long")).strip().lower()
         transactions = raw_trade.get("transactions")
-        if not symbol or not currency or not isinstance(transactions, list):
-            raise ValueError("待追加 JSON 中存在缺少 symbol、currency 或 transactions 的交易。")
+        if (
+            not symbol
+            or not currency
+            or direction not in {"long", "short"}
+            or not isinstance(transactions, list)
+        ):
+            raise ValueError("待追加 JSON 中存在无效的 symbol、currency、direction 或 transactions。")
         trade = {
             "symbol": symbol,
             "currency": currency,
+            "direction": direction,
             "note": str(raw_trade.get("note", "")).strip(),
             "transactions": transactions,
         }

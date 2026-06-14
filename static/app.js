@@ -1615,9 +1615,15 @@ class TradeMarkerPrimitive {
         }
 
         const action = record.action || "buy";
-        const isSell = action === "sell";
-        const color = isSell ? "#b42318" : action === "add" ? "#0e7490" : "#166534";
-        const direction = isSell ? -1 : 1;
+        const isDownAction = action === "sell" || action === "short" || action === "add_short";
+        const color = action === "sell"
+          ? "#b42318"
+          : action === "short" || action === "add_short"
+            ? "#9f1239"
+            : action === "add" || action === "cover"
+              ? "#0e7490"
+              : "#166534";
+        const direction = isDownAction ? -1 : 1;
         const lineStart = y + direction * 11 * verticalRatio;
         const lineEnd = y + direction * lineLength;
         const quantity = record.quantity == null
@@ -1634,7 +1640,7 @@ class TradeMarkerPrimitive {
 
         context.fillStyle = color;
         context.beginPath();
-        if (!isSell) {
+        if (!isDownAction) {
           context.moveTo(x, y);
           context.lineTo(x - 6 * horizontalRatio, y + 11 * verticalRatio);
           context.lineTo(x + 6 * horizontalRatio, y + 11 * verticalRatio);
@@ -2864,7 +2870,7 @@ async function openTradeReview() {
 function getTradeSortDate(trade) {
   const transactions = trade.transactions || [];
   const sellDates = transactions
-    .filter((transaction) => transaction.action === "sell")
+    .filter((transaction) => transaction.action === "sell" || transaction.action === "cover")
     .map((transaction) => String(transaction.date || ""));
   const allDates = transactions.map((transaction) => String(transaction.date || ""));
   return sellDates.sort().at(-1) || allDates.sort().at(-1) || "";
@@ -2895,6 +2901,7 @@ function renderTradeReviewList() {
           <div class="trade-review-list-main">
             <div class="trade-review-list-summary">
               <strong>${escapeHtml(trade.symbol)}</strong>
+              ${trade.direction === "short" ? '<span class="trade-direction-badge short">空头</span>' : ""}
               ${lastDate ? `<time>${escapeHtml(lastDate)}</time>` : ""}
               <span class="trade-review-pnl ${pnl.tone}">${escapeHtml(pnl.label)}</span>
             </div>
@@ -2915,22 +2922,31 @@ function renderTradeReviewList() {
 }
 
 function calculateTradePnl(trade) {
-  let buyCost = 0;
-  let sellProceeds = 0;
+  const direction = trade.direction === "short" ? "short" : "long";
+  let openingAmount = 0;
+  let closingAmount = 0;
   for (const transaction of trade.transactions || []) {
     const quantity = Number(transaction.quantity || 0);
     const amount = quantity * Number(transaction.price || 0);
-    if (transaction.action === "sell") {
-      sellProceeds += amount;
-    } else {
-      buyCost += amount;
+    if (
+      (direction === "long" && ["buy", "add"].includes(transaction.action))
+      || (direction === "short" && ["short", "add_short"].includes(transaction.action))
+    ) {
+      openingAmount += amount;
+    } else if (
+      (direction === "long" && transaction.action === "sell")
+      || (direction === "short" && transaction.action === "cover")
+    ) {
+      closingAmount += amount;
     }
   }
-  if (!buyCost) {
+  if (!openingAmount) {
     return { label: "暂无盈亏", tone: "neutral" };
   }
-  const pnl = sellProceeds - buyCost;
-  const pnlPct = pnl / buyCost;
+  const pnl = direction === "short"
+    ? openingAmount - closingAmount
+    : closingAmount - openingAmount;
+  const pnlPct = pnl / openingAmount;
   const currency = String(trade.currency || "USD").toUpperCase();
   return {
     label: `盈亏 ${pnl >= 0 ? "+" : ""}${fmtPrice(pnl)} ${currency} · ${fmtPct(pnlPct)}`,
@@ -3023,7 +3039,7 @@ function getTradeReview(symbol, tradeId) {
   return trade?.symbol === normalizeSymbol(symbol) ? trade : null;
 }
 
-async function createTradeReview() {
+async function createTradeReview(direction = "long") {
   const symbol = normalizeSymbol(elements.tradeSymbolSelect.value);
   if (!symbol) {
     throw new Error("请选择复盘股票。");
@@ -3034,6 +3050,7 @@ async function createTradeReview() {
     body: JSON.stringify({
       symbol,
       currency: "USD",
+      direction,
       note: String(elements.tradeOverallNoteInput.value || "").trim(),
     }),
   });
@@ -3109,11 +3126,12 @@ async function saveTradeRecord() {
   if (!state.currentChartData.some((row) => row.Date === tradeDate)) {
     throw new Error("该日期不是当前图表中的交易日。");
   }
+  const selectedAction = elements.tradeReviewForm.querySelector('input[name="tradeAction"]:checked');
+  const action = selectedAction?.value || "buy";
   const isNewTrade = !trade;
   if (isNewTrade) {
-    trade = await createTradeReview();
+    trade = await createTradeReview(["short", "add_short", "cover"].includes(action) ? "short" : "long");
   }
-  const selectedAction = elements.tradeReviewForm.querySelector('input[name="tradeAction"]:checked');
   const record = await fetchJson(
     `/api/trades/${trade.id}/transactions`,
     {
@@ -3123,7 +3141,7 @@ async function saveTradeRecord() {
       date: tradeDate,
       quantity: Number(elements.tradeQuantityInput.value),
       price: Number(elements.tradePriceInput.value),
-      action: selectedAction?.value || "buy",
+      action,
       note: String(elements.tradeNoteInput.value || "").trim(),
     }),
   });
@@ -3160,7 +3178,14 @@ async function deleteTradeRecord(transactionIndex) {
 }
 
 function getTradeActionLabel(action) {
-  return action === "sell" ? "卖出" : action === "add" ? "加仓" : "买入";
+  return {
+    buy: "买入",
+    add: "加仓",
+    sell: "卖出",
+    short: "做空",
+    add_short: "加空",
+    cover: "回补",
+  }[action] || "买入";
 }
 
 function renderTradeRecords(tradeId) {

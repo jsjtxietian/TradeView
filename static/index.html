@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trend Deck</title>
-  <link rel="stylesheet" href="/static/styles.css?v=20260613-30" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260614-32" />
 </head>
 <body>
   <div class="page-shell">
@@ -248,7 +248,10 @@
     <div class="group-editor-shell trade-review-shell">
       <div class="panel-header trade-review-list-head">
         <h3>交易复盘</h3>
-        <button type="button" id="createTradeReviewButton">新建</button>
+        <div class="trade-review-head-actions">
+          <a href="/review" target="_blank" rel="noopener" class="secondary trade-stats-link">数据统计</a>
+          <button type="button" id="createTradeReviewButton">新建</button>
+        </div>
       </div>
       <div id="tradeReviewList" class="trade-review-list"></div>
       <div class="group-editor-actions">
@@ -294,6 +297,18 @@
                 <input type="radio" name="tradeAction" value="sell" />
                 <span>卖出</span>
               </label>
+              <label class="short">
+                <input type="radio" name="tradeAction" value="short" />
+                <span>做空</span>
+              </label>
+              <label class="add-short">
+                <input type="radio" name="tradeAction" value="add_short" />
+                <span>加空</span>
+              </label>
+              <label class="cover">
+                <input type="radio" name="tradeAction" value="cover" />
+                <span>回补</span>
+              </label>
             </div>
           </fieldset>
           <label class="note-editor-field">
@@ -329,6 +344,6 @@
   <div id="toast" class="toast" hidden></div>
 
   <script src="https://unpkg.com/lightweight-charts@5.0.0/dist/lightweight-charts.standalone.production.js"></script>
-  <script src="/static/app.js?v=20260613-33" type="module"></script>
+  <script src="/static/app.js?v=20260614-35" type="module"></script>
 </body>
 </html>

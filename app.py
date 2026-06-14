@@ -104,8 +104,9 @@ def normalize_trade_store(payload: list[Any]) -> list[dict[str, Any]]:
             continue
         symbol = normalize_symbol(str(raw_trade.get("symbol", "")))
         currency = str(raw_trade.get("currency", "USD")).strip().upper() or "USD"
+        direction = str(raw_trade.get("direction", "long")).strip().lower()
         note = str(raw_trade.get("note", "")).strip()
-        if trade_id <= 0 or trade_id in seen_ids or not symbol:
+        if trade_id <= 0 or trade_id in seen_ids or not symbol or direction not in {"long", "short"}:
             continue
         seen_ids.add(trade_id)
         raw_transactions = raw_trade.get("transactions", [])
@@ -120,6 +121,7 @@ def normalize_trade_store(payload: list[Any]) -> list[dict[str, Any]]:
             "id": trade_id,
             "symbol": symbol,
             "currency": currency,
+            "direction": direction,
             "note": note,
             "transactions": transactions,
         })
@@ -138,8 +140,8 @@ def normalize_transaction(data: Any) -> dict[str, Any]:
         raise ValueError("交易日期必须是 YYYY-MM-DD 格式。") from exc
     if parsed_date.strftime("%Y-%m-%d") != trade_date:
         raise ValueError("交易日期无效。")
-    if action not in {"buy", "add", "sell"}:
-        raise ValueError("交易行为必须是买入、加仓或卖出。")
+    if action not in {"buy", "add", "sell", "short", "add_short", "cover"}:
+        raise ValueError("交易行为无效。")
     try:
         price = float(data.get("price"))
     except (TypeError, ValueError) as exc:
@@ -165,12 +167,21 @@ def list_all_trades() -> list[dict[str, Any]]:
     return load_trade_store()
 
 
-def create_trade(symbol: str, note: str = "", currency: str = "USD") -> dict[str, Any]:
+def create_trade(
+    symbol: str,
+    note: str = "",
+    currency: str = "USD",
+    direction: str = "long",
+) -> dict[str, Any]:
     payload = load_trade_store()
+    normalized_direction = direction.strip().lower()
+    if normalized_direction not in {"long", "short"}:
+        raise ValueError("交易方向必须是多头或空头。")
     trade = {
         "id": max((int(item["id"]) for item in payload), default=0) + 1,
         "symbol": symbol,
         "currency": currency.strip().upper() or "USD",
+        "direction": normalized_direction,
         "note": note.strip(),
         "transactions": [],
     }
@@ -2584,6 +2595,11 @@ def root() -> FileResponse:
     return FileResponse(STATIC_DIR / "index.html")
 
 
+@app.get("/review")
+def review() -> FileResponse:
+    return FileResponse(STATIC_DIR / "review.html")
+
+
 @app.get("/api/config")
 def get_config() -> dict[str, Any]:
     return {
@@ -2723,7 +2739,10 @@ def add_trade(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
             normalized,
             str(payload.get("note", "")),
             str(payload.get("currency", "USD")),
+            str(payload.get("direction", "long")),
         )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
