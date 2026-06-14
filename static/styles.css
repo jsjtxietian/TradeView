@@ -501,7 +501,9 @@ button:disabled {
 }
 
 .trade-review-dialog {
-  width: min(820px, calc(100vw - 24px));
+  width: min(760px, calc(100vw - 24px));
+  max-height: none;
+  overflow: visible;
 }
 
 .trade-review-shell {
@@ -895,7 +897,7 @@ button:disabled {
 
 .trade-entry-grid {
   display: grid;
-  grid-template-columns: 142px 234px 104px 96px minmax(112px, 1fr);
+  grid-template-columns: 128px 200px 92px 84px minmax(100px, 1fr);
   gap: 12px;
   align-items: end;
 }

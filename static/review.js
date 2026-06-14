@@ -5,9 +5,15 @@ const elements = {
   distribution: document.getElementById("reviewDistribution"),
   largestWins: document.getElementById("reviewLargestWins"),
   largestLosses: document.getElementById("reviewLargestLosses"),
+  ledgerCoverage: document.getElementById("reviewLedgerCoverage"),
+  cashSummary: document.getElementById("reviewCashSummary"),
+  dividends: document.getElementById("reviewDividends"),
+  interest: document.getElementById("reviewInterest"),
+  misc: document.getElementById("reviewMisc"),
 };
 
 let allResults = [];
+let ledger = null;
 let extremeMode = "percent";
 
 init().catch((error) => {
@@ -15,11 +21,15 @@ init().catch((error) => {
 });
 
 async function init() {
-  const response = await fetch("/api/trades");
-  if (!response.ok) {
-    throw new Error(`交易数据读取失败（${response.status}）`);
+  const [tradeResponse, ledgerResponse] = await Promise.all([
+    fetch("/api/trades"),
+    fetch("/api/review/ledger"),
+  ]);
+  if (!tradeResponse.ok) {
+    throw new Error(`交易数据读取失败（${tradeResponse.status}）`);
   }
-  const payload = await response.json();
+  const payload = await tradeResponse.json();
+  ledger = ledgerResponse.ok ? await ledgerResponse.json() : null;
   allResults = (payload.trades || [])
     .map(calculateTradeResult)
     .filter(Boolean)
@@ -86,6 +96,13 @@ function parseIsoDate(value) {
   return new Date(year, month - 1, day);
 }
 
+function formatLocalIsoDate(value) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function getStartDate(range) {
   if (range === "all") {
     return null;
@@ -102,18 +119,125 @@ function getStartDate(range) {
 
 function render() {
   const startDate = getStartDate(elements.range.value);
-  const results = startDate
+  const rangeResults = startDate
     ? allResults.filter((result) => parseIsoDate(result.exitDate) >= startDate)
     : allResults;
+  const boxxResults = rangeResults.filter((result) => result.symbol === "BOXX");
+  const results = rangeResults.filter((result) => result.symbol !== "BOXX");
   const longCount = results.filter((result) => result.direction === "long").length;
   const shortCount = results.length - longCount;
   elements.coverage.textContent = results.length
-    ? `${results[0].exitDate} 至 ${results.at(-1).exitDate} · ${results.length} 笔完整交易（${longCount} 多 / ${shortCount} 空）· 未计佣金`
+    ? `${results[0].exitDate} 至 ${results.at(-1).exitDate} · ${results.length} 笔普通完整交易（${longCount} 多 / ${shortCount} 空）· BOXX 归入类现金收益`
     : "所选区间没有完整平仓交易";
   renderSummary(results);
+  renderLedger(startDate, boxxResults);
   renderDistribution(results);
   renderExtremeList(elements.largestWins, results, "win", extremeMode);
   renderExtremeList(elements.largestLosses, results, "loss", extremeMode);
+}
+
+function renderLedger(startDate, boxxResults) {
+  if (!ledger?.available) {
+    elements.ledgerCoverage.textContent = "未找到 .trade/ledger.json，请先导入 IBKR 账务数据";
+    for (const container of [elements.cashSummary, elements.dividends, elements.interest, elements.misc]) {
+      container.innerHTML = '<div class="review-empty compact">暂无账单数据</div>';
+    }
+    return;
+  }
+  const entries = (ledger.entries || []).filter(
+    (entry) => !startDate || parseIsoDate(entry.date) >= startDate,
+  );
+  const currency = ledger.baseCurrency || "USD";
+  const commissions = sumEntries(entries, "commission");
+  const grossDividends = sumEntries(entries, "dividend");
+  const withholding = sumEntries(entries, "withholding_tax");
+  const netDividends = grossDividends + withholding;
+  const brokerInterest = sumEntries(entries, "credit_interest");
+  const debitInterest = sumEntries(entries, "debit_interest");
+  const boxxPnl = boxxResults.reduce((total, result) => total + result.pnl, 0);
+  const miscIncome = sumEntries(entries, "misc_income");
+  const miscExpense = sumEntries(entries, "misc_expense");
+  const cashIncome = brokerInterest + boxxPnl;
+  const selectedStart = startDate ? formatLocalIsoDate(startDate) : ledger.startDate;
+  elements.ledgerCoverage.textContent =
+    `当前统计 ${selectedStart} 至 ${ledger.endDate} · JSON 数据覆盖 ${ledger.startDate} 至 ${ledger.endDate} · 基础货币 ${currency}`;
+  const cards = [
+    ["全部佣金", fmtMoney(commissions, currency), "买卖及外汇成交佣金净额", commissions ? "negative" : ""],
+    ["股息净收入", fmtMoney(netDividends, currency), `毛额 ${fmtMoney(grossDividends, currency)} · 预扣税 ${fmtMoney(withholding, currency)}`, "positive"],
+    ["现金利息 / 类现金", fmtMoney(cashIncome, currency), `IBKR ${fmtMoney(brokerInterest, currency)} · BOXX ${fmtMoney(boxxPnl, currency)}`, cashIncome >= 0 ? "positive" : "negative"],
+    ["融资利息", fmtMoney(debitInterest, currency), "借方利息与借贷费用", debitInterest < 0 ? "negative" : ""],
+    ["其他收支净额", fmtMoney(miscIncome + miscExpense, currency), `收入 ${fmtMoney(miscIncome, currency)} · 支出 ${fmtMoney(miscExpense, currency)}`, miscIncome + miscExpense >= 0 ? "positive" : "negative"],
+  ];
+  elements.cashSummary.innerHTML = cards.map(([label, value, detail, tone]) => `
+    <article class="review-stat-card ${tone}">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(value)}</strong>
+      <small>${escapeHtml(detail)}</small>
+    </article>
+  `).join("");
+  renderDividendList(entries, currency);
+  renderInterestList(brokerInterest, boxxPnl, debitInterest, currency);
+  renderMiscList(entries, currency);
+}
+
+function sumEntries(entries, category) {
+  return entries
+    .filter((entry) => entry.category === category)
+    .reduce((total, entry) => total + Number(entry.amount || 0), 0);
+}
+
+function renderDividendList(entries, currency) {
+  const grouped = {};
+  for (const entry of entries.filter((item) => ["dividend", "withholding_tax"].includes(item.category))) {
+    const symbol = entry.symbol || "未分类";
+    grouped[symbol] ||= { symbol, gross: 0, tax: 0 };
+    if (entry.category === "dividend") grouped[symbol].gross += entry.amount;
+    else grouped[symbol].tax += entry.amount;
+  }
+  const rows = Object.values(grouped)
+    .map((item) => ({ ...item, net: item.gross + item.tax }))
+    .sort((left, right) => right.net - left.net);
+  renderLedgerRows(
+    elements.dividends,
+    rows,
+    (item) => `<b>${escapeHtml(item.symbol)}</b><span>毛额 ${escapeHtml(fmtMoney(item.gross, currency))} · 税 ${escapeHtml(fmtMoney(item.tax, currency))}</span><strong>${escapeHtml(fmtMoney(item.net, currency))}</strong>`,
+  );
+}
+
+function renderInterestList(brokerInterest, boxxPnl, debitInterest, currency) {
+  const rows = [
+    { label: "IBKR 贷方利息 / 股票收益提升", detail: "账单贷方利息", amount: brokerInterest },
+    { label: "BOXX 已实现价差", detail: "完整平仓收益，未扣佣金", amount: boxxPnl },
+    { label: "融资及借贷利息", detail: "账单借方利息", amount: debitInterest },
+  ].filter((item) => item.amount);
+  renderLedgerRows(
+    elements.interest,
+    rows,
+    (item) => `<b>${escapeHtml(item.label)}</b><span>${escapeHtml(item.detail)}</span><strong class="${item.amount < 0 ? "negative" : "positive"}">${escapeHtml(fmtMoney(item.amount, currency))}</strong>`,
+  );
+}
+
+function renderMiscList(entries, currency) {
+  const grouped = {};
+  for (const entry of entries.filter((item) => ["misc_income", "misc_expense"].includes(item.category))) {
+    const key = entry.description || "未分类";
+    grouped[key] ||= { label: key, amount: 0 };
+    grouped[key].amount += entry.amount;
+  }
+  const rows = Object.values(grouped)
+    .filter((item) => Math.abs(item.amount) >= 0.005)
+    .sort((left, right) => Math.abs(right.amount) - Math.abs(left.amount));
+  renderLedgerRows(
+    elements.misc,
+    rows,
+    (item) => `<b>${escapeHtml(item.label)}</b><span>${item.amount >= 0 ? "其他收入" : "其他支出"}</span><strong class="${item.amount < 0 ? "negative" : "positive"}">${escapeHtml(fmtMoney(item.amount, currency))}</strong>`,
+  );
+}
+
+function renderLedgerRows(container, rows, formatter) {
+  container.innerHTML = rows.length
+    ? rows.map((item) => `<div class="review-ledger-item">${formatter(item)}</div>`).join("")
+    : '<div class="review-empty compact">所选区间暂无数据</div>';
 }
 
 function renderSummary(results) {
@@ -385,6 +509,11 @@ function fmtDays(value) {
 function fmtSignedMoney(value) {
   if (!Number.isFinite(value)) return "-";
   return `${value > 0 ? "+" : ""}${value.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function fmtMoney(value, currency) {
+  if (!Number.isFinite(value)) return "-";
+  return `${currency} ${fmtSignedMoney(value)}`;
 }
 
 function buildCountTicks(maxCount) {

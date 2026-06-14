@@ -23,6 +23,7 @@ CACHE_DIR = Path(".cache")
 CACHE_DIR.mkdir(exist_ok=True)
 TRADE_DIR = Path(".trade")
 TRADE_FILE = TRADE_DIR / "trades.json"
+LEDGER_FILE = TRADE_DIR / "ledger.json"
 WATCHLIST_FILE = TRADE_DIR / "watchlist.json"
 STATIC_DIR = Path("static")
 PROMPT_TEMPLATE_PATH = Path("prompt_template.md")
@@ -165,6 +166,32 @@ def normalize_transaction(data: Any) -> dict[str, Any]:
 
 def list_all_trades() -> list[dict[str, Any]]:
     return load_trade_store()
+
+
+def load_ibkr_review_ledger() -> dict[str, Any]:
+    if not LEDGER_FILE.exists():
+        return {
+            "available": False,
+            "baseCurrency": "USD",
+            "sourceFile": LEDGER_FILE.name,
+            "startDate": None,
+            "endDate": None,
+            "entries": [],
+        }
+    try:
+        payload = json.loads(LEDGER_FILE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"账户账务文件读取失败: {exc}") from exc
+    if not isinstance(payload, dict) or not isinstance(payload.get("entries"), list):
+        raise ValueError("账户账务文件格式无效。")
+    return {
+        "available": True,
+        "baseCurrency": str(payload.get("baseCurrency", "USD")).upper(),
+        "sourceFile": LEDGER_FILE.name,
+        "startDate": payload.get("startDate"),
+        "endDate": payload.get("endDate"),
+        "entries": payload["entries"],
+    }
 
 
 def create_trade(
@@ -2725,6 +2752,14 @@ def get_trades() -> dict[str, Any]:
             "symbols": sorted({str(trade["symbol"]) for trade in trades}),
             "trades": trades,
         }
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/api/review/ledger")
+def get_review_ledger() -> dict[str, Any]:
+    try:
+        return load_ibkr_review_ledger()
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 

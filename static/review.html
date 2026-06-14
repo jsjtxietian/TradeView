@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>交易数据统计</title>
   <link rel="stylesheet" href="/static/styles.css?v=20260614-32" />
-  <link rel="stylesheet" href="/static/review.css?v=20260614-3" />
+  <link rel="stylesheet" href="/static/review.css?v=20260614-5" />
 </head>
 <body>
   <main class="review-page">
@@ -66,8 +66,32 @@
         <div id="reviewLargestLosses" class="review-extreme-list"></div>
       </article>
     </section>
+
+    <section class="review-income-section">
+      <div class="review-section-head">
+        <div>
+          <h2>账户收入与费用</h2>
+          <p id="reviewLedgerCoverage">正在读取 IBKR 交易账单</p>
+        </div>
+      </div>
+      <section id="reviewCashSummary" class="review-cash-summary" aria-label="账户收入费用汇总"></section>
+      <section class="review-ledger-grid">
+        <article>
+          <h3>股息收入（按股票）</h3>
+          <div id="reviewDividends" class="review-ledger-list"></div>
+        </article>
+        <article>
+          <h3>利息与类现金收益</h3>
+          <div id="reviewInterest" class="review-ledger-list"></div>
+        </article>
+        <article>
+          <h3>其他收入与支出</h3>
+          <div id="reviewMisc" class="review-ledger-list"></div>
+        </article>
+      </section>
+    </section>
   </main>
 
-  <script src="/static/review.js?v=20260614-3" type="module"></script>
+  <script src="/static/review.js?v=20260614-7" type="module"></script>
 </body>
 </html>

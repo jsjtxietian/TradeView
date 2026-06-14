@@ -13,6 +13,15 @@ TRADE_SECTION = "Transaction History"
 BUY_TYPES = {"买", "Buy"}
 SELL_TYPES = {"卖", "Sell"}
 QUANTITY_EPSILON = 1e-8
+LEDGER_IGNORED_TYPES = {
+    "买",
+    "卖",
+    "Buy",
+    "Sell",
+    "外汇交易组成部分",
+    "存款",
+    "取款",
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -42,6 +51,18 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=Path(".trade/trades.json"),
         help="Trade store to update (default: .trade/trades.json)",
+    )
+
+    ledger = commands.add_parser(
+        "ledger",
+        help="Convert IBKR commissions, dividends, interest, and miscellaneous cash flows to JSON",
+    )
+    ledger.add_argument("csv_path", type=Path)
+    ledger.add_argument(
+        "--output",
+        type=Path,
+        default=Path(".trade/ledger.json"),
+        help="Ledger JSON output (default: .trade/ledger.json)",
     )
     return parser.parse_args()
 
@@ -79,6 +100,76 @@ def read_stock_transactions(csv_path: Path) -> list[dict[str, Any]]:
                 "side": "buy" if trade_type in BUY_TYPES else "sell",
             })
     return transactions
+
+
+def parse_optional_number(value: Any) -> float | None:
+    text = str(value or "").strip().replace(",", "")
+    if not text or text == "-":
+        return None
+    try:
+        return float(text)
+    except ValueError:
+        return None
+
+
+def convert_ledger(csv_path: Path) -> dict[str, Any]:
+    header: list[str] | None = None
+    base_currency = "USD"
+    dates: list[str] = []
+    entries: list[dict[str, Any]] = []
+    with csv_path.open(encoding="utf-8-sig", newline="") as csv_file:
+        for row in csv.reader(csv_file):
+            if row[:2] == ["总结", "Data"] and len(row) >= 4 and row[2] == "基础货币":
+                base_currency = str(row[3]).strip().upper() or base_currency
+                continue
+            if row[:2] == [TRADE_SECTION, "Header"]:
+                header = row[2:]
+                continue
+            if row[:2] != [TRADE_SECTION, "Data"] or header is None:
+                continue
+            raw = dict(zip(header, row[2:]))
+            date = str(raw.get("日期", "")).strip()
+            try:
+                datetime.strptime(date, "%Y-%m-%d")
+            except ValueError:
+                continue
+            dates.append(date)
+            transaction_type = str(raw.get("交易类型", "")).strip()
+            symbol = str(raw.get("代码", "")).strip().upper()
+            description = str(raw.get("说明", "")).strip()
+            amount = parse_optional_number(raw.get("总额"))
+            commission = parse_optional_number(raw.get("佣金"))
+            if commission is not None:
+                entries.append({
+                    "date": date,
+                    "category": "commission",
+                    "symbol": "" if symbol == "-" else symbol,
+                    "description": description,
+                    "amount": commission,
+                })
+            category = {
+                "股息": "dividend",
+                "外国预扣税": "withholding_tax",
+                "贷方利息": "credit_interest",
+                "借方利息": "debit_interest",
+            }.get(transaction_type)
+            if category is None and transaction_type not in LEDGER_IGNORED_TYPES and amount:
+                category = "misc_income" if amount > 0 else "misc_expense"
+            if category is not None and amount is not None:
+                entries.append({
+                    "date": date,
+                    "category": category,
+                    "symbol": "" if symbol == "-" else symbol,
+                    "description": description,
+                    "amount": amount,
+                })
+    return {
+        "version": 1,
+        "baseCurrency": base_currency,
+        "startDate": min(dates) if dates else None,
+        "endDate": max(dates) if dates else None,
+        "entries": entries,
+    }
 
 
 def split_closed_trades(
@@ -294,6 +385,18 @@ def append_trades(
 
 def main() -> None:
     args = parse_args()
+    if args.command == "ledger":
+        payload = convert_ledger(args.csv_path)
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        print(f"生成账务记录: {len(payload['entries'])}")
+        print(f"覆盖区间: {payload['startDate']} 至 {payload['endDate']}")
+        print(f"输出: {args.output}")
+        return
+
     if args.command == "convert":
         transactions = read_stock_transactions(args.csv_path)
         converted, skipped = split_closed_trades(transactions, args.start_date)
