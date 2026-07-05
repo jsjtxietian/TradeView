@@ -942,6 +942,17 @@ def evaluate_current_volume_below_ma50(context: AnalysisContext) -> tuple[bool |
     )
 
 
+def evaluate_price_not_extended_from_ma20(context: AnalysisContext) -> tuple[bool | None, str]:
+    latest = context.latest
+    if not require_values(latest["Close"], latest["MA20"]) or latest["MA20"] == 0:
+        return None, "MA20 数据不足"
+    extension = float(latest["Close"] / latest["MA20"] - 1)
+    return (
+        bool(extension <= 0.10),
+        f"现价 {fmt_price(latest['Close'])} / MA20 {fmt_price(latest['MA20'])} · 延伸 {fmt_signed_pct(extension)} / 上限 +10%",
+    )
+
+
 def evaluate_recent_volatility_contraction(context: AnalysisContext) -> tuple[bool | None, str]:
     if len(context.stock) < 15:
         return None, "近期波动区间至少需要 15 个交易日数据"
@@ -1053,6 +1064,7 @@ def build_buy_indicator_groups(
         item("Leaders Bottom First", evaluate_leaders_bottom_first(context, lookback_days)),
     ]
     volume_item = item("当前成交量低于 50 日均量", evaluate_current_volume_below_ma50(context))
+    extension_item = item("距 MA20 不超过 10%", evaluate_price_not_extended_from_ma20(context))
     contraction_item = item("近 10 日收盘区间小于 10%", evaluate_recent_volatility_contraction(context))
     power_play = find_power_play_setup(context)
     if power_play is None:
@@ -1090,23 +1102,23 @@ def build_buy_indicator_groups(
 
     return [
         group(
-            "market_context",
-            "市场与抗跌背景",
-            f"{BUY_LOOKBACK_WINDOWS[lookback_days]}窗口，仅作背景观察",
-            context_items,
-            observational=True,
-        ),
-        group(
             "common_volume",
-            "当前缩量",
-            "",
-            [volume_item],
+            "买入点推荐",
+            "不追高 AND 当日缩量",
+            [extension_item, volume_item],
         ),
         group(
             "pattern_a",
             "标准波动率收缩",
             "近期平台收紧",
             pattern_a_items,
+        ),
+        group(
+            "market_context",
+            "市场与抗跌背景",
+            f"{BUY_LOOKBACK_WINDOWS[lookback_days]}窗口，仅作背景观察",
+            context_items,
+            observational=True,
         ),
         group(
             "pattern_b",

@@ -16,6 +16,7 @@ const BUY_CHECK_RULES = {
   "个股最大回撤不超过 SPY 的 2.5 倍": "在所选窗口内，个股与 SPY 分别按收盘价独立计算最大峰谷回撤；个股不得超过 SPY 最大回撤的 2.5 倍。",
   "个股最大回撤小于 35%": "在所选窗口内，按收盘价计算个股最大峰谷回撤，要求小于 35%。",
   "Leaders Bottom First": "定位 SPY 最大回撤段，个股需更早见低，并在 SPY 见低前不再跌破该低点。",
+  "距 MA20 不超过 10%": "最新收盘价相对 MA20 的延伸幅度不超过 10%，用于避免明显追高；负值表示仍在 MA20 下方。",
   "当前成交量低于 50 日均量": "最新交易日成交量低于包含该交易日在内的 50 日平均成交量。",
   "近 10 日收盘区间小于 10%": "最近 10 个交易日按最高收盘价和最低收盘价计算：1 - 最低收盘 / 最高收盘。",
   "8 周涨幅达到 100%": "整理开始前约 8 周内，最低价到之后最高价的最大上涨幅度达到 100%。",
@@ -752,31 +753,35 @@ function renderIndicatorGroup(group, ruleTooltips) {
           : renderCompactCheckState(group.passed)}
       </header>
       <div class="buy-indicator-items">
-        ${(group.items || []).map((item) => `
-          <div class="buy-indicator-item">
-            <div>
-              <div class="buy-indicator-item-title">
-                <strong>${escapeHtml(item.name)}</strong>
-                ${ruleTooltips[item.name] ? `
-                  <button
-                    type="button"
-                    class="check-rule-button"
-                    title="${escapeHtml(ruleTooltips[item.name])}"
-                    aria-label="${escapeHtml(item.name)}计算规则"
-                  >i</button>
-                ` : ""}
-              </div>
-              <p>${escapeHtml(group.attention
-                ? `${observationStatusLabel(item.passed)} · ${item.detail || ""}`
-                : item.detail || "")}</p>
-            </div>
-            ${group.attention
-              ? renderObservationState(item.passed)
-              : renderCompactCheckState(item.passed, item.severity)}
-          </div>
-        `).join("")}
+        ${(group.items || []).map((item) => renderIndicatorItem(item, ruleTooltips, group.attention)).join("")}
       </div>
     </section>
+  `;
+}
+
+function renderIndicatorItem(item, ruleTooltips, attention = false) {
+  return `
+    <div class="buy-indicator-item">
+      <div>
+        <div class="buy-indicator-item-title">
+          <strong>${escapeHtml(item.name)}</strong>
+          ${ruleTooltips[item.name] ? `
+            <button
+              type="button"
+              class="check-rule-button"
+              title="${escapeHtml(ruleTooltips[item.name])}"
+              aria-label="${escapeHtml(item.name)}计算规则"
+            >i</button>
+          ` : ""}
+        </div>
+        <p>${escapeHtml(attention
+          ? `${observationStatusLabel(item.passed)} · ${item.detail || ""}`
+          : item.detail || "")}</p>
+      </div>
+      ${attention
+        ? renderObservationState(item.passed)
+        : renderCompactCheckState(item.passed, item.severity)}
+    </div>
   `;
 }
 
