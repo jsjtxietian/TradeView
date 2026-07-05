@@ -942,6 +942,21 @@ def evaluate_current_volume_below_ma50(context: AnalysisContext) -> tuple[bool |
     )
 
 
+def evaluate_latest_range_below_ma50(context: AnalysisContext) -> tuple[bool | None, str]:
+    if len(context.stock) < 50:
+        return None, "前一日波动率至少需要 50 个交易日数据"
+    frame = context.stock.copy()
+    frame["RangePct"] = (frame["High"] - frame["Low"]) / frame["Close"]
+    latest_range = frame["RangePct"].iloc[-1]
+    range_ma50 = frame["RangePct"].rolling(50).mean().iloc[-1]
+    if not require_values(latest_range, range_ma50) or range_ma50 == 0:
+        return None, "前一日波动率数据不足"
+    return (
+        bool(latest_range < range_ma50),
+        f"前一日振幅 {fmt_pct(latest_range)} / 50 日均振幅 {fmt_pct(range_ma50)}",
+    )
+
+
 def evaluate_price_not_extended_from_ma20(context: AnalysisContext) -> tuple[bool | None, str]:
     latest = context.latest
     if not require_values(latest["Close"], latest["MA20"]) or latest["MA20"] == 0:
@@ -2000,22 +2015,14 @@ BASE_TREND_SPECS = [
     CheckSpec("trend_8", "相对 SPY 表现分不低于 60", evaluate_rs_proxy_threshold),
 ]
 
+TREND_TEMPLATE_VARIANT_EXCLUDED_NAMES = {"相对 SPY 表现分不低于 60"}
+
 ADVANCED_TREND_SPECS = [
-    CheckSpec(
-        "trend_9",
-        "大盘回调测试: 回撤小于大盘或形成更高低点",
-        evaluate_market_pullback_resilience,
-    ),
     CheckSpec("trend_10", "30个交易日内放量上涨日明显多于放量下跌日", evaluate_volume_price_health),
-    CheckSpec("trend_11", "回调深度限制: 距近期高点回调不超过 35%", evaluate_pullback_depth_limit),
-    CheckSpec("trend_12", "VCP 波动率收缩: 近期波动明显收窄", evaluate_vcp_contraction),
-    CheckSpec("trend_13", "枢轴点缩量: 收缩末端成交量极度萎缩", evaluate_pivot_volume_dry_up),
 ]
 
 PATTERN_RISK_SPECS = [
     CheckSpec("pattern_1", "MVP 动量量价共振", evaluate_mvp_burst),
-    CheckSpec("pattern_2", "Power Play 高位紧凑旗形", evaluate_power_play),
-    CheckSpec("pattern_3", "VCP 收缩递减结构", evaluate_vcp_contraction_ladder),
     CheckSpec("pattern_4", "突破后跟进买盘占优", evaluate_follow_through_count),
     CheckSpec("pattern_5", "近期好收盘天数占优", evaluate_good_closes),
     CheckSpec("pattern_6", "未出现三连阴破位", evaluate_no_three_lower_lows),
@@ -2482,6 +2489,10 @@ def analyze_symbol(
         rs_detail=rs_detail,
     )
     trend_checks = build_checks(BASE_TREND_SPECS, analysis_context)
+    previous_range_check = CheckResult(
+        "前一日振幅低于 50 日均振幅",
+        *evaluate_latest_range_below_ma50(analysis_context),
+    )
     temp_advanced_trend_checks = build_checks(ADVANCED_TREND_SPECS, analysis_context)
     buy_indicator_groups_by_window = {
         str(days): build_buy_indicator_groups(analysis_context, days)
@@ -2514,6 +2525,15 @@ def analyze_symbol(
     is_six_month_high = bool(require_values(latest["Close"], six_month_high) and latest["Close"] >= six_month_high)
     is_six_month_low = bool(require_values(latest["Close"], six_month_low) and latest["Close"] <= six_month_low)
     trend_pass_count, trend_total, trend_status = summarize_check_group(trend_checks)
+    trend_variant_base_checks = [
+        check
+        for check in trend_checks
+        if check.name not in TREND_TEMPLATE_VARIANT_EXCLUDED_NAMES
+    ]
+    trend_variant_match = bool(
+        trend_variant_base_checks
+        and all(check.passed is True for check in trend_variant_base_checks)
+    )
     advanced_trend_pass_count, advanced_trend_total, advanced_trend_status = summarize_check_group(
         [
             CheckResult(item["name"], item["passed"], item["detail"])
@@ -2556,6 +2576,9 @@ def analyze_symbol(
         "trendPassCount": trend_pass_count,
         "trendTotal": trend_total,
         "trendStatus": trend_status,
+        "trendTemplateVariantMatch": trend_variant_match,
+        "previousRangeBelowMA50": previous_range_check.passed,
+        "previousRangeBelowMA50Detail": previous_range_check.detail,
         "advancedTrendPassCount": advanced_trend_pass_count,
         "advancedTrendTotal": advanced_trend_total,
         "advancedTrendStatus": advanced_trend_status,
@@ -2622,6 +2645,9 @@ def summary_payload(
         "trendPassCount": data["trendPassCount"],
         "trendTotal": data["trendTotal"],
         "trendStatus": data["trendStatus"],
+        "trendTemplateVariantMatch": data["trendTemplateVariantMatch"],
+        "previousRangeBelowMA50": data["previousRangeBelowMA50"],
+        "previousRangeBelowMA50Detail": data["previousRangeBelowMA50Detail"],
     }
 
 

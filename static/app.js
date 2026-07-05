@@ -3,6 +3,8 @@ const GROUPS_STORAGE_KEY = "trenddeck_watchlist_groups";
 const CHART_PREFS_KEY = "trenddeck_chart_prefs";
 const NOTES_STORAGE_KEY = "trenddeck_symbol_notes";
 const TREND_FILTER_STORAGE_KEY = "trenddeck_watchlist_filter_template";
+const TREND_VARIANT_FILTER_STORAGE_KEY = "trenddeck_watchlist_filter_template_variant";
+const RANGE_BELOW_MA50_FILTER_STORAGE_KEY = "trenddeck_watchlist_filter_range_below_ma50";
 const HOLDING_FILTER_STORAGE_KEY = "trenddeck_watchlist_filter_holding";
 const VOLUME_BELOW_MA50_FILTER_STORAGE_KEY = "trenddeck_watchlist_filter_volume_below_ma50";
 const ALERTS_STORAGE_KEY = "trenddeck_watchlist_alerts";
@@ -11,7 +13,7 @@ const DEFAULT_VISIBLE_BARS = 126;
 const WATCHLIST_COLUMN_MIN_WIDTH = 280;
 const WATCHLIST_COLUMN_GAP = 10;
 const CHART_PRICE_SCALE_MIN_WIDTH = 96;
-const SUBDUED_CHECK_NAMES = new Set(["近期波动明显收窄", "收缩末端成交量极度萎缩"]);
+const SUBDUED_CHECK_NAMES = new Set();
 const BUY_CHECK_RULES = {
   "个股最大回撤不超过 SPY 的 2.5 倍": "在所选窗口内，个股与 SPY 分别按收盘价独立计算最大峰谷回撤；个股不得超过 SPY 最大回撤的 2.5 倍。",
   "个股最大回撤小于 35%": "在所选窗口内，按收盘价计算个股最大峰谷回撤，要求小于 35%。",
@@ -23,11 +25,7 @@ const BUY_CHECK_RULES = {
   "3-6 周收盘区间不超过 20%": "依次检查最近 15 至 30 个交易日，按最高收盘价和最低收盘价计算整理区间。",
 };
 const ADVANCED_CHECK_RULES = {
-  "回撤小于大盘或形成更高低点": "近63个交易日先定位 SPY 最大回撤段，再比较个股同时间窗内的最大回撤；若个股近期低点抬高，也视为加分项。",
   "30个交易日内放量上涨日明显多于放量下跌日": "近30日仅统计成交量高于 1.05 倍 50 日均量的交易日；强度 = abs(日涨跌幅) * (Volume / VolumeMA50)。",
-  "距近期高点回调不超过 35%": "看近6个月最高收盘到当前收盘的回撤幅度；35% 以内更健康，50% 以上视为过深。",
-  "近期波动明显收窄": "把近45日拆成三段比较平均振幅，要求逐段收缩；最近10日至少出现 2 根小实体 K 线。",
-  "收缩末端成交量极度萎缩": "近10日均量需明显低于 50 日均量，最新成交量接近盘整低位，且近10日振幅不宜超过 8%。",
 };
 const PATTERN_RISK_RULES = {
   "Climax Top：近 1-3 周上涨至少 25%": "固定检查截至最新交易日的 5 至 15 日窗口，不受卖出观察期选择影响；按首尾收盘价计算涨幅，最佳窗口达到 25% 即触发 Climax Top 警报。",
@@ -48,6 +46,8 @@ const state = {
   alerts: [],
   alertsSnapshot: {},
   filterTrendTemplateOnly: false,
+  filterTrendTemplateVariantOnly: false,
+  filterRangeBelowMA50Only: false,
   filterHoldingOnly: false,
   filterVolumeBelowMA50Only: false,
   buyIndicatorWindow: 63,
@@ -98,6 +98,8 @@ const elements = {
   watchlistFilterCount: document.getElementById("watchlistFilterCount"),
   watchlistFilterPanel: document.getElementById("watchlistFilterPanel"),
   trendFilterInput: document.getElementById("trendFilterInput"),
+  trendVariantFilterInput: document.getElementById("trendVariantFilterInput"),
+  rangeBelowMA50FilterInput: document.getElementById("rangeBelowMA50FilterInput"),
   holdingFilterInput: document.getElementById("holdingFilterInput"),
   volumeBelowMA50FilterInput: document.getElementById("volumeBelowMA50FilterInput"),
   clearWatchlistFiltersButton: document.getElementById("clearWatchlistFiltersButton"),
@@ -182,6 +184,8 @@ async function init() {
   state.alerts = loadStoredAlerts();
   state.alertsSnapshot = loadStoredAlertsSnapshot();
   state.filterTrendTemplateOnly = loadStoredTrendFilter();
+  state.filterTrendTemplateVariantOnly = loadStoredTrendVariantFilter();
+  state.filterRangeBelowMA50Only = loadStoredRangeBelowMA50Filter();
   state.filterHoldingOnly = loadStoredHoldingFilter();
   state.filterVolumeBelowMA50Only = loadStoredVolumeBelowMA50Filter();
   const fallbackGroups = normalizeWatchlistGroups(config.watchlistGroups || []);
@@ -257,8 +261,22 @@ function bindEvents() {
     updateWatchlistFilter("filterTrendTemplateOnly", elements.trendFilterInput.checked);
   });
 
+  elements.trendVariantFilterInput.addEventListener("change", () => {
+    updateWatchlistFilter(
+      "filterTrendTemplateVariantOnly",
+      elements.trendVariantFilterInput.checked,
+    );
+  });
+
   elements.holdingFilterInput.addEventListener("change", () => {
     updateWatchlistFilter("filterHoldingOnly", elements.holdingFilterInput.checked);
+  });
+
+  elements.rangeBelowMA50FilterInput.addEventListener("change", () => {
+    updateWatchlistFilter(
+      "filterRangeBelowMA50Only",
+      elements.rangeBelowMA50FilterInput.checked,
+    );
   });
 
   elements.volumeBelowMA50FilterInput.addEventListener("change", () => {
@@ -270,9 +288,13 @@ function bindEvents() {
 
   elements.clearWatchlistFiltersButton.addEventListener("click", () => {
     state.filterTrendTemplateOnly = false;
+    state.filterTrendTemplateVariantOnly = false;
+    state.filterRangeBelowMA50Only = false;
     state.filterHoldingOnly = false;
     state.filterVolumeBelowMA50Only = false;
     persistTrendFilter();
+    persistTrendVariantFilter();
+    persistRangeBelowMA50Filter();
     persistHoldingFilter();
     persistVolumeBelowMA50Filter();
     syncWatchlistFilters();
@@ -638,6 +660,8 @@ function queueWatchlistLayoutRefresh() {
 function updateWatchlistFilter(stateKey, enabled) {
   state[stateKey] = enabled;
   persistTrendFilter();
+  persistTrendVariantFilter();
+  persistRangeBelowMA50Filter();
   persistHoldingFilter();
   persistVolumeBelowMA50Filter();
   syncWatchlistFilters();
@@ -2392,12 +2416,17 @@ function updateHoverCard(row, point, pinned = false) {
     return;
   }
 
+  const previousRow = getPreviousChartRow(row);
+  const changePct = previousRow?.Close && row.Close != null
+    ? Number(row.Close) / Number(previousRow.Close) - 1
+    : null;
   const parts = [
     `<strong>${row.Date}</strong>`,
+    `涨跌幅 ${fmtPct(changePct)}`,
     `开盘 ${fmtPrice(row.Open)}`,
+    `收盘 ${fmtPrice(row.Close)}`,
     `最高 ${fmtPrice(row.High)}`,
     `最低 ${fmtPrice(row.Low)}`,
-    `收盘 ${fmtPrice(row.Close)}`,
     `成交量 ${fmtVolume(row.Volume)}`,
   ];
 
@@ -2452,6 +2481,14 @@ function updateHoverCard(row, point, pinned = false) {
   top = Math.max(8, top);
   elements.chartHoverCard.style.left = `${left}px`;
   elements.chartHoverCard.style.top = `${top}px`;
+}
+
+function getPreviousChartRow(row) {
+  const index = state.currentChartData.findIndex((item) => item.Date === row.Date);
+  if (index <= 0) {
+    return null;
+  }
+  return state.currentChartData[index - 1];
 }
 
 function hideHoverCard() {
@@ -2518,6 +2555,20 @@ function persistNotes() {
 
 function persistTrendFilter() {
   localStorage.setItem(TREND_FILTER_STORAGE_KEY, state.filterTrendTemplateOnly ? "1" : "0");
+}
+
+function persistTrendVariantFilter() {
+  localStorage.setItem(
+    TREND_VARIANT_FILTER_STORAGE_KEY,
+    state.filterTrendTemplateVariantOnly ? "1" : "0",
+  );
+}
+
+function persistRangeBelowMA50Filter() {
+  localStorage.setItem(
+    RANGE_BELOW_MA50_FILTER_STORAGE_KEY,
+    state.filterRangeBelowMA50Only ? "1" : "0",
+  );
 }
 
 function persistHoldingFilter() {
@@ -2652,6 +2703,22 @@ function loadStoredNotes() {
 function loadStoredTrendFilter() {
   try {
     return localStorage.getItem(TREND_FILTER_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function loadStoredTrendVariantFilter() {
+  try {
+    return localStorage.getItem(TREND_VARIANT_FILTER_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function loadStoredRangeBelowMA50Filter() {
+  try {
+    return localStorage.getItem(RANGE_BELOW_MA50_FILTER_STORAGE_KEY) === "1";
   } catch {
     return false;
   }
@@ -3340,6 +3407,12 @@ function filterWatchlistSymbols(symbols) {
     if (state.filterTrendTemplateOnly && !isTrendTemplateMatch(data)) {
       return false;
     }
+    if (state.filterTrendTemplateVariantOnly && !data?.trendTemplateVariantMatch) {
+      return false;
+    }
+    if (state.filterRangeBelowMA50Only && !data?.previousRangeBelowMA50) {
+      return false;
+    }
     if (
       state.filterHoldingOnly
       && !getHoldingForSymbol(symbol)
@@ -3387,6 +3460,8 @@ async function syncSelectionWithFilter() {
 function hasActiveWatchlistFilters() {
   return (
     state.filterTrendTemplateOnly
+    || state.filterTrendTemplateVariantOnly
+    || state.filterRangeBelowMA50Only
     || state.filterHoldingOnly
     || state.filterVolumeBelowMA50Only
   );
@@ -3394,10 +3469,14 @@ function hasActiveWatchlistFilters() {
 
 function syncWatchlistFilters() {
   elements.trendFilterInput.checked = state.filterTrendTemplateOnly;
+  elements.trendVariantFilterInput.checked = state.filterTrendTemplateVariantOnly;
+  elements.rangeBelowMA50FilterInput.checked = state.filterRangeBelowMA50Only;
   elements.holdingFilterInput.checked = state.filterHoldingOnly;
   elements.volumeBelowMA50FilterInput.checked = state.filterVolumeBelowMA50Only;
   const count =
     Number(state.filterTrendTemplateOnly) +
+    Number(state.filterTrendTemplateVariantOnly) +
+    Number(state.filterRangeBelowMA50Only) +
     Number(state.filterHoldingOnly) +
     Number(state.filterVolumeBelowMA50Only);
   elements.watchlistFilterCount.hidden = count === 0;
@@ -3407,6 +3486,12 @@ function syncWatchlistFilters() {
 }
 
 function getWatchlistEmptyMessage() {
+  if (state.filterTrendTemplateVariantOnly) {
+    return "当前没有满足趋势模板变种的股票；变种通过基础趋势检查，但忽略相对 SPY 分。";
+  }
+  if (state.filterRangeBelowMA50Only) {
+    return "当前没有满足全部筛选条件的股票；前一日振幅条件按最新完整日线与50日均振幅比较。";
+  }
   if (state.filterVolumeBelowMA50Only) {
     return "当前没有满足全部筛选条件的股票；成交量条件按前一交易日与50日均量比较。";
   }

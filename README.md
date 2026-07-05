@@ -88,6 +88,10 @@ Keys:
   per-symbol notes and holding flag
 - `trenddeck_watchlist_filter_template`
   whether watchlist is filtered to full trend-template matches
+- `trenddeck_watchlist_filter_template_variant`
+  whether watchlist is filtered to the trend-template variant
+- `trenddeck_watchlist_filter_range_below_ma50`
+  whether watchlist is filtered to stocks whose latest complete daily range is below the 50-day average range
 - `trenddeck_watchlist_filter_holding`
   whether watchlist is filtered to locally marked holdings
 - `trenddeck_watchlist_alerts`
@@ -191,7 +195,7 @@ Reasoning:
 There are two analysis groups:
 
 - base trend template `1-8`
-- extended checks `9-13`
+- selected extended checks used under `Temp · 旧指标`
 
 Base implementation note:
 
@@ -206,8 +210,6 @@ Base implementation note:
 
 Extended implementation note:
 
-- trend `9` first finds SPY's largest drawdown window over the latest `63` trading days
-- stock resilience is then judged inside that same market-stress window, while also checking for a higher-low structure
 - trend `10` uses a weighted volume-price health score over the latest `30` trading days
 - a day counts as "volume-significant" only when `Volume > 1.05 * VolumeMA50`
 - upward and downward pressure are scored separately as `abs(day return) * (Volume / VolumeMA50)`
@@ -215,14 +217,21 @@ Extended implementation note:
   - volume-significant up days are at least `3`
   - up days are not fewer than down days
   - upward weighted score is at least `max(down_score * 1.25, down_score + 0.02)`
-- trend `11` measures pullback from the latest `6` month closing high to current close
-- trend `12` compares average amplitude across three recent segments and also checks for small-body candles in the latest `10` sessions
-- trend `13` looks for simultaneous range contraction and volume dry-up near the end of consolidation
+- duplicated pullback, VCP contraction, and Power Play checks were removed from the old-indicator bucket after being promoted into `买入指标观察`
 
-The watchlist filter `只看趋势模板` currently means:
+The watchlist filter `趋势模板` currently means:
 
 - only show stocks where `trendPassCount === trendTotal`
 - effectively full pass on the base template set
+
+The watchlist filter `趋势模板变种` currently means:
+
+- ignore the base template item `相对 SPY 表现分不低于 60`
+- require all other base trend-template items to pass
+
+The watchlist filter `前一日振幅低于50日均振幅` currently means:
+
+- require the latest complete daily intraday range to be below its 50-day average range
 
 Reason:
 

@@ -46,6 +46,22 @@
               </label>
               <label class="watchlist-filter-option">
                 <span>
+                  <strong>趋势模板变种</strong>
+                  <small>通过基础趋势检查，但忽略相对 SPY 分</small>
+                </span>
+                <input id="trendVariantFilterInput" type="checkbox" />
+                <i aria-hidden="true"></i>
+              </label>
+              <label class="watchlist-filter-option">
+                <span>
+                  <strong>前一日振幅低于50日均振幅</strong>
+                  <small>仅显示最新完整日线振幅低于50日均振幅的股票</small>
+                </span>
+                <input id="rangeBelowMA50FilterInput" type="checkbox" />
+                <i aria-hidden="true"></i>
+              </label>
+              <label class="watchlist-filter-option">
+                <span>
                   <strong>我的持仓与曾经持仓</strong>
                   <small>显示当前持仓或交易复盘中出现过的股票</small>
                 </span>
@@ -344,6 +360,6 @@
   <div id="toast" class="toast" hidden></div>
 
   <script src="https://unpkg.com/lightweight-charts@5.0.0/dist/lightweight-charts.standalone.production.js"></script>
-  <script src="/static/app.js?v=20260614-38" type="module"></script>
+  <script src="/static/app.js?v=20260705-1" type="module"></script>
 </body>
 </html>
