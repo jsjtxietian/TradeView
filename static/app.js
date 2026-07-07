@@ -13,7 +13,6 @@ const DEFAULT_VISIBLE_BARS = 126;
 const WATCHLIST_COLUMN_MIN_WIDTH = 280;
 const WATCHLIST_COLUMN_GAP = 10;
 const CHART_PRICE_SCALE_MIN_WIDTH = 96;
-const SUBDUED_CHECK_NAMES = new Set();
 const BUY_CHECK_RULES = {
   "个股最大回撤不超过 SPY 的 2.5 倍": "在所选窗口内，个股与 SPY 分别按收盘价独立计算最大峰谷回撤；个股不得超过 SPY 最大回撤的 2.5 倍。",
   "个股最大回撤小于 35%": "在所选窗口内，按收盘价计算个股最大峰谷回撤，要求小于 35%。",
@@ -21,13 +20,15 @@ const BUY_CHECK_RULES = {
   "距 MA20 不超过 10%": "最新收盘价相对 MA20 的延伸幅度不超过 10%，用于避免明显追高；负值表示仍在 MA20 下方。",
   "当前成交量低于 50 日均量": "最新交易日成交量低于包含该交易日在内的 50 日平均成交量。",
   "近 10 日收盘区间小于 10%": "最近 10 个交易日按最高收盘价和最低收盘价计算：1 - 最低收盘 / 最高收盘。",
+  "MVP 动量量价共振": "最近 15 日至少 12 日上涨、累计涨幅至少 20%，且最近 15 日均量达到此前 30 日均量的 1.25 倍；三项需同时满足。",
   "8 周涨幅达到 100%": "整理开始前约 8 周内，最低价到之后最高价的最大上涨幅度达到 100%。",
   "3-6 周收盘区间不超过 20%": "依次检查最近 15 至 30 个交易日，按最高收盘价和最低收盘价计算整理区间。",
 };
-const ADVANCED_CHECK_RULES = {
-  "30个交易日内放量上涨日明显多于放量下跌日": "近30日仅统计成交量高于 1.05 倍 50 日均量的交易日；强度 = abs(日涨跌幅) * (Volume / VolumeMA50)。",
-};
 const PATTERN_RISK_RULES = {
+  "股价保持在 MA20 上方": "最新收盘价不得低于 MA20；跌破即表示突破后的短期支撑转弱，量能不作为触发前提。",
+  "突破后 4 日 3 涨或 8 日 6 涨": "识别最近一次放量突破后，前 4 日至少 3 日上涨，或样本完整后前 8 日至少 6 日上涨；达到 7-8 日上涨会标记为更强的机构吸筹特征。",
+  "未出现连续 3-4 个更低低点": "最近 8 日出现连续至少 3 个更低低点即提示风险；若同期成交量逐日放大，会标记为更强风险。",
+  "好收盘多于坏收盘": "最近 10 日按收盘价在当日最高价与最低价之间的位置划分；上半区为好收盘，下半区为坏收盘，并要求好收盘严格更多。",
   "Climax Top：近 1-3 周上涨至少 25%": "固定检查截至最新交易日的 5 至 15 日窗口，不受卖出观察期选择影响；按首尾收盘价计算涨幅，最佳窗口达到 25% 即触发 Climax Top 警报。",
   "上涨日密度：出现高密度加速上涨": "固定检查截至最新交易日的 7 至 15 日窗口，不受卖出观察期选择影响；上涨日占比达到 70% 且同期涨幅至少 10%，才触发警报。",
   "长升段最大上涨日出现在观察期": "近一年内寻找最近一个随后至少上涨 30% 的阶段低点作为 Stage 2 近似起点；若本轮最大单日涨幅出现在所选观察期，则触发警报。",
@@ -121,7 +122,6 @@ const elements = {
   trendChecks: document.getElementById("trendChecks"),
   advancedTrendChecks: document.getElementById("advancedTrendChecks"),
   patternRiskChecks: document.getElementById("patternRiskChecks"),
-  tempAdvancedTrendChecks: document.getElementById("tempAdvancedTrendChecks"),
   buyIndicatorWindow: document.getElementById("buyIndicatorWindow"),
   sellIndicatorWindow: document.getElementById("sellIndicatorWindow"),
   chartStatusNote: document.getElementById("chartStatusNote"),
@@ -708,11 +708,6 @@ function renderSelectedDetail() {
   renderChecks(elements.trendChecks, detail.trendChecks);
   renderBuyIndicatorChecks();
   renderSellIndicatorChecks();
-  renderChecks(elements.tempAdvancedTrendChecks, detail.tempAdvancedTrendChecks, {
-    trimPrefix: true,
-    ruleTooltips: ADVANCED_CHECK_RULES,
-    subduedNames: SUBDUED_CHECK_NAMES,
-  });
   logDetailMessages(detail);
   renderMainChart(detail);
   syncMaToggleInputs();
@@ -2296,7 +2291,6 @@ function clearDetail() {
   elements.trendChecks.innerHTML = "";
   elements.advancedTrendChecks.innerHTML = "";
   elements.patternRiskChecks.innerHTML = "";
-  elements.tempAdvancedTrendChecks.innerHTML = "";
   hideHoverCard();
   destroyCharts();
 }

@@ -1081,6 +1081,7 @@ def build_buy_indicator_groups(
     volume_item = item("当前成交量低于 50 日均量", evaluate_current_volume_below_ma50(context))
     extension_item = item("距 MA20 不超过 10%", evaluate_price_not_extended_from_ma20(context))
     contraction_item = item("近 10 日收盘区间小于 10%", evaluate_recent_volatility_contraction(context))
+    mvp_item = item("MVP 动量量价共振", evaluate_mvp_burst(context))
     power_play = find_power_play_setup(context)
     if power_play is None:
         burst_item = {"name": "8 周涨幅达到 100%", "passed": None, "detail": "Power Play 样本不足"}
@@ -1136,6 +1137,12 @@ def build_buy_indicator_groups(
             observational=True,
         ),
         group(
+            "mvp",
+            "MVP 指标",
+            "15 日动量 AND 量能扩张",
+            [mvp_item],
+        ),
+        group(
             "pattern_b",
             "Power Play",
             "强势爆发 AND 紧凑整理",
@@ -1154,119 +1161,6 @@ def flatten_buy_indicator_groups(groups: list[dict[str, Any]]) -> list[dict[str,
             seen.add(item["name"])
             flattened.append(item)
     return flattened
-
-
-def evaluate_volume_price_health(context: AnalysisContext) -> tuple[bool | None, str]:
-    if len(context.stock) < 60:
-        return None, "量价健康度至少需要约 60 个交易日数据"
-
-    enriched = context.stock.copy()
-    enriched["PrevClose"] = enriched["Close"].shift(1)
-    enriched["VolumeMA50"] = enriched["Volume"].rolling(50).mean()
-    tail = enriched.tail(30)
-    if tail["VolumeMA50"].isna().all():
-        return None, "50 日均量数据不足"
-
-    volume_ratio = tail["Volume"] / tail["VolumeMA50"]
-    volume_signal = volume_ratio > 1.05
-    day_return = tail["Close"] / tail["PrevClose"] - 1
-    weighted_move = day_return.abs() * volume_ratio.where(volume_signal, 0)
-
-    up_days = int(((day_return > 0) & volume_signal).sum())
-    down_days = int(((day_return < 0) & volume_signal).sum())
-    up_score = float(weighted_move.where(day_return > 0, 0).sum())
-    down_score = float(weighted_move.where(day_return < 0, 0).sum())
-
-    passed = bool(
-        up_days >= 3
-        and up_days >= down_days
-        and up_score >= max(down_score * 1.25, down_score + 0.02)
-    )
-    detail = (
-        f"上涨: {up_days} 天 / 加权强度 {fmt_pct(up_score)}"
-        f"\n下跌: {down_days} 天 / 加权强度 {fmt_pct(down_score)}（基准: 50 日均量）"
-    )
-    return passed, detail
-
-
-def evaluate_pullback_depth_limit(context: AnalysisContext) -> tuple[bool | None, str]:
-    if len(context.stock) < 63:
-        return None, "回调深度至少需要近 3 个月数据"
-
-    lookback = context.stock.tail(min(126, len(context.stock)))
-    recent_high = lookback["High"].max()
-    latest_close = context.latest["Close"]
-    if not require_values(recent_high, latest_close) or recent_high == 0:
-        return None, "近期高点数据不足"
-
-    drawdown = 1 - latest_close / recent_high
-    passed = bool(drawdown <= 0.35)
-    detail = f"距近 6 个月高点回调 {fmt_pct(drawdown)} / 理想上限 35% / 硬上限 50%"
-    if not passed and drawdown <= 0.50:
-        detail += "，已超过理想区间但尚未跌破硬上限"
-    if drawdown > 0.50:
-        detail += "，已超过 50% 硬上限"
-    return passed, detail
-
-
-def evaluate_vcp_contraction(context: AnalysisContext) -> tuple[bool | None, str]:
-    if len(context.stock) < 45:
-        return None, "VCP 至少需要约 45 个交易日数据"
-
-    tail = context.stock.tail(45).copy()
-    tail["RangePct"] = (tail["High"] - tail["Low"]) / tail["Close"]
-    tail["BodyPct"] = (tail["Close"] - tail["Open"]).abs() / tail["Close"]
-    tail = tail.replace([np.inf, -np.inf], np.nan)
-
-    segments = [tail.iloc[0:15], tail.iloc[15:30], tail.iloc[30:45]]
-    range_avgs = [segment["RangePct"].dropna().mean() for segment in segments]
-    if any(pd.isna(value) for value in range_avgs):
-        return None, "波动率样本不足"
-
-    small_body_count = int((tail.tail(10)["BodyPct"].dropna() <= 0.012).sum())
-    passed = bool(
-        range_avgs[0] > range_avgs[1] > range_avgs[2]
-        and range_avgs[2] <= range_avgs[0] * 0.7
-        and small_body_count >= 2
-    )
-    detail = (
-        "近 45 日平均振幅: "
-        + " -> ".join(fmt_pct(value) for value in range_avgs)
-        + f" / 最近 10 日小实体 K 线 {small_body_count} 根"
-    )
-    return passed, detail
-
-
-def evaluate_pivot_volume_dry_up(context: AnalysisContext) -> tuple[bool | None, str]:
-    if len(context.stock) < 60:
-        return None, "缩量枢轴至少需要约 60 个交易日数据"
-
-    enriched = context.stock.copy()
-    enriched["VolumeMA50"] = enriched["Volume"].rolling(50).mean()
-    latest = enriched.iloc[-1]
-    if pd.isna(latest["VolumeMA50"]):
-        return None, "50 日均量数据不足"
-
-    recent_10 = enriched.tail(10)
-    recent_20 = enriched.tail(20)
-    recent_avg_volume = recent_10["Volume"].mean()
-    recent_min_volume = recent_20["Volume"].min()
-    latest_volume = latest["Volume"]
-    contraction = (recent_10["High"].max() - recent_10["Low"].min()) / latest["Close"] if latest["Close"] else np.nan
-
-    if not require_values(recent_avg_volume, recent_min_volume, latest_volume, contraction):
-        return None, "缩量枢轴数据不足"
-
-    passed = bool(
-        recent_avg_volume <= latest["VolumeMA50"] * 0.65
-        and latest_volume <= recent_min_volume * 1.05
-        and contraction <= 0.08
-    )
-    detail = (
-        f"近 10 日均量 {fmt_volume(recent_avg_volume)} / 50 日均量 {fmt_volume(latest['VolumeMA50'])}"
-        f" / 最新量 {fmt_volume(latest_volume)} / 近 10 日振幅 {fmt_pct(contraction)}"
-    )
-    return passed, detail
 
 
 def find_recent_breakout(stock: pd.DataFrame, lookback_days: int = 10, base_days: int = 20) -> dict[str, Any] | None:
@@ -1322,115 +1216,6 @@ def evaluate_mvp_burst(context: AnalysisContext) -> tuple[bool | None, str]:
     return passed, detail
 
 
-def evaluate_power_play(context: AnalysisContext) -> tuple[bool | None, str]:
-    if len(context.stock) < 90:
-        return None, "Power Play 至少需要约 90 个交易日数据"
-
-    frame = context.stock.tail(110).reset_index(drop=True)
-    latest_close = frame["Close"].iloc[-1]
-    best_candidate: dict[str, Any] | None = None
-
-    for base_len in range(10, 31):
-        run_end = len(frame) - base_len
-        run = frame.iloc[max(0, run_end - 40) : run_end]
-        prior = frame.iloc[max(0, run_end - 80) : max(0, run_end - 40)]
-        base = frame.iloc[run_end:]
-        if len(run) < 30 or len(base) < 10:
-            continue
-
-        run_low = run["Low"].min()
-        run_high = run["High"].max()
-        base_low = base["Low"].min()
-        base_high = base["High"].max()
-        if not require_values(run_low, run_high, base_low, base_high, latest_close) or run_low == 0 or base_high == 0:
-            continue
-
-        run_gain = float(run_high / run_low - 1)
-        base_drawdown = float(1 - base_low / base_high)
-        distance_from_base_high = float(1 - latest_close / base_high)
-        volume_ratio = np.nan
-        if not prior.empty:
-            prior_avg_volume = prior["Volume"].mean()
-            run_avg_volume = run["Volume"].mean()
-            if require_values(prior_avg_volume, run_avg_volume) and prior_avg_volume:
-                volume_ratio = float(run_avg_volume / prior_avg_volume)
-
-        low_price_allowance = 0.25 if latest_close < 20 else 0.20
-        volume_ok = bool(pd.isna(volume_ratio) or volume_ratio >= 1.25)
-        candidate = {
-            "base_len": base_len,
-            "run_gain": run_gain,
-            "base_drawdown": base_drawdown,
-            "distance_from_base_high": distance_from_base_high,
-            "volume_ratio": volume_ratio,
-            "passed": bool(
-                run_gain >= 1.0
-                and base_drawdown <= low_price_allowance
-                and distance_from_base_high <= 0.10
-                and volume_ok
-            ),
-        }
-        if best_candidate is None:
-            best_candidate = candidate
-            continue
-        if candidate["passed"] and not best_candidate["passed"]:
-            best_candidate = candidate
-            continue
-        if candidate["passed"] == best_candidate["passed"] and candidate["base_drawdown"] < best_candidate["base_drawdown"]:
-            best_candidate = candidate
-
-    if best_candidate is None:
-        return None, "Power Play 样本不足"
-
-    volume_text = "-" if pd.isna(best_candidate["volume_ratio"]) else f"{best_candidate['volume_ratio']:.2f}x"
-    detail = (
-        f"前段 8 周最大推进 {fmt_pct(best_candidate['run_gain'])}"
-        f"\n整理 {best_candidate['base_len']} 日回撤 {fmt_pct(best_candidate['base_drawdown'])}"
-        f"\n距整理高点 {fmt_pct(best_candidate['distance_from_base_high'])} / 爆发段均量比 {volume_text}"
-    )
-    return bool(best_candidate["passed"]), detail
-
-
-def evaluate_vcp_contraction_ladder(context: AnalysisContext) -> tuple[bool | None, str]:
-    if len(context.stock) < 70:
-        return None, "VCP 递减结构至少需要约 70 个交易日数据"
-
-    frame = context.stock.tail(55).copy().reset_index(drop=True)
-    frame["VolumeMA50"] = context.stock["Volume"].rolling(50).mean().tail(55).reset_index(drop=True)
-    segments = [frame.iloc[index : index + 11] for index in range(0, len(frame), 11)]
-    if len(segments) < 5:
-        return None, "VCP 分段样本不足"
-
-    range_series: list[float] = []
-    for segment in segments:
-        avg_close = segment["Close"].mean()
-        segment_range = np.nan if not avg_close else (segment["High"].max() - segment["Low"].min()) / avg_close
-        range_series.append(float(segment_range) if pd.notna(segment_range) else np.nan)
-    if any(pd.isna(value) for value in range_series):
-        return None, "VCP 振幅样本不足"
-
-    contraction_steps = sum(1 for left, right in zip(range_series, range_series[1:]) if right < left)
-    strong_steps = sum(1 for left, right in zip(range_series, range_series[1:]) if right <= left * 0.7)
-    last_avg_volume = segments[-1]["Volume"].mean()
-    last_volume_ma50 = segments[-1]["VolumeMA50"].iloc[-1]
-    if not require_values(last_avg_volume, last_volume_ma50) or last_volume_ma50 == 0:
-        return None, "VCP 均量数据不足"
-
-    passed = bool(
-        contraction_steps >= 3
-        and strong_steps >= 1
-        and range_series[-1] <= range_series[0] * 0.6
-        and last_avg_volume <= last_volume_ma50 * 0.75
-    )
-    detail = (
-        "近 55 日五段振幅 "
-        + " -> ".join(fmt_pct(value) for value in range_series)
-        + f"\n收缩步数 {contraction_steps} / 强收缩 {strong_steps} 次"
-        + f"\n末段均量 {fmt_volume(last_avg_volume)} / 50 日均量 {fmt_volume(last_volume_ma50)}"
-    )
-    return passed, detail
-
-
 def evaluate_follow_through_count(context: AnalysisContext) -> tuple[bool | None, str]:
     breakout = find_recent_breakout(context.stock)
     if breakout is None:
@@ -1451,15 +1236,21 @@ def evaluate_follow_through_count(context: AnalysisContext) -> tuple[bool | None
 
     if len(first_eight) >= 8:
         passed = bool(up8 >= 6)
+        strength = "强机构吸筹特征" if up8 >= 7 else "达到 8 日至少 6 涨"
     elif len(first_four) >= 4:
         passed = bool(up4 >= 3)
+        strength = "达到 4 日至少 3 涨" if passed else "未达到 4 日至少 3 涨"
     else:
-        passed = bool((day_change > 0).sum() > (day_change < 0).sum())
+        return None, (
+            f"突破日 {breakout['date'].strftime('%Y-%m-%d')}"
+            f"，后续样本还不足 4 天"
+        )
 
     detail = (
         f"突破日 {breakout['date'].strftime('%Y-%m-%d')}"
         f"\n后续 4 日上涨 {up4}/{len(first_four)}"
         f"\n后续 8 日上涨 {up8}/{len(first_eight)}"
+        f"\n{strength}"
     )
     return passed, detail
 
@@ -1475,10 +1266,10 @@ def evaluate_good_closes(context: AnalysisContext) -> tuple[bool | None, str]:
         return None, "近期高低点区间不足"
 
     close_location = (tail["Close"] - tail["Low"]) / full_range.where(valid, np.nan)
-    good_count = int((close_location >= 0.55).sum())
-    bad_count = int((close_location <= 0.45).sum())
+    good_count = int((close_location >= 0.5).sum())
+    bad_count = int((close_location < 0.5).sum())
     passed = bool(good_count > bad_count)
-    detail = f"近 10 日好收盘 {good_count} 天\n近 10 日弱收盘 {bad_count} 天"
+    detail = f"近 10 日上半区收盘 {good_count} 天\n近 10 日下半区收盘 {bad_count} 天"
     return passed, detail
 
 
@@ -1486,115 +1277,50 @@ def evaluate_no_three_lower_lows(context: AnalysisContext) -> tuple[bool | None,
     if len(context.stock) < 25:
         return None, "三连阴破位至少需要约 25 个交易日数据"
 
-    tail = context.stock.tail(6).reset_index(drop=True)
-    baseline_volume = context.stock["Volume"].tail(20).mean()
-    if not require_values(baseline_volume):
-        return None, "量能基准不足"
+    tail = context.stock.tail(8).reset_index(drop=True)
+    lower_low_flags = (tail["Low"].diff() < 0).tolist()
+    longest_run = 0
+    run_end = 0
+    current_run = 0
+    for idx, is_lower in enumerate(lower_low_flags):
+        current_run = current_run + 1 if is_lower else 0
+        if current_run >= longest_run:
+            longest_run = current_run
+            run_end = idx
 
-    warning_detail = ""
-    danger_found = False
-    for start in range(0, len(tail) - 3):
-        segment = tail.iloc[start : start + 4]
-        lower_lows = bool((segment["Low"].diff().iloc[1:] < 0).all())
-        lower_closes = int((segment["Close"].diff().iloc[1:] < 0).sum())
-        avg_volume = segment["Volume"].iloc[1:].mean()
-        volume_expanding = bool(require_values(avg_volume) and avg_volume >= baseline_volume * 1.1)
-        if lower_lows and lower_closes >= 2 and volume_expanding:
-            danger_found = True
-            warning_detail = (
-                f"{segment['Date'].iloc[0].strftime('%Y-%m-%d')} -> {segment['Date'].iloc[-1].strftime('%Y-%m-%d')}"
-                f"\n连续更低低点，3 日均量 {fmt_volume(avg_volume)} 高于近 20 日常态"
-            )
-            break
-
+    danger_found = longest_run >= 3
     if not danger_found:
-        warning_detail = f"近 6 日未见连续 3 天更低低点放量扩散（近 20 日均量 {fmt_volume(baseline_volume)}）"
-    return (not danger_found), warning_detail
+        return True, f"近 8 日最长连续更低低点 {longest_run} 天，未达到 3 天警戒线"
 
-
-def evaluate_no_high_volume_ma_break(context: AnalysisContext) -> tuple[bool | None, str]:
-    if len(context.stock) < 50:
-        return None, "放量破均线至少需要约 50 个交易日数据"
-
-    frame = context.stock.copy()
-    frame["VolumeMA20"] = frame["Volume"].rolling(20).mean()
-    frame["VolumeMA50"] = frame["Volume"].rolling(50).mean()
-    latest = frame.iloc[-1]
-    if pd.isna(latest["VolumeMA20"]) or pd.isna(latest["VolumeMA50"]):
-        return None, "均量数据不足"
-
-    break_ma20 = bool(
-        require_values(latest["Close"], latest["MA20"], latest["Volume"], latest["VolumeMA20"])
-        and latest["Close"] < latest["MA20"]
-        and latest["Volume"] >= latest["VolumeMA20"] * 1.25
-    )
-    break_ma50 = bool(
-        require_values(latest["Close"], latest["MA50"], latest["Volume"], latest["VolumeMA50"])
-        and latest["Close"] < latest["MA50"]
-        and latest["Volume"] >= latest["VolumeMA50"] * 1.25
-    )
-    passed = bool(not break_ma20 and not break_ma50)
+    run_start = run_end - longest_run
+    segment = tail.iloc[run_start : run_end + 1]
+    falling_closes = int((segment["Close"].diff().iloc[1:] < 0).sum())
+    rising_volume_steps = int((segment["Volume"].diff().iloc[1:] > 0).sum())
+    volume_steps = max(len(segment) - 1, 1)
+    volume_expanding = rising_volume_steps == volume_steps
+    severity = "量能逐日放大，风险更强" if volume_expanding else "量能未连续放大，仍需注意"
     detail = (
-        f"现价 {fmt_price(latest['Close'])} / MA20 {fmt_price(latest['MA20'])} / MA50 {fmt_price(latest['MA50'])}"
-        f"\n最新量 {fmt_volume(latest['Volume'])} / 20 日均量 {fmt_volume(latest['VolumeMA20'])} / 50 日均量 {fmt_volume(latest['VolumeMA50'])}"
+        f"{segment['Date'].iloc[0].strftime('%Y-%m-%d')} -> {segment['Date'].iloc[-1].strftime('%Y-%m-%d')}"
+        f"\n连续 {longest_run} 天更低低点 · 收盘走低 {falling_closes}/{volume_steps} 天"
+        f"\n{severity}"
     )
-    if break_ma50:
-        detail += "\n已触发放量跌破 MA50 风险"
-    elif break_ma20:
-        detail += "\n已触发放量跌破 MA20 风险"
-    return passed, detail
+    return False, detail
 
 
-def evaluate_no_churning(context: AnalysisContext) -> tuple[bool | None, str]:
-    if len(context.stock) < 60:
-        return None, "放量滞涨至少需要约 60 个交易日数据"
+def evaluate_price_above_ma20_follow_through(context: AnalysisContext) -> tuple[bool | None, str]:
+    latest = context.latest
+    if not require_values(latest["Close"], latest["MA20"]):
+        return None, "MA20 数据不足"
 
-    frame = context.stock.copy()
-    frame["PrevClose"] = frame["Close"].shift(1)
-    frame["VolumeMA50"] = frame["Volume"].rolling(50).mean()
-    tail = frame.tail(10).copy()
-    full_range = tail["High"] - tail["Low"]
-    close_location = (tail["Close"] - tail["Low"]) / full_range.where(full_range > 0, np.nan)
-    day_return = tail["Close"] / tail["PrevClose"] - 1
-    volume_ratio = tail["Volume"] / tail["VolumeMA50"]
-    churning_mask = (
-        (volume_ratio >= 1.5)
-        & (day_return.abs() <= 0.01)
-        & (close_location <= 0.6)
-    )
-    count = int(churning_mask.sum())
-    passed = bool(count == 0)
-    detail = f"近 10 日疑似放量滞涨 {count} 天\n最大量比 {volume_ratio.replace([np.inf, -np.inf], np.nan).max():.2f}x"
-    return passed, detail
-
-
-def evaluate_no_climax_run(context: AnalysisContext) -> tuple[bool | None, str]:
-    if len(context.stock) < 20:
-        return None, "高潮加速至少需要约 20 个交易日数据"
-
-    best_window: dict[str, Any] | None = None
-    for window in range(7, 16):
-        tail = context.stock.tail(window).copy()
-        if len(tail) < window:
-            continue
-        up_days = int((tail["Close"].diff() > 0).sum())
-        move = float(tail["Close"].iloc[-1] / tail["Close"].iloc[0] - 1) if tail["Close"].iloc[0] else np.nan
-        if pd.isna(move):
-            continue
-        up_ratio = up_days / max(window - 1, 1)
-        candidate = {"window": window, "up_ratio": up_ratio, "move": move}
-        if best_window is None or candidate["move"] > best_window["move"]:
-            best_window = candidate
-
-    if best_window is None:
-        return None, "高潮加速样本不足"
-
-    danger = bool(best_window["up_ratio"] >= 0.70 and best_window["move"] >= 0.25)
+    distance = float(latest["Close"] / latest["MA20"] - 1) if latest["MA20"] else np.nan
+    passed = bool(latest["Close"] >= latest["MA20"])
     detail = (
-        f"近 {best_window['window']} 日上涨天数占比 {best_window['up_ratio']:.0%}"
-        f"\n近 {best_window['window']} 日累计涨幅 {fmt_signed_pct(best_window['move'])}"
+        f"现价 {fmt_price(latest['Close'])} / MA20 {fmt_price(latest['MA20'])}"
+        f" · 相差 {fmt_signed_pct(distance)}"
     )
-    return (not danger), detail
+    if not passed:
+        detail += "\n收盘低于 MA20，突破后的支撑转弱"
+    return passed, detail
 
 
 SELL_LOOKBACK_WINDOWS = {
@@ -1978,6 +1704,12 @@ def build_sell_indicator_groups(
         ),
         *find_long_move_exhaustion_signs(context, signal_days),
     ]
+    follow_through_items = [
+        item("股价保持在 MA20 上方", evaluate_price_above_ma20_follow_through(context)),
+        item("突破后 4 日 3 涨或 8 日 6 涨", evaluate_follow_through_count(context)),
+        item("未出现连续 3-4 个更低低点", evaluate_no_three_lower_lows(context)),
+        item("好收盘多于坏收盘", evaluate_good_closes(context)),
+    ]
     stage = approximate_stage_two_advance(context.stock)
     if stage is None:
         stage_summary = "Stage 2 近似区间样本不足"
@@ -1989,6 +1721,12 @@ def build_sell_indicator_groups(
         if stage["fallback"]:
             stage_summary += " · 起点回退为近半年最低收盘"
     return [
+        group(
+            "follow_through",
+            "突破后跟进指标",
+            "突破后的支撑与转弱信号",
+            follow_through_items,
+        ),
         group(
             "selling_into_strength",
             "Selling Into Strength",
@@ -2016,21 +1754,6 @@ BASE_TREND_SPECS = [
 ]
 
 TREND_TEMPLATE_VARIANT_EXCLUDED_NAMES = {"相对 SPY 表现分不低于 60"}
-
-ADVANCED_TREND_SPECS = [
-    CheckSpec("trend_10", "30个交易日内放量上涨日明显多于放量下跌日", evaluate_volume_price_health),
-]
-
-PATTERN_RISK_SPECS = [
-    CheckSpec("pattern_1", "MVP 动量量价共振", evaluate_mvp_burst),
-    CheckSpec("pattern_4", "突破后跟进买盘占优", evaluate_follow_through_count),
-    CheckSpec("pattern_5", "近期好收盘天数占优", evaluate_good_closes),
-    CheckSpec("pattern_6", "未出现三连阴破位", evaluate_no_three_lower_lows),
-    CheckSpec("pattern_7", "未出现放量破 20/50 日线", evaluate_no_high_volume_ma_break),
-    CheckSpec("pattern_8", "近 10 日未见明显放量滞涨", evaluate_no_churning),
-    CheckSpec("pattern_9", "近 7-15 日未进入高潮式加速", evaluate_no_climax_run),
-]
-
 
 def build_checks(specs: list[CheckSpec], context: AnalysisContext) -> list[CheckResult]:
     results: list[CheckResult] = []
@@ -2125,18 +1848,6 @@ def build_indicator_group_summary_lines(
             detail = str(item.get("detail", "")).strip().replace("\n", "；")
             lines.append(f"  - {name}：{status}；{detail}")
     return lines
-
-
-def find_check_detail(checks: list[dict[str, Any]], target_name: str) -> tuple[str, str] | None:
-    for item in checks:
-        name = strip_check_name_prefix(item.get("name", ""))
-        if name != target_name:
-            continue
-        passed = item.get("passed")
-        status = "通过" if passed is True else "未通过" if passed is False else "待确认"
-        detail = str(item.get("detail", "")).strip().replace("\n", "；")
-        return status, detail
-    return None
 
 
 def fmt_close_in_range(high: float | None, low: float | None, close: float | None) -> str:
@@ -2324,21 +2035,6 @@ def build_technical_summary(data: dict[str, Any]) -> str:
     if range_position is not None:
         summary_lines.append(f"- 近 20 日区间位置：约处在区间的 {range_position * 100:.0f}% 位置")
     summary_lines.append(f"- 近 20 日疑似吸筹日 {accumulation_days} 天；疑似派发日 {distribution_days} 天（定义：涨/跌且成交量高于前一日）")
-    volume_price_health = find_check_detail(
-        data.get("tempAdvancedTrendChecks", []),
-        "30个交易日内放量上涨日明显多于放量下跌日",
-    )
-    if volume_price_health:
-        status, detail = volume_price_health
-        summary_lines.append(f"- 量价健康度：{status}；{detail}")
-    pivot_dry_up = find_check_detail(
-        data.get("tempAdvancedTrendChecks", []),
-        "收缩末端成交量极度萎缩",
-    )
-    if pivot_dry_up:
-        status, detail = pivot_dry_up
-        summary_lines.append(f"- 枢轴缩量线索：{status}；{detail}")
-
     summary_lines.append("### 最近 20 个交易日原始量价")
     recent_20_raw = history.tail(min(20, len(history)))
     for _, row in recent_20_raw.iterrows():
@@ -2493,7 +2189,6 @@ def analyze_symbol(
         "前一日振幅低于 50 日均振幅",
         *evaluate_latest_range_below_ma50(analysis_context),
     )
-    temp_advanced_trend_checks = build_checks(ADVANCED_TREND_SPECS, analysis_context)
     buy_indicator_groups_by_window = {
         str(days): build_buy_indicator_groups(analysis_context, days)
         for days in BUY_LOOKBACK_WINDOWS
@@ -2505,7 +2200,6 @@ def analyze_symbol(
     }
     sell_indicator_groups = sell_indicator_groups_by_window["10"]
     pattern_risk_checks = flatten_buy_indicator_groups(sell_indicator_groups)
-    temp_pattern_risk_checks = build_checks(PATTERN_RISK_SPECS, analysis_context)
     latest = analysis_context.latest
     prev_close = history["Close"].iloc[-2] if len(history) >= 2 else np.nan
     daily_change_pct = None
@@ -2596,9 +2290,6 @@ def analyze_symbol(
         "advancedTrendChecks": advanced_trend_checks,
         "buyIndicatorGroupsByWindow": buy_indicator_groups_by_window,
         "buyIndicatorWindow": 63,
-        "tempAdvancedTrendChecks": serialize_checks(
-            temp_advanced_trend_checks + temp_pattern_risk_checks
-        ),
         "patternRiskChecks": pattern_risk_checks,
         "sellIndicatorGroups": sell_indicator_groups,
         "sellIndicatorGroupsByWindow": sell_indicator_groups_by_window,

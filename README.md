@@ -192,10 +192,7 @@ Reasoning:
 
 ## Trend Template Logic
 
-There are two analysis groups:
-
-- base trend template `1-8`
-- selected extended checks used under `Temp · 旧指标`
+The trend template uses the base checks `1-8`.
 
 Base implementation note:
 
@@ -208,16 +205,12 @@ Base implementation note:
 - practical interpretation: `70` means about `+20%` weighted excess return versus SPY, `80` about `+30%`, and `90` about `+40%`
 - this is only an approximation of relative strength versus SPY; it is not a cross-sectional market percentile and should not be treated as the official IBD ranking
 
-Extended implementation note:
+Indicator implementation notes:
 
-- trend `10` uses a weighted volume-price health score over the latest `30` trading days
-- a day counts as "volume-significant" only when `Volume > 1.05 * VolumeMA50`
-- upward and downward pressure are scored separately as `abs(day return) * (Volume / VolumeMA50)`
-- the check passes when:
-  - volume-significant up days are at least `3`
-  - up days are not fewer than down days
-  - upward weighted score is at least `max(down_score * 1.25, down_score + 0.02)`
-- duplicated pullback, VCP contraction, and Power Play checks were removed from the old-indicator bucket after being promoted into `买入指标观察`
+- the breakout follow-through card lives under `卖出指标观察` and checks MA20 support, at least `3/4` or `6/8` up days after a breakout, consecutive lower lows, and upper-half closes versus lower-half closes
+- `7/8` or `8/8` up days are called out as stronger institutional-accumulation behavior, while the pass threshold remains `6/8`
+- three or more consecutive lower lows trigger attention even without expanding volume; sequentially rising volume raises the stated severity
+- MVP is shown as `MVP 指标` immediately before Power Play and requires at least `12/15` up days, a `20%` 15-day gain, and `1.25x` recent-versus-prior average volume
 
 The watchlist filter `趋势模板` currently means:
 

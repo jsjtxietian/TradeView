@@ -1827,21 +1827,6 @@ button:disabled {
   color: var(--accent);
 }
 
-.temp-check-panel {
-  margin-top: 14px;
-}
-
-.temp-check-panel summary {
-  cursor: pointer;
-  color: var(--muted);
-  font-size: 0.86rem;
-  font-weight: 700;
-}
-
-.temp-check-panel[open] summary {
-  margin-bottom: 14px;
-}
-
 .check-list {
   display: grid;
   gap: 10px;
