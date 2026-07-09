@@ -87,6 +87,9 @@
         </div>
       </div>
       <div id="watchlistBoard" class="watchlist-board"></div>
+      <div id="watchlistContextMenu" class="watchlist-context-menu" hidden>
+        <button type="button" data-watchlist-action="compare">显示对比</button>
+      </div>
     </section>
 
     <section id="detailSection" class="detail-grid" hidden>
@@ -107,7 +110,7 @@
             </select>
             <label class="compare-toggle">
               <input type="checkbox" id="compareBenchmarkToggle" />
-              显示 SPY
+              显示对比
             </label>
             <div id="maToggleGroup" class="ma-toggle-group" aria-label="均线显示">
               <span class="ma-toggle-prefix">MA</span>
@@ -356,6 +359,6 @@
   <div id="toast" class="toast" hidden></div>
 
   <script src="https://unpkg.com/lightweight-charts@5.0.0/dist/lightweight-charts.standalone.production.js"></script>
-  <script src="/static/app.js?v=20260705-1" type="module"></script>
+  <script src="/static/app.js?v=20260709-compare2" type="module"></script>
 </body>
 </html>

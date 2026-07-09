@@ -1123,7 +1123,46 @@ button:disabled {
   flex-wrap: wrap;
 }
 
-.watchlist-board {
+
+.watchlist-context-menu {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 9999;
+  width: max-content;
+  min-width: 112px;
+  padding: 4px;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
+}
+
+.watchlist-context-menu button {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.watchlist-context-menu button:hover,
+.watchlist-context-menu button:focus-visible {
+  background: rgba(11, 132, 165, 0.1);
+  color: var(--accent);
+  outline: none;
+  transform: none;
+}.watchlist-board {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 10px;
@@ -2163,7 +2202,6 @@ button:disabled {
   .trade-review-head-actions button {
     flex: 1;
   }
-
   .watchlist-board {
     grid-template-columns: 1fr;
   }

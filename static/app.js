@@ -59,6 +59,7 @@ const state = {
   selectedSymbol: null,
   chartMode: "close",
   compareBenchmark: false,
+  compareSymbol: "SPY",
   currentChartData: [],
   currentBenchmarkData: [],
   currentBenchmarkSymbol: "SPY",
@@ -108,6 +109,7 @@ const elements = {
   refreshButton: document.getElementById("refreshButton"),
   chartMode: document.getElementById("chartMode"),
   compareBenchmarkToggle: document.getElementById("compareBenchmarkToggle"),
+  watchlistContextMenu: document.getElementById("watchlistContextMenu"),
   benchmarkChartPanel: document.getElementById("benchmarkChartPanel"),
   benchmarkChartLabel: document.getElementById("benchmarkChartLabel"),
   benchmarkChartContainer: document.getElementById("benchmarkChartContainer"),
@@ -445,6 +447,26 @@ function bindEvents() {
     resizeCharts();
   });
 
+  elements.watchlistContextMenu.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-watchlist-action]");
+    if (!(button instanceof HTMLButtonElement)) {
+      return;
+    }
+    const symbol = elements.watchlistContextMenu.dataset.symbol || "";
+    closeWatchlistContextMenu();
+    if (button.dataset.watchlistAction === "compare") {
+      await enableComparisonWithSymbol(symbol);
+    }
+  });
+
+  elements.watchlistBoard.addEventListener("contextmenu", (event) => {
+    const card = event.target.closest(".watchlist-item[data-symbol]");
+    if (!(card instanceof HTMLElement)) {
+      return;
+    }
+    openWatchlistContextMenu(event, card.dataset.symbol || "");
+  }, true);
+
   elements.maToggleGroup.addEventListener("change", (event) => {
     const target = event.target;
     if (!(target instanceof HTMLInputElement)) {
@@ -486,12 +508,21 @@ function bindEvents() {
     ) {
       closeWatchlistFilterPanel();
     }
+    if (
+      !elements.watchlistContextMenu.hidden &&
+      !event.target.closest(".watchlist-context-menu")
+    ) {
+      closeWatchlistContextMenu();
+    }
   });
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !elements.watchlistFilterPanel.hidden) {
       closeWatchlistFilterPanel();
       elements.watchlistFilterButton.focus();
+    }
+    if (event.key === "Escape" && !elements.watchlistContextMenu.hidden) {
+      closeWatchlistContextMenu();
     }
   });
 }
@@ -555,8 +586,8 @@ async function refreshSingleSymbol(symbol, forceRefresh = false) {
     }
 
     if (summaryItem?.data) {
-      const detail = await fetchJson(`/api/symbol/${encodeURIComponent(symbol)}?refresh=${forceRefresh ? "1" : "0"}`);
-      state.details.set(symbol, detail);
+      const detail = await fetchJson(buildSymbolDetailUrl(symbol, forceRefresh));
+      state.details.set(getDetailCacheKey(symbol), detail);
       hideMessage();
       renderWatchlist();
       renderSelectedDetail();
@@ -676,6 +707,77 @@ function closeWatchlistFilterPanel() {
   elements.watchlistFilterButton.setAttribute("aria-expanded", "false");
 }
 
+function closeWatchlistContextMenu() {
+  elements.watchlistContextMenu.hidden = true;
+  elements.watchlistContextMenu.dataset.symbol = "";
+}
+
+function openWatchlistContextMenu(event, symbol) {
+  event.preventDefault();
+  event.stopPropagation();
+  if (elements.watchlistContextMenu.parentElement !== document.body) {
+    document.body.appendChild(elements.watchlistContextMenu);
+  }
+  elements.watchlistContextMenu.dataset.symbol = symbol;
+  elements.watchlistContextMenu.hidden = false;
+  elements.watchlistContextMenu.style.left = "0px";
+  elements.watchlistContextMenu.style.top = "0px";
+
+  const gap = 8;
+  const rect = elements.watchlistContextMenu.getBoundingClientRect();
+  const left = Math.min(event.clientX + 2, window.innerWidth - rect.width - gap);
+  const top = Math.min(event.clientY + 2, window.innerHeight - rect.height - gap);
+  elements.watchlistContextMenu.style.left = `${Math.max(gap, left)}px`;
+  elements.watchlistContextMenu.style.top = `${Math.max(gap, top)}px`;
+}
+
+async function enableComparisonWithSymbol(symbol) {
+  const comparisonSymbol = normalizeSymbol(symbol);
+  if (!comparisonSymbol) {
+    return;
+  }
+  if (comparisonSymbol === state.selectedSymbol) {
+    showToast("不能和当前股票自身对比。", true);
+    return;
+  }
+  state.compareSymbol = comparisonSymbol;
+  state.compareBenchmark = true;
+  elements.compareBenchmarkToggle.checked = true;
+  persistChartPrefs();
+  if (state.selectedSymbol) {
+    await loadDetail(state.selectedSymbol, false);
+    showToast(`已显示 ${comparisonSymbol} 对比。`);
+  }
+}
+
+function getComparisonSymbol() {
+  return normalizeSymbol(state.compareSymbol) || "SPY";
+}
+
+function getDetailCacheKey(symbol, comparisonSymbol = getComparisonSymbol()) {
+  return `${normalizeSymbol(symbol)}::${normalizeSymbol(comparisonSymbol) || "SPY"}`;
+}
+
+function getSelectedDetail() {
+  return state.details.get(getDetailCacheKey(state.selectedSymbol));
+}
+
+function buildSymbolDetailUrl(symbol, forceRefresh = false) {
+  const params = new URLSearchParams({
+    refresh: forceRefresh ? "1" : "0",
+    compare: getComparisonSymbol(),
+  });
+  return `/api/symbol/${encodeURIComponent(symbol)}?${params.toString()}`;
+}
+
+function deleteDetailCacheForSymbol(symbol) {
+  const normalized = normalizeSymbol(symbol);
+  for (const key of state.details.keys()) {
+    if (key === normalized || key.startsWith(`${normalized}::`)) {
+      state.details.delete(key);
+    }
+  }
+}
 async function loadDetail(symbol, forceRefresh = false) {
   if (!symbol) {
     clearDetail();
@@ -683,10 +785,11 @@ async function loadDetail(symbol, forceRefresh = false) {
   }
 
   try {
-    const detail = !forceRefresh && state.details.get(symbol)
-      ? state.details.get(symbol)
-      : await fetchJson(`/api/symbol/${encodeURIComponent(symbol)}?refresh=${forceRefresh ? "1" : "0"}`);
-    state.details.set(symbol, detail);
+    const cacheKey = getDetailCacheKey(symbol);
+    const detail = !forceRefresh && state.details.get(cacheKey)
+      ? state.details.get(cacheKey)
+      : await fetchJson(buildSymbolDetailUrl(symbol, forceRefresh));
+    state.details.set(cacheKey, detail);
     hideMessage();
     renderSelectedDetail();
   } catch (error) {
@@ -695,7 +798,7 @@ async function loadDetail(symbol, forceRefresh = false) {
 }
 
 function renderSelectedDetail() {
-  const detail = state.details.get(state.selectedSymbol);
+  const detail = getSelectedDetail();
   if (!detail) {
     clearDetail();
     return;
@@ -714,7 +817,7 @@ function renderSelectedDetail() {
 }
 
 function renderBuyIndicatorChecks() {
-  const detail = state.details.get(state.selectedSymbol);
+  const detail = getSelectedDetail();
   if (!detail) {
     elements.advancedTrendChecks.innerHTML = "";
     return;
@@ -735,7 +838,7 @@ function renderBuyIndicatorGroups(groups) {
 }
 
 function renderSellIndicatorChecks() {
-  const detail = state.details.get(state.selectedSymbol);
+  const detail = getSelectedDetail();
   if (!detail) {
     elements.patternRiskChecks.innerHTML = "";
     return;
@@ -1275,6 +1378,7 @@ function renderWatchlistItem(symbol, sectionId) {
   card.addEventListener("click", () => {
     openDetail();
   });
+
   card.addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
@@ -2590,6 +2694,7 @@ function persistChartPrefs() {
     JSON.stringify({
       chartMode: state.chartMode,
       compareBenchmark: state.compareBenchmark,
+      compareSymbol: state.compareSymbol,
       maVisibility: state.maVisibility,
     }),
   );
@@ -2607,6 +2712,9 @@ function loadChartPrefs() {
     }
     if (typeof parsed.compareBenchmark === "boolean") {
       state.compareBenchmark = parsed.compareBenchmark;
+    }
+    if (typeof parsed.compareSymbol === "string") {
+      state.compareSymbol = normalizeSymbol(parsed.compareSymbol) || "SPY";
     }
     if (parsed.maVisibility && typeof parsed.maVisibility === "object") {
       for (const key of ["MA20", "MA50", "MA150", "MA200", "VolumeMA50"]) {
@@ -3339,7 +3447,7 @@ async function deleteActiveSymbol() {
   state.alerts = state.alerts.filter((alert) => alert.symbol !== symbol);
   removeSymbolFromGroups(symbol);
   state.summaries.delete(symbol);
-  state.details.delete(symbol);
+  deleteDetailCacheForSymbol(symbol);
   if (state.selectedSymbol === symbol) {
     state.selectedSymbol = state.watchlist[0] || null;
   }

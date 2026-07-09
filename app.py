@@ -2136,12 +2136,14 @@ def analyze_symbol(
     allow_network: bool = True,
     refresh_benchmark: bool = False,
     tiingo_api_key: str | None = None,
+    comparison_symbol: str | None = None,
 ) -> dict[str, Any]:
     normalized = normalize_symbol(symbol)
     if not normalized:
         raise ValueError("请输入有效的股票代码。")
 
-    cache_key = ("analysis", normalized)
+    comparison_normalized = normalize_symbol(comparison_symbol or DEFAULT_BENCHMARK) or DEFAULT_BENCHMARK
+    cache_key = ("analysis", normalized, comparison_normalized)
     cached = get_cached(cache_key)
     if cached is not None and not force_refresh:
         return cached
@@ -2150,6 +2152,8 @@ def analyze_symbol(
         clear_symbol_memory_cache(normalized)
         if refresh_benchmark:
             clear_symbol_memory_cache(DEFAULT_BENCHMARK)
+            if comparison_normalized != DEFAULT_BENCHMARK:
+                clear_symbol_memory_cache(comparison_normalized)
 
     raw_history = load_history(
         normalized,
@@ -2177,6 +2181,24 @@ def analyze_symbol(
     if not raw_benchmark_history.empty:
         benchmark_history = add_indicators(raw_benchmark_history)
         rs_score, rs_detail = compute_rs_proxy(history, benchmark_history)
+    raw_comparison_history = (
+        raw_history
+        if comparison_normalized == normalized
+        else raw_benchmark_history
+        if comparison_normalized == DEFAULT_BENCHMARK
+        else load_history(
+            comparison_normalized,
+            DEFAULT_HISTORY_PERIOD,
+            force_refresh=force_refresh and refresh_benchmark,
+            allow_network=allow_network,
+            tiingo_api_key=tiingo_api_key,
+        )
+    )
+    comparison_history = (
+        add_indicators(raw_comparison_history)
+        if not raw_comparison_history.empty
+        else pd.DataFrame()
+    )
     analysis_context = AnalysisContext(
         stock=history,
         benchmark=benchmark_history,
@@ -2283,6 +2305,7 @@ def analyze_symbol(
             for note in [
                 raw_history.attrs.get("source_note", ""),
                 raw_benchmark_history.attrs.get("source_note", ""),
+                raw_comparison_history.attrs.get("source_note", ""),
             ]
             if note
         ],
@@ -2295,8 +2318,8 @@ def analyze_symbol(
         "sellIndicatorGroupsByWindow": sell_indicator_groups_by_window,
         "sellIndicatorWindow": 10,
         "history": serialize_history(history),
-        "benchmarkSymbol": DEFAULT_BENCHMARK,
-        "benchmarkHistory": serialize_price_history(benchmark_history),
+        "benchmarkSymbol": comparison_normalized,
+        "benchmarkHistory": serialize_price_history(comparison_history),
     }
     return set_cached(cache_key, result)
 
@@ -2457,6 +2480,7 @@ def watchlist_summary(
 def symbol_detail(
     symbol: str,
     refresh: bool = Query(False, description="Force incremental refresh from online sources"),
+    compare: str | None = Query(None, description="Optional comparison symbol for the chart"),
 ) -> dict[str, Any]:
     normalized = normalize_symbol(symbol)
     if not normalized:
@@ -2468,6 +2492,7 @@ def symbol_detail(
             allow_network=refresh,
             refresh_benchmark=refresh,
             tiingo_api_key=get_tiingo_api_key(),
+            comparison_symbol=compare,
         )
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
