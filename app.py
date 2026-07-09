@@ -1925,36 +1925,72 @@ def build_trend_sparkline(frame: pd.DataFrame) -> dict[str, Any]:
     if window.empty:
         return {"direction": "flat", "values": []}
 
-    ma20 = window["MA20"].copy()
-    fallback = frame["Close"].expanding(min_periods=1).mean().tail(len(window)).reset_index(drop=True)
-    ma20 = ma20.reset_index(drop=True)
-    close = window["Close"].reset_index(drop=True)
-    ma20_base = ma20.where(ma20.notna(), fallback)
-    base = ma20_base * 0.7 + close * 0.3
-    smooth = base.ewm(span=3, adjust=False).mean().dropna()
-    values = [round(float(value), 4) for value in smooth.tolist()]
+    close = window["Close"].ffill().dropna().reset_index(drop=True)
+    if close.empty:
+        return {"direction": "flat", "values": []}
 
+    close_values = np.array(close.tolist(), dtype=float)
+    display_values = build_shape_preserving_sparkline_values(close_values)
+    values = [round(float(value), 4) for value in display_values.tolist()]
     if len(values) < 2:
         return {"direction": "flat", "values": values}
 
+    direction = classify_recent_sparkline_direction(display_values)
+    return {
+        "direction": direction,
+        "values": values,
+    }
+
+def build_shape_preserving_sparkline_values(values: np.ndarray) -> np.ndarray:
+    if len(values) < 4:
+        return values
+
+    ema = pd.Series(values).ewm(span=3, adjust=False).mean().to_numpy(dtype=float)
+    shaped = ema * 0.6 + values * 0.4
+    shaped[0] = values[0]
+    shaped[-1] = values[-1]
+
+    for index in range(1, len(values) - 1):
+        previous_value = float(values[index - 1])
+        current_value = float(values[index])
+        next_value = float(values[index + 1])
+        neighbor_midpoint = (previous_value + next_value) / 2
+        if previous_value <= 0 or current_value <= 0 or next_value <= 0 or neighbor_midpoint <= 0:
+            continue
+
+        is_peak = current_value > previous_value and current_value > next_value
+        is_trough = current_value < previous_value and current_value < next_value
+        if not (is_peak or is_trough):
+            continue
+
+        local_deviation = abs(current_value / neighbor_midpoint - 1)
+        left_move = abs(current_value / previous_value - 1)
+        right_move = abs(next_value / current_value - 1)
+        turn_size = max(left_move, right_move)
+        if local_deviation >= 0.035 and turn_size >= 0.04:
+            shaped[index] = current_value
+        elif local_deviation >= 0.02 and turn_size >= 0.025:
+            shaped[index] = current_value * 0.75 + ema[index] * 0.25
+
+    return shaped
+
+
+
+def classify_recent_sparkline_direction(values: np.ndarray) -> str:
+    if len(values) < 2:
+        return "flat"
     recent = values[-10:] if len(values) >= 10 else values
-    start = recent[0]
-    end = recent[-1]
+    start = float(recent[0])
+    end = float(recent[-1])
     move_pct = 0.0 if start == 0 else float(end / start - 1)
     x = np.arange(len(recent), dtype=float)
     slope = float(np.polyfit(x, np.array(recent, dtype=float), 1)[0]) if len(recent) >= 2 else 0.0
 
     if move_pct >= 0.015 and slope > 0:
-        direction = "up"
-    elif move_pct <= -0.015 and slope < 0:
-        direction = "down"
-    else:
-        direction = "flat"
-
-    return {
-        "direction": direction,
-        "values": values,
-    }
+        return "up"
+    if move_pct <= -0.015 and slope < 0:
+        return "down"
+    return "flat"
 
 
 def build_technical_summary(data: dict[str, Any]) -> str:

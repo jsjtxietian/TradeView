@@ -167,15 +167,14 @@ Implementation lives in `build_trend_sparkline()` in `app.py`.
 Steps:
 
 1. take the last up to `35` trading days for display
-2. build a `MA20` base line
-3. if early rows do not have `MA20` yet, backfill with cumulative mean of all history up to that date
-4. blend the base with raw close using `0.7 * MA20_base + 0.3 * Close`
-5. run a `3-period EMA` over that blended line
-6. display only the resulting smoothed series in the watchlist
+2. use closing price directly and forward-fill small gaps
+3. apply shape-preserving smoothing: small chop is blended toward a short EMA, but meaningful local peaks and troughs stay close to raw closes
+4. display that price-structure line in the watchlist so spikes, pullbacks, and rebounds remain visible
+5. keep the line normalized by the front-end SVG so the small chart emphasizes shape rather than absolute price level
 
-Direction color:
+Direction color uses the original simple trend logic:
 
-- look at the latest up to `10` points of the smoothed line
+- look at the latest up to `10` points of the displayed line
 - compute end-to-start move
 - compute simple slope
 - classify as:
@@ -185,10 +184,9 @@ Direction color:
 
 Reasoning:
 
-- the `70/30` blend keeps the line anchored to recent structure while reacting faster to sharp reversals and breakouts
-- MA20 reflects recent price structure better than raw close
-- EMA removes jagged turns without drifting too far
-- the watchlist view should emphasize direction, not candle noise
+- the mini chart is now meant to show the visual path of a correction, rebound, pause, and possible breakout
+- shape-preserving smoothing keeps the spikes and pullbacks that matter for spotting a cup-completion / cheat structure while reducing small day-to-day chop
+- the watchlist view should emphasize the shape first; the direction color is only a quick hint
 
 ## Trend Template Logic
 
@@ -357,7 +355,7 @@ Known intentional simplifications:
 
 - company full names come from a local map, not a dedicated metadata API
 - alerts are local and user-specific, not server-synced
-- watchlist trend mini-chart is a smoothed price-structure proxy, not a formal technical score
+- watchlist trend mini-chart is a shape-preserving price-structure proxy, not a formal technical score
 - default historical horizon is fixed and cache-centered rather than user-configurable everywhere
 
 These choices are deliberate to keep:
