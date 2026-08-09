@@ -46,6 +46,7 @@
    * Climax run or blow-off top (price up 25 to 50 percent or more in one to three weeks)
    * On extended stocks, 70 percent or more up days versus down days over a 7- to 15-day period
    * Once the stock is extended, 6 to 10 days of accelerated advance with all but 2 or 3 days being down
+7. 对大盘股而言，策略可以稍微不一样一些：`Large-cap stocks are going to be more widely followed, so it’s more likely you end up in a “crowded trade,” especially after the stocks get real hot and everyone is talking about them. As a result, the price action will often be more random, so I tend to let these names undercut lows and create shakeouts before getting in. With larger-cap stocks, I will often try to get on board earlier in the range of a correction. The best time to buy the large-cap names is coming out of a bear market or a deep correction. With small caps, I tend to trade them close to new highs because they’re less efficiently priced, so I don’t have to “beat the crowd” and try to buy lower.`
 
 最后请按下面结构输出：
 1. 目前更像“可考虑买入 / 继续观察 / 暂不考虑”哪一种，如果有持仓，则建议如何操作。
