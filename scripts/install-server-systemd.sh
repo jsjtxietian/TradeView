@@ -44,7 +44,7 @@ Type=oneshot
 User=$USER_NAME
 Group=$USER_NAME
 WorkingDirectory=$APP_DIR
-ExecStart=$APP_DIR/.venv/bin/python scripts/refresh-cache.py
+ExecStart=/usr/bin/bash scripts/refresh-and-push.sh
 SERVICE
 
 sudo tee /etc/systemd/system/trenddeck-refresh.timer >/dev/null <<'TIMER'
