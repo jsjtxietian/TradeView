@@ -416,3 +416,71 @@ ledger 命令每次完整覆盖 `.trade/ledger.json`，因此应优先使用覆�
 原持仓数量完成平仓周期，再将剩余数量作为反向新仓。交易数据统计位于 `/review`，
 复盘弹窗里的“数据统计”按钮会在新窗口打开该页面。BOXX 的完整平仓价差不进入普通交易
 胜率和盈亏分布，而是在账户收入与费用中归入“现金利息 / 类现金”。
+
+## Deployment and Operations
+
+Production runs as a single FastAPI service behind Nginx.
+
+Runtime layout:
+
+- app directory: `/home/ubuntu/trenddeck`
+- service: `trenddeck.service`
+- refresh timer: `trenddeck-refresh.timer`
+- refresh job: `trenddeck-refresh.service`
+- reverse proxy: Nginx port 80 to `127.0.0.1:8000`
+
+Data layout:
+
+- `.cache/` is committed to Git and is automatically updated by the scheduled refresh job.
+- `.trade/` stays local to the server and is ignored by Git.
+- `.streamlit/` stays local and contains secrets such as market-data keys.
+- `.venv/` is generated on each machine and is ignored by Git.
+
+Install or update the server units:
+
+```bash
+cd /home/ubuntu/trenddeck
+bash scripts/update-server.sh
+```
+
+`scripts/update-server.sh` runs `git pull --ff-only`, installs or updates Python dependencies, writes the systemd unit files, restarts `trenddeck.service`, and enables `trenddeck-refresh.timer`.
+
+Scheduled refresh:
+
+- timer: `trenddeck-refresh.timer`
+- schedule: `Tue..Sat 07:00:00` in the server local timezone
+- script: `scripts/refresh-and-push.sh`
+
+The refresh script:
+
+- pulls the latest Git commit with `git pull --ff-only`
+- restarts `trenddeck.service` if non-cache code changed
+- reinstalls dependencies first if `requirements.txt` changed
+- calls `scripts/refresh-cache.py`
+- refreshes through `POST /api/watchlist/refresh`, which shares the same backend refresh path as the UI refresh button
+- stages only `.cache`
+- commits changed cache files as `Update market data YYYY-MM-DD`
+- pushes back to GitHub
+
+Manual refresh:
+
+```bash
+sudo systemctl start trenddeck-refresh.service
+journalctl -u trenddeck-refresh.service -n 120 --no-pager
+```
+
+Status checks:
+
+```bash
+systemctl status trenddeck.service --no-pager
+journalctl -u trenddeck.service -n 120 --no-pager
+systemctl list-timers trenddeck-refresh.timer --no-pager
+systemctl status trenddeck-refresh.timer --no-pager
+```
+
+GitHub write access is provided by a server-side SSH deploy key with write access enabled. The remote should use SSH:
+
+```bash
+git remote get-url origin
+ssh -T git@github.com
+```
