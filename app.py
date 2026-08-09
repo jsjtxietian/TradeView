@@ -2401,62 +2401,25 @@ def summary_payload(
     }
 
 
-app = FastAPI(title="Trend Deck")
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+def normalize_symbol_list(symbols: list[str] | str) -> list[str]:
+    raw_symbols = symbols.split(",") if isinstance(symbols, str) else symbols
+    normalized_symbols = [normalize_symbol(str(symbol)) for symbol in raw_symbols]
+    return [symbol for symbol in normalized_symbols if symbol]
 
 
-@app.get("/")
-def root() -> FileResponse:
-    return FileResponse(STATIC_DIR / "index.html")
+def load_configured_watchlist_symbols() -> list[str]:
+    state = load_watchlist_state()
+    if state:
+        symbols = normalize_symbol_list(state["watchlist"])
+        if symbols:
+            return symbols
+    return DEFAULT_WATCHLIST
 
 
-@app.get("/review")
-def review() -> FileResponse:
-    return FileResponse(STATIC_DIR / "review.html")
-
-
-@app.get("/api/config")
-def get_config() -> dict[str, Any]:
-    return {
-        "defaultWatchlist": DEFAULT_WATCHLIST,
-        "watchlistGroups": DEFAULT_WATCHLIST_GROUPS,
-        "benchmark": DEFAULT_BENCHMARK,
-    }
-
-
-@app.get("/api/watchlist/state")
-def get_watchlist_state() -> dict[str, Any]:
-    try:
-        state = load_watchlist_state()
-        return {
-            "configured": state is not None,
-            "watchlist": state["watchlist"] if state else DEFAULT_WATCHLIST,
-            "groups": state["groups"] if state else DEFAULT_WATCHLIST_GROUPS,
-        }
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
-
-
-@app.put("/api/watchlist/state")
-def put_watchlist_state(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
-    try:
-        state = save_watchlist_state(payload)
-        return {"configured": True, **state}
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
-
-
-@app.get("/api/watchlist/summary")
-def watchlist_summary(
-    symbols: str = Query(..., description="Comma separated stock symbols"),
-    refresh: bool = Query(False, description="Force incremental refresh from online sources"),
-) -> dict[str, Any]:
-    normalized_symbols = [normalize_symbol(symbol) for symbol in symbols.split(",")]
-    normalized_symbols = [symbol for symbol in normalized_symbols if symbol]
+def build_watchlist_summary(symbols: list[str] | str, refresh: bool = False) -> dict[str, Any]:
+    normalized_symbols = normalize_symbol_list(symbols)
     if not normalized_symbols:
-        raise HTTPException(status_code=400, detail="缺少有效股票代码。")
+        raise ValueError("缺少有效股票代码。")
 
     benchmark_in_watchlist = DEFAULT_BENCHMARK in normalized_symbols
     refresh_api_keys = {symbol: get_refresh_api_key_for_index(index) for index, symbol in enumerate(normalized_symbols)}
@@ -2510,6 +2473,77 @@ def watchlist_summary(
 
     items = [results[symbol] for symbol in normalized_symbols]
     return {"items": items}
+
+
+app = FastAPI(title="Trend Deck")
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+@app.get("/")
+def root() -> FileResponse:
+    return FileResponse(STATIC_DIR / "index.html")
+
+
+@app.get("/review")
+def review() -> FileResponse:
+    return FileResponse(STATIC_DIR / "review.html")
+
+
+@app.get("/api/config")
+def get_config() -> dict[str, Any]:
+    return {
+        "defaultWatchlist": DEFAULT_WATCHLIST,
+        "watchlistGroups": DEFAULT_WATCHLIST_GROUPS,
+        "benchmark": DEFAULT_BENCHMARK,
+    }
+
+
+@app.get("/api/watchlist/state")
+def get_watchlist_state() -> dict[str, Any]:
+    try:
+        state = load_watchlist_state()
+        return {
+            "configured": state is not None,
+            "watchlist": state["watchlist"] if state else DEFAULT_WATCHLIST,
+            "groups": state["groups"] if state else DEFAULT_WATCHLIST_GROUPS,
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.put("/api/watchlist/state")
+def put_watchlist_state(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
+    try:
+        state = save_watchlist_state(payload)
+        return {"configured": True, **state}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/api/watchlist/summary")
+def watchlist_summary(
+    symbols: str = Query(..., description="Comma separated stock symbols"),
+    refresh: bool = Query(False, description="Force incremental refresh from online sources"),
+) -> dict[str, Any]:
+    try:
+        return build_watchlist_summary(symbols, refresh=refresh)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/watchlist/refresh")
+def refresh_watchlist_cache(
+    symbols: str | None = Query(None, description="Optional comma separated stock symbols"),
+) -> dict[str, Any]:
+    try:
+        refresh_symbols = symbols if symbols is not None else load_configured_watchlist_symbols()
+        return build_watchlist_summary(refresh_symbols, refresh=True)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @app.get("/api/symbol/{symbol}")
