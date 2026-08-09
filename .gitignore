@@ -2,6 +2,7 @@
 __pycache__/
 .venv/
 .trade/
+todo.md
 U*.TRANSACTIONS.*.csv
 U*.TRADES.json
 U*.YTD*.TRADES.json
