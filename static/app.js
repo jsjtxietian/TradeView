@@ -1564,7 +1564,7 @@ function renderAlerts() {
     return;
   }
 
-  for (const group of groupAlertsBySymbol(state.alerts)) {
+  for (const group of groupAlertsBySymbolAndTime(state.alerts)) {
     const node = document.createElement("article");
     node.className = "alert-item alert-symbol-group";
     node.innerHTML = `
@@ -1587,20 +1587,22 @@ function renderAlerts() {
   }
 }
 
-function groupAlertsBySymbol(alerts) {
+function groupAlertsBySymbolAndTime(alerts) {
   const groups = [];
-  const bySymbol = new Map();
+  const bySymbolAndTime = new Map();
   for (const alert of alerts) {
     const symbol = normalizeSymbol(alert.symbol || "");
     if (!symbol) {
       continue;
     }
-    if (!bySymbol.has(symbol)) {
+    const timeLabel = alert.timeLabel || "";
+    const key = `${symbol}\n${timeLabel}`;
+    if (!bySymbolAndTime.has(key)) {
       const group = { symbol, latestTimeLabel: alert.timeLabel || "", alerts: [] };
-      bySymbol.set(symbol, group);
+      bySymbolAndTime.set(key, group);
       groups.push(group);
     }
-    bySymbol.get(symbol).alerts.push(alert);
+    bySymbolAndTime.get(key).alerts.push(alert);
   }
   return groups;
 }
