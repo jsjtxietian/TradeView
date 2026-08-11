@@ -1,0 +1,243 @@
+{
+  "version": 1,
+  "watchlist": [
+    "QQQ",
+    "QQQI",
+    "MAGS",
+    "GOOG",
+    "AAPL",
+    "META",
+    "AMZN",
+    "MSFT",
+    "TSLA",
+    "DELL",
+    "SE",
+    "NET",
+    "FTNT",
+    "FSLY",
+    "ADBE",
+    "CRWV",
+    "NVDA",
+    "TSM",
+    "INTC",
+    "AVGO",
+    "AMD",
+    "ARM",
+    "QCOM",
+    "DRAM",
+    "MU",
+    "SNDK",
+    "STX",
+    "WDC",
+    "SMH",
+    "SOXX",
+    "ASML",
+    "AMAT",
+    "LRCX",
+    "TOELY",
+    "KLAC",
+    "NBIS",
+    "KEYS",
+    "CBRS",
+    "COHR",
+    "SMTC",
+    "LITE",
+    "ENTG",
+    "CIEN",
+    "AEHR",
+    "MTRN",
+    "SPY",
+    "MDY",
+    "IWM",
+    "BRK-B",
+    "IAU",
+    "SLV",
+    "TLT",
+    "FFTY",
+    "EWY",
+    "DXJ",
+    "EWZ",
+    "FXI",
+    "VNM",
+    "RKLB",
+    "SPCX",
+    "COWZ",
+    "SCHY",
+    "SCHD",
+    "NOBL",
+    "PKW",
+    "VTV",
+    "GEV",
+    "BE",
+    "IREN",
+    "XLP",
+    "PG",
+    "KO",
+    "WMT",
+    "LLY",
+    "CAT",
+    "VALE",
+    "XLF",
+    "KBWB",
+    "SPHR"
+  ],
+  "groups": [
+    {
+      "id": "TECH",
+      "name": "科技",
+      "symbols": [
+        "QQQ",
+        "QQQI",
+        "MAGS",
+        "GOOG",
+        "AAPL",
+        "META",
+        "AMZN",
+        "MSFT",
+        "TSLA",
+        "DELL",
+        "SE",
+        "NET",
+        "FTNT",
+        "FSLY",
+        "ADBE",
+        "CRWV"
+      ]
+    },
+    {
+      "id": "GROUP_1776508796689_PK10UV",
+      "name": "芯片",
+      "symbols": [
+        "NVDA",
+        "TSM",
+        "INTC",
+        "AVGO",
+        "AMD",
+        "ARM",
+        "QCOM"
+      ]
+    },
+    {
+      "id": "GROUP_1777997274330_S5B83E",
+      "name": "内存与存储",
+      "symbols": [
+        "DRAM",
+        "MU",
+        "SNDK",
+        "STX",
+        "WDC"
+      ]
+    },
+    {
+      "id": "AI",
+      "name": "半导体",
+      "symbols": [
+        "SMH",
+        "SOXX",
+        "ASML",
+        "AMAT",
+        "LRCX",
+        "TOELY",
+        "KLAC",
+        "NBIS",
+        "KEYS",
+        "CBRS",
+        "COHR",
+        "SMTC",
+        "LITE",
+        "ENTG",
+        "CIEN",
+        "AEHR",
+        "MTRN"
+      ]
+    },
+    {
+      "id": "GROUP_1776440710126_CIJ5AA",
+      "name": "指标",
+      "symbols": [
+        "SPY",
+        "MDY",
+        "IWM",
+        "BRK-B",
+        "IAU",
+        "SLV",
+        "TLT",
+        "FFTY"
+      ]
+    },
+    {
+      "id": "REGIONAL",
+      "name": "地区",
+      "symbols": [
+        "EWY",
+        "DXJ",
+        "EWZ",
+        "FXI",
+        "VNM"
+      ]
+    },
+    {
+      "id": "GROUP_1778851641441_FGQVDM",
+      "name": "航天",
+      "symbols": [
+        "RKLB",
+        "SPCX"
+      ]
+    },
+    {
+      "id": "GROUP_1784217345053_H20477",
+      "name": "股息",
+      "symbols": [
+        "COWZ",
+        "SCHY",
+        "SCHD",
+        "NOBL",
+        "PKW",
+        "VTV"
+      ]
+    },
+    {
+      "id": "GROUP_1777996983812_X9EB5W",
+      "name": "电",
+      "symbols": [
+        "GEV",
+        "BE",
+        "IREN"
+      ]
+    },
+    {
+      "id": "GROUP_1776509097238_731JII",
+      "name": "消费",
+      "symbols": [
+        "XLP",
+        "PG",
+        "KO",
+        "WMT",
+        "LLY"
+      ]
+    },
+    {
+      "id": "GROUP_1776776297702_IGDO7X",
+      "name": "矿",
+      "symbols": [
+        "CAT",
+        "VALE"
+      ]
+    },
+    {
+      "id": "GROUP_1784217070859_HX3BJR",
+      "name": "金融",
+      "symbols": [
+        "XLF",
+        "KBWB"
+      ]
+    },
+    {
+      "id": "GROUP_1777996255127_M9QE19",
+      "name": "其他",
+      "symbols": [
+        "SPHR"
+      ]
+    }
+  ]
+}

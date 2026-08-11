@@ -1,0 +1,2955 @@
+{
+  "version": 1,
+  "baseCurrency": "USD",
+  "startDate": "2024-12-17",
+  "endDate": "2026-06-12",
+  "entries": [
+    {
+      "date": "2026-06-12",
+      "category": "commission",
+      "symbol": "SPCX",
+      "description": "SPACE EXPLORATION TECHN-CL A",
+      "amount": -0.35028725
+    },
+    {
+      "date": "2026-06-12",
+      "category": "commission",
+      "symbol": "SPCX",
+      "description": "SPACE EXPLORATION TECHN-CL A",
+      "amount": -0.35228725
+    },
+    {
+      "date": "2026-06-12",
+      "category": "commission",
+      "symbol": "SPCX",
+      "description": "SPACE EXPLORATION TECHN-CL A",
+      "amount": -0.40150525
+    },
+    {
+      "date": "2026-06-12",
+      "category": "commission",
+      "symbol": "SPCX",
+      "description": "SPACE EXPLORATION TECHN-CL A",
+      "amount": -0.012812
+    },
+    {
+      "date": "2026-06-12",
+      "category": "commission",
+      "symbol": "SPCX",
+      "description": "SPACE EXPLORATION TECHN-CL A",
+      "amount": -0.35837725
+    },
+    {
+      "date": "2026-06-12",
+      "category": "commission",
+      "symbol": "SPCX",
+      "description": "SPACE EXPLORATION TECHN-CL A",
+      "amount": -0.496705442
+    },
+    {
+      "date": "2026-06-12",
+      "category": "commission",
+      "symbol": "SPCX",
+      "description": "SPACE EXPLORATION TECHN-CL A",
+      "amount": -0.42677611
+    },
+    {
+      "date": "2026-06-12",
+      "category": "commission",
+      "symbol": "SPCX",
+      "description": "SPACE EXPLORATION TECHN-CL A",
+      "amount": -0.42386121
+    },
+    {
+      "date": "2026-06-12",
+      "category": "misc_income",
+      "symbol": "",
+      "description": "FX Translations P&L",
+      "amount": 129.28703572471204
+    },
+    {
+      "date": "2026-06-11",
+      "category": "commission",
+      "symbol": "268A.T",
+      "description": "RIGAKU HOLDINGS CORP",
+      "amount": -0.783120167621
+    },
+    {
+      "date": "2026-06-11",
+      "category": "commission",
+      "symbol": "268A.T",
+      "description": "RIGAKU HOLDINGS CORP",
+      "amount": -0.783120167621
+    },
+    {
+      "date": "2026-06-11",
+      "category": "commission",
+      "symbol": "USD.JPY",
+      "description": "外汇交易基础货币净额: -407 USD.JPY",
+      "amount": -2.0
+    },
+    {
+      "date": "2026-06-11",
+      "category": "commission",
+      "symbol": "USD.SGD",
+      "description": "外汇交易基础货币净额: 2,330.27 USD.SGD",
+      "amount": -2.0
+    },
+    {
+      "date": "2026-06-11",
+      "category": "commission",
+      "symbol": "SOXL",
+      "description": "DIREX DAIL SEMI BU 3X ET-USD",
+      "amount": -0.35127225
+    },
+    {
+      "date": "2026-06-11",
+      "category": "commission",
+      "symbol": "SOXL",
+      "description": "DIREX DAIL SEMI BU 3X ET-USD",
+      "amount": -0.38735079
+    },
+    {
+      "date": "2026-06-11",
+      "category": "commission",
+      "symbol": "GOOG",
+      "description": "ALPHABET INC-CL C",
+      "amount": -0.447589685
+    },
+    {
+      "date": "2026-06-11",
+      "category": "commission",
+      "symbol": "SOXL",
+      "description": "DIREX DAIL SEMI BU 3X ET-USD",
+      "amount": -0.37220247
+    },
+    {
+      "date": "2026-06-11",
+      "category": "commission",
+      "symbol": "SOXL",
+      "description": "DIREX DAIL SEMI BU 3X ET-USD",
+      "amount": -0.35127225
+    },
+    {
+      "date": "2026-06-10",
+      "category": "commission",
+      "symbol": "SMTC",
+      "description": "SEMTECH CORP",
+      "amount": -0.40659078
+    },
+    {
+      "date": "2026-06-10",
+      "category": "commission",
+      "symbol": "SMTC",
+      "description": "SEMTECH CORP",
+      "amount": -0.007681845
+    },
+    {
+      "date": "2026-06-09",
+      "category": "commission",
+      "symbol": "AAPL",
+      "description": "APPLE INC",
+      "amount": -0.40567881
+    },
+    {
+      "date": "2026-06-09",
+      "category": "commission",
+      "symbol": "NOK",
+      "description": "NOKIA CORP-SPON ADR",
+      "amount": -0.8378151
+    },
+    {
+      "date": "2026-06-09",
+      "category": "commission",
+      "symbol": "QQQI",
+      "description": "NEOS NASDAQ-100 HIGH INC ETF",
+      "amount": -0.51040725
+    },
+    {
+      "date": "2026-06-05",
+      "category": "commission",
+      "symbol": "INTC",
+      "description": "INTEL CORP",
+      "amount": -0.37587446
+    },
+    {
+      "date": "2026-06-05",
+      "category": "commission",
+      "symbol": "INTC",
+      "description": "INTEL CORP",
+      "amount": -0.40526573
+    },
+    {
+      "date": "2026-06-05",
+      "category": "commission",
+      "symbol": "QQQI",
+      "description": "NEOS NASDAQ-100 HIGH INC ETF",
+      "amount": -0.51040725
+    },
+    {
+      "date": "2026-06-04",
+      "category": "commission",
+      "symbol": "DRAM",
+      "description": "ROUNDHILL MEMORY ETF",
+      "amount": -0.35431725
+    },
+    {
+      "date": "2026-06-03",
+      "category": "debit_interest",
+      "symbol": "",
+      "description": "EUR 借方利息 五月-2026",
+      "amount": -11.157275999999998
+    },
+    {
+      "date": "2026-06-03",
+      "category": "credit_interest",
+      "symbol": "",
+      "description": "USD 贷方利息- 五月-2026",
+      "amount": 14.56
+    },
+    {
+      "date": "2026-06-03",
+      "category": "credit_interest",
+      "symbol": "",
+      "description": "USD IBKR管理的证券（股票收益提升计划）- 五月-2026",
+      "amount": 0.59
+    },
+    {
+      "date": "2026-06-03",
+      "category": "debit_interest",
+      "symbol": "",
+      "description": "JPY 借方利息 五月-2026",
+      "amount": -0.6059202
+    },
+    {
+      "date": "2026-06-03",
+      "category": "credit_interest",
+      "symbol": "",
+      "description": "JPY IBKR管理的证券（股票收益提升计划）- 五月-2026",
+      "amount": 0.16865819999999998
+    },
+    {
+      "date": "2026-06-01",
+      "category": "commission",
+      "symbol": "268A.T",
+      "description": "RIGAKU HOLDINGS CORP",
+      "amount": -0.9677823423599999
+    },
+    {
+      "date": "2026-06-01",
+      "category": "commission",
+      "symbol": "INTC",
+      "description": "INTEL CORP",
+      "amount": -0.46365673
+    },
+    {
+      "date": "2026-05-29",
+      "category": "commission",
+      "symbol": "INTC",
+      "description": "INTEL CORP",
+      "amount": -0.35228725
+    },
+    {
+      "date": "2026-05-28",
+      "category": "commission",
+      "symbol": "SMTC",
+      "description": "SEMTECH CORP",
+      "amount": -0.35627225
+    },
+    {
+      "date": "2026-05-28",
+      "category": "commission",
+      "symbol": "GOOG",
+      "description": "ALPHABET INC-CL C",
+      "amount": -0.34627225
+    },
+    {
+      "date": "2026-05-28",
+      "category": "commission",
+      "symbol": "AAPL",
+      "description": "APPLE INC",
+      "amount": -0.36627225
+    },
+    {
+      "date": "2026-05-28",
+      "category": "commission",
+      "symbol": "BESI",
+      "description": "BE SEMICONDUCTOR INDUSTRIES",
+      "amount": -1.8362526125
+    },
+    {
+      "date": "2026-05-28",
+      "category": "commission",
+      "symbol": "SOXX",
+      "description": "ISHARES SEMICONDUCTOR ETF",
+      "amount": -0.36306925
+    },
+    {
+      "date": "2026-05-22",
+      "category": "dividend",
+      "symbol": "QQQI",
+      "description": "QQQI(US78433H6751) 现金红利 USD 0.6589 每股 (常规股息)",
+      "amount": 149.57
+    },
+    {
+      "date": "2026-05-22",
+      "category": "withholding_tax",
+      "symbol": "QQQI",
+      "description": "QQQI(US78433H6751) 现金红利 USD 0.6589 每股 - US 税收",
+      "amount": -14.96
+    },
+    {
+      "date": "2026-05-21",
+      "category": "commission",
+      "symbol": "268A.T",
+      "description": "RIGAKU HOLDINGS CORP",
+      "amount": -0.85261097599
+    },
+    {
+      "date": "2026-05-21",
+      "category": "commission",
+      "symbol": "BESI",
+      "description": "BE SEMICONDUCTOR INDUSTRIES",
+      "amount": -1.4522499999999998
+    },
+    {
+      "date": "2026-05-21",
+      "category": "commission",
+      "symbol": "DRAM",
+      "description": "ROUNDHILL MEMORY ETF",
+      "amount": -0.35837725
+    },
+    {
+      "date": "2026-05-20",
+      "category": "commission",
+      "symbol": "SMTC",
+      "description": "SEMTECH CORP",
+      "amount": -0.35431725
+    },
+    {
+      "date": "2026-05-20",
+      "category": "commission",
+      "symbol": "INTC",
+      "description": "INTEL CORP",
+      "amount": -0.35634725
+    },
+    {
+      "date": "2026-05-20",
+      "category": "commission",
+      "symbol": "NOK",
+      "description": "NOKIA CORP-SPON ADR",
+      "amount": -0.7411145
+    },
+    {
+      "date": "2026-05-19",
+      "category": "commission",
+      "symbol": "BESI",
+      "description": "BE SEMICONDUCTOR INDUSTRIES",
+      "amount": -3.6834542500000005
+    },
+    {
+      "date": "2026-05-19",
+      "category": "commission",
+      "symbol": "TSM",
+      "description": "TAIWAN SEMICONDUCTOR-SP ADR",
+      "amount": -0.361743634
+    },
+    {
+      "date": "2026-05-19",
+      "category": "commission",
+      "symbol": "TSM",
+      "description": "TAIWAN SEMICONDUCTOR-SP ADR",
+      "amount": -0.160803608
+    },
+    {
+      "date": "2026-05-19",
+      "category": "commission",
+      "symbol": "DRAM",
+      "description": "ROUNDHILL MEMORY ETF",
+      "amount": -0.42216407
+    },
+    {
+      "date": "2026-05-19",
+      "category": "commission",
+      "symbol": "DRAM",
+      "description": "ROUNDHILL MEMORY ETF",
+      "amount": 0.00812424
+    },
+    {
+      "date": "2026-05-19",
+      "category": "commission",
+      "symbol": "SMH",
+      "description": "VANECK SEMICONDUCTOR ETF",
+      "amount": -0.45394976
+    },
+    {
+      "date": "2026-05-19",
+      "category": "commission",
+      "symbol": "DRAM",
+      "description": "ROUNDHILL MEMORY ETF",
+      "amount": -0.3390153
+    },
+    {
+      "date": "2026-05-19",
+      "category": "commission",
+      "symbol": "SMH",
+      "description": "VANECK SEMICONDUCTOR ETF",
+      "amount": -0.402062305
+    },
+    {
+      "date": "2026-05-19",
+      "category": "commission",
+      "symbol": "DRAM",
+      "description": "ROUNDHILL MEMORY ETF",
+      "amount": -0.646222115
+    },
+    {
+      "date": "2026-05-19",
+      "category": "commission",
+      "symbol": "SOXX",
+      "description": "ISHARES SEMICONDUCTOR ETF",
+      "amount": -0.35127225
+    },
+    {
+      "date": "2026-05-19",
+      "category": "commission",
+      "symbol": "SOXX",
+      "description": "ISHARES SEMICONDUCTOR ETF",
+      "amount": -0.001015
+    },
+    {
+      "date": "2026-05-18",
+      "category": "commission",
+      "symbol": "ASML",
+      "description": "ASML HOLDING NV-NY REG SHS",
+      "amount": -0.410032546
+    },
+    {
+      "date": "2026-05-18",
+      "category": "commission",
+      "symbol": "ASML",
+      "description": "ASML HOLDING NV-NY REG SHS",
+      "amount": -0.02988909
+    },
+    {
+      "date": "2026-05-18",
+      "category": "commission",
+      "symbol": "SNDK",
+      "description": "SANDISK CORP",
+      "amount": -0.48650775
+    },
+    {
+      "date": "2026-05-15",
+      "category": "commission",
+      "symbol": "BESI",
+      "description": "BE SEMICONDUCTOR INDUSTRIES",
+      "amount": -1.453125
+    },
+    {
+      "date": "2026-05-14",
+      "category": "dividend",
+      "symbol": "AAPL",
+      "description": "AAPL(US0378331005) 现金红利 USD 0.27 每股 (常规股息)",
+      "amount": 4.05
+    },
+    {
+      "date": "2026-05-14",
+      "category": "withholding_tax",
+      "symbol": "AAPL",
+      "description": "AAPL(US0378331005) 现金红利 USD 0.27 每股 - US 税收",
+      "amount": -0.41
+    },
+    {
+      "date": "2026-05-13",
+      "category": "commission",
+      "symbol": "SNDK",
+      "description": "SANDISK CORP",
+      "amount": -0.35127225
+    },
+    {
+      "date": "2026-05-12",
+      "category": "commission",
+      "symbol": "EWY",
+      "description": "ISHARES MSCI SOUTH KOREA ETF",
+      "amount": -0.42263771
+    },
+    {
+      "date": "2026-05-12",
+      "category": "commission",
+      "symbol": "MU",
+      "description": "MICRON TECHNOLOGY INC",
+      "amount": -0.56383394
+    },
+    {
+      "date": "2026-05-12",
+      "category": "commission",
+      "symbol": "IREN",
+      "description": "IREN LTD",
+      "amount": -0.4856156
+    },
+    {
+      "date": "2026-05-12",
+      "category": "commission",
+      "symbol": "DRAM",
+      "description": "ROUNDHILL MEMORY ETF",
+      "amount": -0.16055725
+    },
+    {
+      "date": "2026-05-12",
+      "category": "commission",
+      "symbol": "SMH",
+      "description": "VANECK SEMICONDUCTOR ETF",
+      "amount": -0.35127225
+    },
+    {
+      "date": "2026-05-07",
+      "category": "commission",
+      "symbol": "DRAM",
+      "description": "ROUNDHILL MEMORY ETF",
+      "amount": -0.35634725
+    },
+    {
+      "date": "2026-05-06",
+      "category": "commission",
+      "symbol": "USD.SGD",
+      "description": "外汇交易基础货币净额: 2,364.43 USD.SGD",
+      "amount": -2.0
+    },
+    {
+      "date": "2026-05-05",
+      "category": "commission",
+      "symbol": "GOOG",
+      "description": "ALPHABET INC-CL C",
+      "amount": -0.35127225
+    },
+    {
+      "date": "2026-05-05",
+      "category": "commission",
+      "symbol": "AAPL",
+      "description": "APPLE INC",
+      "amount": -0.35127225
+    },
+    {
+      "date": "2026-05-05",
+      "category": "credit_interest",
+      "symbol": "",
+      "description": "USD IBKR管理的证券（股票收益提升计划）- 四月-2026",
+      "amount": 0.21
+    },
+    {
+      "date": "2026-05-05",
+      "category": "debit_interest",
+      "symbol": "",
+      "description": "EUR 借方利息 四月-2026",
+      "amount": -0.245553
+    },
+    {
+      "date": "2026-05-05",
+      "category": "commission",
+      "symbol": "IREN",
+      "description": "IREN LTD",
+      "amount": -0.34228725
+    },
+    {
+      "date": "2026-05-05",
+      "category": "commission",
+      "symbol": "IREN",
+      "description": "IREN LTD",
+      "amount": -0.06406
+    },
+    {
+      "date": "2026-05-04",
+      "category": "commission",
+      "symbol": "BOXX",
+      "description": "ALPHA ARCHITECT 1-3 MNTH BOX",
+      "amount": -0.523817348
+    },
+    {
+      "date": "2026-04-30",
+      "category": "commission",
+      "symbol": "DRAM",
+      "description": "ROUNDHILL MEMORY ETF",
+      "amount": -0.36025725
+    },
+    {
+      "date": "2026-04-29",
+      "category": "commission",
+      "symbol": "BESI",
+      "description": "BE SEMICONDUCTOR INDUSTRIES",
+      "amount": -1.459375
+    },
+    {
+      "date": "2026-04-28",
+      "category": "commission",
+      "symbol": "BESI",
+      "description": "BE SEMICONDUCTOR INDUSTRIES",
+      "amount": -1.4641250000000001
+    },
+    {
+      "date": "2026-04-28",
+      "category": "commission",
+      "symbol": "BOXX",
+      "description": "ALPHA ARCHITECT 1-3 MNTH BOX",
+      "amount": -0.51795743
+    },
+    {
+      "date": "2026-04-28",
+      "category": "commission",
+      "symbol": "DRAM",
+      "description": "ROUNDHILL MEMORY ETF",
+      "amount": -0.36025725
+    },
+    {
+      "date": "2026-04-27",
+      "category": "commission",
+      "symbol": "SMH",
+      "description": "VANECK SEMICONDUCTOR ETF",
+      "amount": -0.34625725
+    },
+    {
+      "date": "2026-04-27",
+      "category": "commission",
+      "symbol": "ASML",
+      "description": "ASML HOLDING NV-NY REG SHS",
+      "amount": -0.35085725
+    },
+    {
+      "date": "2026-04-24",
+      "category": "commission",
+      "symbol": "DXJ",
+      "description": "WISDOMTREE JAPAN HEDGED EQ",
+      "amount": -0.41277404
+    },
+    {
+      "date": "2026-04-24",
+      "category": "dividend",
+      "symbol": "QQQI",
+      "description": "QQQI(US78433H6751) 现金红利 USD 0.6297 每股 (常规股息)",
+      "amount": 142.94
+    },
+    {
+      "date": "2026-04-24",
+      "category": "withholding_tax",
+      "symbol": "QQQI",
+      "description": "QQQI(US78433H6751) 现金红利 USD 0.6297 每股 - US 税收",
+      "amount": -14.29
+    },
+    {
+      "date": "2026-04-24",
+      "category": "commission",
+      "symbol": "DRAM",
+      "description": "ROUNDHILL MEMORY ETF",
+      "amount": -0.35045725
+    },
+    {
+      "date": "2026-04-24",
+      "category": "commission",
+      "symbol": "DRAM",
+      "description": "ROUNDHILL MEMORY ETF",
+      "amount": -0.354423102
+    },
+    {
+      "date": "2026-04-23",
+      "category": "commission",
+      "symbol": "SNDK",
+      "description": "SANDISK CORP",
+      "amount": -0.395970036
+    },
+    {
+      "date": "2026-04-23",
+      "category": "commission",
+      "symbol": "EWZ",
+      "description": "ISHARES MSCI BRAZIL ETF",
+      "amount": -0.41714552
+    },
+    {
+      "date": "2026-04-23",
+      "category": "commission",
+      "symbol": "SMH",
+      "description": "VANECK SEMICONDUCTOR ETF",
+      "amount": -0.34905725
+    },
+    {
+      "date": "2026-04-23",
+      "category": "commission",
+      "symbol": "SMH",
+      "description": "VANECK SEMICONDUCTOR ETF",
+      "amount": 0.0018
+    },
+    {
+      "date": "2026-04-22",
+      "category": "commission",
+      "symbol": "GOOG",
+      "description": "ALPHABET INC-CL C",
+      "amount": -0.35125725
+    },
+    {
+      "date": "2026-04-21",
+      "category": "commission",
+      "symbol": "USD.SGD",
+      "description": "外汇交易基础货币净额: 3,148.36 USD.SGD",
+      "amount": -2.0
+    },
+    {
+      "date": "2026-04-21",
+      "category": "commission",
+      "symbol": "MU",
+      "description": "MICRON TECHNOLOGY INC",
+      "amount": -0.35125725
+    },
+    {
+      "date": "2026-04-20",
+      "category": "commission",
+      "symbol": "EWZ",
+      "description": "ISHARES MSCI BRAZIL ETF",
+      "amount": -0.35625725
+    },
+    {
+      "date": "2026-04-20",
+      "category": "commission",
+      "symbol": "BOXX",
+      "description": "ALPHA ARCHITECT 1-3 MNTH BOX",
+      "amount": -0.43405172
+    },
+    {
+      "date": "2026-04-16",
+      "category": "commission",
+      "symbol": "SNDK",
+      "description": "SANDISK CORP",
+      "amount": -0.35065725
+    },
+    {
+      "date": "2026-04-15",
+      "category": "commission",
+      "symbol": "EWY",
+      "description": "ISHARES MSCI SOUTH KOREA ETF",
+      "amount": -0.33905725
+    },
+    {
+      "date": "2026-04-15",
+      "category": "commission",
+      "symbol": "EWY",
+      "description": "ISHARES MSCI SOUTH KOREA ETF",
+      "amount": 0.0028
+    },
+    {
+      "date": "2026-04-15",
+      "category": "commission",
+      "symbol": "DXJ",
+      "description": "WISDOMTREE JAPAN HEDGED EQ",
+      "amount": -0.35225725
+    },
+    {
+      "date": "2026-04-15",
+      "category": "commission",
+      "symbol": "AAPL",
+      "description": "APPLE INC",
+      "amount": -0.34705725
+    },
+    {
+      "date": "2026-04-15",
+      "category": "commission",
+      "symbol": "BOXX",
+      "description": "ALPHA ARCHITECT 1-3 MNTH BOX",
+      "amount": -0.43398992
+    },
+    {
+      "date": "2026-04-15",
+      "category": "commission",
+      "symbol": "TSM",
+      "description": "TAIWAN SEMICONDUCTOR-SP ADR",
+      "amount": -0.33525725
+    },
+    {
+      "date": "2026-04-14",
+      "category": "commission",
+      "symbol": "EWY",
+      "description": "ISHARES MSCI SOUTH KOREA ETF",
+      "amount": -0.33825725
+    },
+    {
+      "date": "2026-04-14",
+      "category": "commission",
+      "symbol": "BOXX",
+      "description": "ALPHA ARCHITECT 1-3 MNTH BOX",
+      "amount": -0.42798065
+    },
+    {
+      "date": "2026-04-14",
+      "category": "commission",
+      "symbol": "DXJ",
+      "description": "WISDOMTREE JAPAN HEDGED EQ",
+      "amount": -0.38225725
+    },
+    {
+      "date": "2026-04-14",
+      "category": "commission",
+      "symbol": "BOXX",
+      "description": "ALPHA ARCHITECT 1-3 MNTH BOX",
+      "amount": -0.433981886
+    },
+    {
+      "date": "2026-04-14",
+      "category": "commission",
+      "symbol": "TSM",
+      "description": "TAIWAN SEMICONDUCTOR-SP ADR",
+      "amount": -0.38225725
+    },
+    {
+      "date": "2026-04-14",
+      "category": "commission",
+      "symbol": "SPHR",
+      "description": "SPHERE ENTERTAINMENT CO",
+      "amount": -0.36563736
+    },
+    {
+      "date": "2026-04-14",
+      "category": "commission",
+      "symbol": "CWEN",
+      "description": "CLEARWAY ENERGY INC-C",
+      "amount": -0.36244622
+    },
+    {
+      "date": "2026-04-14",
+      "category": "commission",
+      "symbol": "CWEN",
+      "description": "CLEARWAY ENERGY INC-C",
+      "amount": -0.36244622
+    },
+    {
+      "date": "2026-04-10",
+      "category": "commission",
+      "symbol": "BOXX",
+      "description": "ALPHA ARCHITECT 1-3 MNTH BOX",
+      "amount": -0.43397756
+    },
+    {
+      "date": "2026-04-10",
+      "category": "commission",
+      "symbol": "EWY",
+      "description": "ISHARES MSCI SOUTH KOREA ETF",
+      "amount": -0.33625725
+    },
+    {
+      "date": "2026-04-10",
+      "category": "commission",
+      "symbol": "DXJ",
+      "description": "WISDOMTREE JAPAN HEDGED EQ",
+      "amount": -0.33625725
+    },
+    {
+      "date": "2026-04-09",
+      "category": "commission",
+      "symbol": "BOXX",
+      "description": "ALPHA ARCHITECT 1-3 MNTH BOX",
+      "amount": -0.40606667
+    },
+    {
+      "date": "2026-04-09",
+      "category": "dividend",
+      "symbol": "TSM",
+      "description": "TSM(US8740391003) 现金红利 USD 0.938972 每股 (Ordinary Div - NRA Withholding Exempt)",
+      "amount": 18.78
+    },
+    {
+      "date": "2026-04-09",
+      "category": "withholding_tax",
+      "symbol": "TSM",
+      "description": "TSM(US8740391003) 现金红利 USD 0.938972 每股 - TW 税收",
+      "amount": -3.94
+    },
+    {
+      "date": "2026-04-07",
+      "category": "commission",
+      "symbol": "AAPL",
+      "description": "APPLE INC",
+      "amount": -0.34545725
+    },
+    {
+      "date": "2026-04-06",
+      "category": "commission",
+      "symbol": "MU",
+      "description": "MICRON TECHNOLOGY INC",
+      "amount": -0.35225725
+    },
+    {
+      "date": "2026-04-06",
+      "category": "commission",
+      "symbol": "SPHR",
+      "description": "SPHERE ENTERTAINMENT CO",
+      "amount": -0.33525725
+    },
+    {
+      "date": "2026-04-06",
+      "category": "credit_interest",
+      "symbol": "",
+      "description": "USD 贷方利息- 三月-2026",
+      "amount": 0.54
+    },
+    {
+      "date": "2026-04-06",
+      "category": "credit_interest",
+      "symbol": "",
+      "description": "USD IBKR管理的证券（股票收益提升计划）- 三月-2026",
+      "amount": 0.13
+    },
+    {
+      "date": "2026-04-02",
+      "category": "commission",
+      "symbol": "CWEN",
+      "description": "CLEARWAY ENERGY INC-C",
+      "amount": -0.29025725
+    },
+    {
+      "date": "2026-04-02",
+      "category": "commission",
+      "symbol": "USD.SGD",
+      "description": "外汇交易基础货币净额: 2,330.91 USD.SGD",
+      "amount": -2.0
+    },
+    {
+      "date": "2026-04-01",
+      "category": "commission",
+      "symbol": "MU",
+      "description": "MICRON TECHNOLOGY INC",
+      "amount": -0.33925725
+    },
+    {
+      "date": "2026-04-01",
+      "category": "commission",
+      "symbol": "BOXX",
+      "description": "ALPHA ARCHITECT 1-3 MNTH BOX",
+      "amount": -0.35420725
+    },
+    {
+      "date": "2026-04-01",
+      "category": "commission",
+      "symbol": "MU",
+      "description": "MICRON TECHNOLOGY INC",
+      "amount": -0.35420725
+    },
+    {
+      "date": "2026-03-27",
+      "category": "commission",
+      "symbol": "BOXX",
+      "description": "ALPHA ARCHITECT 1-3 MNTH BOX",
+      "amount": -0.36825725
+    },
+    {
+      "date": "2026-03-27",
+      "category": "commission",
+      "symbol": "TSM",
+      "description": "TAIWAN SEMICONDUCTOR-SP ADR",
+      "amount": -0.35420725
+    },
+    {
+      "date": "2026-03-26",
+      "category": "commission",
+      "symbol": "GOOG",
+      "description": "ALPHABET INC-CL C",
+      "amount": -0.35499725
+    },
+    {
+      "date": "2026-03-23",
+      "category": "commission",
+      "symbol": "TSM",
+      "description": "TAIWAN SEMICONDUCTOR-SP ADR",
+      "amount": -0.38420725
+    },
+    {
+      "date": "2026-03-23",
+      "category": "commission",
+      "symbol": "GOOG",
+      "description": "ALPHABET INC-CL C",
+      "amount": -0.34299725
+    },
+    {
+      "date": "2026-03-20",
+      "category": "dividend",
+      "symbol": "QQQI",
+      "description": "QQQI(US78433H6751) 现金红利 USD 0.6089 每股 (常规股息)",
+      "amount": 138.22
+    },
+    {
+      "date": "2026-03-20",
+      "category": "withholding_tax",
+      "symbol": "QQQI",
+      "description": "QQQI(US78433H6751) 现金红利 USD 0.6089 每股 - US 税收",
+      "amount": -13.82
+    },
+    {
+      "date": "2026-03-16",
+      "category": "commission",
+      "symbol": "BOXX",
+      "description": "ALPHA ARCHITECT 1-3 MNTH BOX",
+      "amount": -0.35585725
+    },
+    {
+      "date": "2026-03-16",
+      "category": "dividend",
+      "symbol": "GOOG",
+      "description": "GOOG(US02079K1079) 现金红利 USD 0.21 每股 (常规股息)",
+      "amount": 5.04
+    },
+    {
+      "date": "2026-03-16",
+      "category": "withholding_tax",
+      "symbol": "GOOG",
+      "description": "GOOG(US02079K1079) 现金红利 USD 0.21 每股 - US 税收",
+      "amount": -0.5
+    },
+    {
+      "date": "2026-03-13",
+      "category": "commission",
+      "symbol": "IAU",
+      "description": "ISHARES GOLD TRUST",
+      "amount": -0.35420725
+    },
+    {
+      "date": "2026-03-13",
+      "category": "commission",
+      "symbol": "USD.SGD",
+      "description": "外汇交易基础货币净额: 2,344.2 USD.SGD",
+      "amount": -2.0
+    },
+    {
+      "date": "2026-03-06",
+      "category": "commission",
+      "symbol": "BOXX",
+      "description": "ALPHA ARCHITECT 1-3 MNTH BOX",
+      "amount": -0.36505725
+    },
+    {
+      "date": "2026-03-05",
+      "category": "commission",
+      "symbol": "TSM",
+      "description": "TAIWAN SEMICONDUCTOR-SP ADR",
+      "amount": -0.29025725
+    },
+    {
+      "date": "2026-03-04",
+      "category": "commission",
+      "symbol": "TSM",
+      "description": "TAIWAN SEMICONDUCTOR-SP ADR",
+      "amount": -0.35225725
+    },
+    {
+      "date": "2026-03-04",
+      "category": "commission",
+      "symbol": "TSM",
+      "description": "TAIWAN SEMICONDUCTOR-SP ADR",
+      "amount": -0.35420725
+    },
+    {
+      "date": "2026-03-04",
+      "category": "credit_interest",
+      "symbol": "",
+      "description": "USD 贷方利息- 二月-2026",
+      "amount": 0.2
+    },
+    {
+      "date": "2026-03-04",
+      "category": "debit_interest",
+      "symbol": "",
+      "description": "USD 借方利息 二月-2026",
+      "amount": -2.31
+    },
+    {
+      "date": "2026-03-04",
+      "category": "credit_interest",
+      "symbol": "",
+      "description": "USD IBKR管理的证券（股票收益提升计划）- 二月-2026",
+      "amount": 0.85
+    },
+    {
+      "date": "2026-03-03",
+      "category": "commission",
+      "symbol": "MU",
+      "description": "MICRON TECHNOLOGY INC",
+      "amount": -0.34723225
+    },
+    {
+      "date": "2026-03-03",
+      "category": "commission",
+      "symbol": "EWY",
+      "description": "ISHARES MSCI SOUTH KOREA ETF",
+      "amount": -0.38513225
+    },
+    {
+      "date": "2026-03-03",
+      "category": "commission",
+      "symbol": "EWY",
+      "description": "ISHARES MSCI SOUTH KOREA ETF",
+      "amount": -0.023715
+    },
+    {
+      "date": "2026-03-03",
+      "category": "commission",
+      "symbol": "DXJ",
+      "description": "WISDOMTREE JAPAN HEDGED EQ",
+      "amount": -0.38652725
+    },
+    {
+      "date": "2026-03-03",
+      "category": "commission",
+      "symbol": "MAGS",
+      "description": "ROUNDHILL MAGNIFICENT SEVEN",
+      "amount": -0.44790725
+    },
+    {
+      "date": "2026-03-02",
+      "category": "commission",
+      "symbol": "DXJ",
+      "description": "WISDOMTREE JAPAN HEDGED EQ",
+      "amount": -0.34185725
+    },
+    {
+      "date": "2026-02-27",
+      "category": "commission",
+      "symbol": "SOXL",
+      "description": "DIREXION DAILY SEMI BULL 3X",
+      "amount": -0.36210725
+    },
+    {
+      "date": "2026-02-27",
+      "category": "commission",
+      "symbol": "IAU",
+      "description": "ISHARES GOLD TRUST",
+      "amount": -0.36225725
+    },
+    {
+      "date": "2026-02-27",
+      "category": "commission",
+      "symbol": "EWY",
+      "description": "ISHARES MSCI SOUTH KOREA ETF",
+      "amount": -0.35165725
+    },
+    {
+      "date": "2026-02-27",
+      "category": "commission",
+      "symbol": "BOXX",
+      "description": "ALPHA ARCHITECT 1-3 MNTH BOX",
+      "amount": -0.35420725
+    },
+    {
+      "date": "2026-02-26",
+      "category": "commission",
+      "symbol": "MU",
+      "description": "MICRON TECHNOLOGY INC",
+      "amount": -0.35223225
+    },
+    {
+      "date": "2026-02-26",
+      "category": "commission",
+      "symbol": "SOXL",
+      "description": "DIREXION DAILY SEMI BULL 3X",
+      "amount": -0.30825725
+    },
+    {
+      "date": "2026-02-24",
+      "category": "commission",
+      "symbol": "MAGS",
+      "description": "ROUNDHILL MAGNIFICENT SEVEN",
+      "amount": -0.42195725
+    },
+    {
+      "date": "2026-02-24",
+      "category": "commission",
+      "symbol": "MAGS",
+      "description": "ROUNDHILL MAGNIFICENT SEVEN",
+      "amount": -0.42698225
+    },
+    {
+      "date": "2026-02-24",
+      "category": "commission",
+      "symbol": "BOXX",
+      "description": "ALPHA ARCHITECT 1-3 MNTH BOX",
+      "amount": -0.54555725
+    },
+    {
+      "date": "2026-02-23",
+      "category": "commission",
+      "symbol": "MU",
+      "description": "MICRON TECHNOLOGY INC",
+      "amount": -0.35085725
+    },
+    {
+      "date": "2026-02-23",
+      "category": "commission",
+      "symbol": "BOXX",
+      "description": "ALPHA ARCHITECT 1-3 MNTH BOX",
+      "amount": -0.36585725
+    },
+    {
+      "date": "2026-02-23",
+      "category": "commission",
+      "symbol": "BOXX",
+      "description": "ALPHA ARCHITECT 1-3 MNTH BOX",
+      "amount": -0.35815725
+    },
+    {
+      "date": "2026-02-23",
+      "category": "commission",
+      "symbol": "MU",
+      "description": "MICRON TECHNOLOGY INC",
+      "amount": -0.34865725
+    },
+    {
+      "date": "2026-02-23",
+      "category": "commission",
+      "symbol": "QQQI",
+      "description": "NEOS NASDAQ-100 HIGH INC ETF",
+      "amount": -0.46365725
+    },
+    {
+      "date": "2026-02-20",
+      "category": "dividend",
+      "symbol": "QQQI",
+      "description": "QQQI(US78433H6751) 现金红利 USD 0.614 每股 (常规股息)",
+      "amount": 122.8
+    },
+    {
+      "date": "2026-02-20",
+      "category": "withholding_tax",
+      "symbol": "QQQI",
+      "description": "QQQI(US78433H6751) 现金红利 USD 0.614 每股 - US 税收",
+      "amount": -12.28
+    },
+    {
+      "date": "2026-02-19",
+      "category": "commission",
+      "symbol": "DXJ",
+      "description": "WISDOMTREE JAPAN HEDGED EQ",
+      "amount": -0.38225725
+    },
+    {
+      "date": "2026-02-17",
+      "category": "commission",
+      "symbol": "DXJ",
+      "description": "WISDOMTREE JAPAN HEDGED EQ",
+      "amount": -0.35225725
+    },
+    {
+      "date": "2026-02-17",
+      "category": "commission",
+      "symbol": "GOOG",
+      "description": "ALPHABET INC-CL C",
+      "amount": -0.35578725
+    },
+    {
+      "date": "2026-02-17",
+      "category": "commission",
+      "symbol": "SMH",
+      "description": "VANECK SEMICONDUCTOR ETF",
+      "amount": -0.34420725
+    },
+    {
+      "date": "2026-02-17",
+      "category": "commission",
+      "symbol": "SMH",
+      "description": "VANECK SEMICONDUCTOR ETF",
+      "amount": -0.35420725
+    },
+    {
+      "date": "2026-02-17",
+      "category": "commission",
+      "symbol": "SMH",
+      "description": "VANECK SEMICONDUCTOR ETF",
+      "amount": -0.34225725
+    },
+    {
+      "date": "2026-02-17",
+      "category": "commission",
+      "symbol": "MU",
+      "description": "MICRON TECHNOLOGY INC",
+      "amount": -0.34625725
+    },
+    {
+      "date": "2026-02-13",
+      "category": "commission",
+      "symbol": "BOXX",
+      "description": "ALPHA ARCHITECT 1-3 MNTH BOX",
+      "amount": -0.37395725
+    },
+    {
+      "date": "2026-02-12",
+      "category": "commission",
+      "symbol": "BOXX",
+      "description": "ALPHA ARCHITECT 1-3 MNTH BOX",
+      "amount": -0.48605725
+    },
+    {
+      "date": "2026-02-12",
+      "category": "commission",
+      "symbol": "MAGS",
+      "description": "ROUNDHILL MAGNIFICENT SEVEN",
+      "amount": -0.36425725
+    },
+    {
+      "date": "2026-02-11",
+      "category": "commission",
+      "symbol": "MAGS",
+      "description": "ROUNDHILL MAGNIFICENT SEVEN",
+      "amount": -0.33625725
+    },
+    {
+      "date": "2026-02-10",
+      "category": "commission",
+      "symbol": "MU",
+      "description": "MICRON TECHNOLOGY INC",
+      "amount": -0.35065225
+    },
+    {
+      "date": "2026-02-10",
+      "category": "commission",
+      "symbol": "MU",
+      "description": "MICRON TECHNOLOGY INC",
+      "amount": -0.008295
+    },
+    {
+      "date": "2026-02-10",
+      "category": "commission",
+      "symbol": "MAGS",
+      "description": "ROUNDHILL MAGNIFICENT SEVEN",
+      "amount": -0.43025725
+    },
+    {
+      "date": "2026-02-10",
+      "category": "commission",
+      "symbol": "MAGS",
+      "description": "ROUNDHILL MAGNIFICENT SEVEN",
+      "amount": -0.005
+    },
+    {
+      "date": "2026-02-10",
+      "category": "commission",
+      "symbol": "AGQ",
+      "description": "PROSHARES ULTRA SILVER",
+      "amount": -0.35225725
+    },
+    {
+      "date": "2026-02-10",
+      "category": "commission",
+      "symbol": "QQQI",
+      "description": "NEOS NASDAQ-100 HIGH INC ETF",
+      "amount": -0.48329899
+    },
+    {
+      "date": "2026-02-10",
+      "category": "commission",
+      "symbol": "GOOG",
+      "description": "ALPHABET INC-CL C",
+      "amount": -0.35104725
+    },
+    {
+      "date": "2026-02-10",
+      "category": "commission",
+      "symbol": "AGQ",
+      "description": "PROSHARES ULTRA SILVER",
+      "amount": -0.35223225
+    },
+    {
+      "date": "2026-02-10",
+      "category": "commission",
+      "symbol": "AGQ",
+      "description": "PROSHARES ULTRA SILVER",
+      "amount": -0.001975
+    },
+    {
+      "date": "2026-02-10",
+      "category": "commission",
+      "symbol": "BOXX",
+      "description": "ALPHA ARCHITECT 1-3 MNTH BOX",
+      "amount": -0.35225725
+    },
+    {
+      "date": "2026-02-10",
+      "category": "commission",
+      "symbol": "BOXX",
+      "description": "ALPHA ARCHITECT 1-3 MNTH BOX",
+      "amount": -0.36825725
+    },
+    {
+      "date": "2026-02-06",
+      "category": "commission",
+      "symbol": "SOXL",
+      "description": "DIREXION DAILY SEMI BULL 3X",
+      "amount": -0.35420725
+    },
+    {
+      "date": "2026-02-06",
+      "category": "commission",
+      "symbol": "MAGS",
+      "description": "ROUNDHILL MAGNIFICENT SEVEN",
+      "amount": -0.32225725
+    },
+    {
+      "date": "2026-02-06",
+      "category": "commission",
+      "symbol": "QQQI",
+      "description": "NEOS NASDAQ-100 HIGH INC ETF",
+      "amount": -0.38975725
+    },
+    {
+      "date": "2026-02-06",
+      "category": "commission",
+      "symbol": "MAGS",
+      "description": "ROUNDHILL MAGNIFICENT SEVEN",
+      "amount": -0.33625725
+    },
+    {
+      "date": "2026-02-06",
+      "category": "commission",
+      "symbol": "QQQI",
+      "description": "NEOS NASDAQ-100 HIGH INC ETF",
+      "amount": -0.36210725
+    },
+    {
+      "date": "2026-02-06",
+      "category": "commission",
+      "symbol": "MAGS",
+      "description": "ROUNDHILL MAGNIFICENT SEVEN",
+      "amount": -0.31525725
+    },
+    {
+      "date": "2026-02-05",
+      "category": "commission",
+      "symbol": "SMH",
+      "description": "VANECK SEMICONDUCTOR ETF",
+      "amount": -0.35934225
+    },
+    {
+      "date": "2026-02-05",
+      "category": "commission",
+      "symbol": "SMH",
+      "description": "VANECK SEMICONDUCTOR ETF",
+      "amount": -0.002765
+    },
+    {
+      "date": "2026-02-05",
+      "category": "commission",
+      "symbol": "USD.SGD",
+      "description": "外汇交易基础货币净额: 1,423 USD.SGD",
+      "amount": -2.0
+    },
+    {
+      "date": "2026-02-05",
+      "category": "commission",
+      "symbol": "QQQI",
+      "description": "NEOS NASDAQ-100 HIGH INC ETF",
+      "amount": -0.36625725
+    },
+    {
+      "date": "2026-02-05",
+      "category": "commission",
+      "symbol": "SMH",
+      "description": "VANECK SEMICONDUCTOR ETF",
+      "amount": -0.35165725
+    },
+    {
+      "date": "2026-02-05",
+      "category": "commission",
+      "symbol": "QQQI",
+      "description": "NEOS NASDAQ-100 HIGH INC ETF",
+      "amount": -0.37025725
+    },
+    {
+      "date": "2026-02-05",
+      "category": "commission",
+      "symbol": "GOOG",
+      "description": "ALPHABET INC-CL C",
+      "amount": -0.35045725
+    },
+    {
+      "date": "2026-02-05",
+      "category": "commission",
+      "symbol": "GOOG",
+      "description": "ALPHABET INC-CL C",
+      "amount": -0.0002
+    },
+    {
+      "date": "2026-02-05",
+      "category": "commission",
+      "symbol": "SOXL",
+      "description": "DIREXION DAILY SEMI BULL 3X",
+      "amount": -0.35225725
+    },
+    {
+      "date": "2026-02-05",
+      "category": "commission",
+      "symbol": "SMH",
+      "description": "VANECK SEMICONDUCTOR ETF",
+      "amount": -0.33925725
+    },
+    {
+      "date": "2026-02-04",
+      "category": "commission",
+      "symbol": "SOXL",
+      "description": "DIREXION DAILY SEMI BULL 3X",
+      "amount": -0.32225725
+    },
+    {
+      "date": "2026-02-04",
+      "category": "commission",
+      "symbol": "SOXL",
+      "description": "DIREXION DAILY SEMI BULL 3X",
+      "amount": -0.35420725
+    },
+    {
+      "date": "2026-02-04",
+      "category": "commission",
+      "symbol": "SOXL",
+      "description": "DIREXION DAILY SEMI BULL 3X",
+      "amount": -0.35420725
+    },
+    {
+      "date": "2026-02-04",
+      "category": "commission",
+      "symbol": "QQQI",
+      "description": "NEOS NASDAQ-100 HIGH INC ETF",
+      "amount": -0.35425725
+    },
+    {
+      "date": "2026-02-04",
+      "category": "credit_interest",
+      "symbol": "",
+      "description": "USD IBKR管理的证券（股票收益提升计划）- 一月-2026",
+      "amount": 0.21
+    },
+    {
+      "date": "2026-02-03",
+      "category": "commission",
+      "symbol": "SMH",
+      "description": "VANECK SEMICONDUCTOR ETF",
+      "amount": -0.35105725
+    },
+    {
+      "date": "2026-02-03",
+      "category": "commission",
+      "symbol": "MU",
+      "description": "MICRON TECHNOLOGY INC",
+      "amount": -0.35105725
+    },
+    {
+      "date": "2026-01-30",
+      "category": "commission",
+      "symbol": "USD.CNH",
+      "description": "外汇交易基础货币净额: 2,876.58 USD.CNH",
+      "amount": -2.0
+    },
+    {
+      "date": "2026-01-30",
+      "category": "commission",
+      "symbol": "USD.SGD",
+      "description": "外汇交易基础货币净额: 1,575.85 USD.SGD",
+      "amount": -2.0
+    },
+    {
+      "date": "2026-01-23",
+      "category": "dividend",
+      "symbol": "QQQI",
+      "description": "QQQI(US78433H6751) 现金红利 USD 0.6359 每股 (常规股息)",
+      "amount": 161.52
+    },
+    {
+      "date": "2026-01-23",
+      "category": "withholding_tax",
+      "symbol": "QQQI",
+      "description": "QQQI(US78433H6751) 现金红利 USD 0.6359 每股 - US 税收",
+      "amount": -16.15
+    },
+    {
+      "date": "2026-01-20",
+      "category": "commission",
+      "symbol": "QQQI",
+      "description": "NEOS NASDAQ-100 HIGH INC ETF",
+      "amount": -0.34785725
+    },
+    {
+      "date": "2026-01-20",
+      "category": "commission",
+      "symbol": "QQQI",
+      "description": "NEOS NASDAQ-100 HIGH INC ETF",
+      "amount": -0.35045725
+    },
+    {
+      "date": "2026-01-20",
+      "category": "commission",
+      "symbol": "SMH",
+      "description": "VANECK SEMICONDUCTOR ETF",
+      "amount": -0.34695725
+    },
+    {
+      "date": "2026-01-15",
+      "category": "commission",
+      "symbol": "GOOG",
+      "description": "ALPHABET INC-CL C",
+      "amount": -0.34865725
+    },
+    {
+      "date": "2026-01-14",
+      "category": "commission",
+      "symbol": "SMH",
+      "description": "VANECK SEMICONDUCTOR ETF",
+      "amount": -0.35125725
+    },
+    {
+      "date": "2026-01-14",
+      "category": "commission",
+      "symbol": "SMH",
+      "description": "VANECK SEMICONDUCTOR ETF",
+      "amount": -0.35085725
+    },
+    {
+      "date": "2026-01-14",
+      "category": "commission",
+      "symbol": "META",
+      "description": "META PLATFORMS INC-CLASS A",
+      "amount": -0.35302225
+    },
+    {
+      "date": "2026-01-14",
+      "category": "commission",
+      "symbol": "SMH",
+      "description": "VANECK SEMICONDUCTOR ETF",
+      "amount": -0.35085725
+    },
+    {
+      "date": "2026-01-14",
+      "category": "commission",
+      "symbol": "QQQI",
+      "description": "NEOS NASDAQ-100 HIGH INC ETF",
+      "amount": -0.35265725
+    },
+    {
+      "date": "2026-01-14",
+      "category": "commission",
+      "symbol": "SMH",
+      "description": "VANECK SEMICONDUCTOR ETF",
+      "amount": -0.35085725
+    },
+    {
+      "date": "2026-01-14",
+      "category": "dividend",
+      "symbol": "MU",
+      "description": "MU(US5951121038) 现金红利 USD 0.115 每股 (常规股息)",
+      "amount": 1.15
+    },
+    {
+      "date": "2026-01-14",
+      "category": "withholding_tax",
+      "symbol": "MU",
+      "description": "MU(US5951121038) 现金红利 USD 0.115 每股 - US 税收",
+      "amount": -0.12
+    },
+    {
+      "date": "2026-01-13",
+      "category": "commission",
+      "symbol": "AMD",
+      "description": "ADVANCED MICRO DEVICES",
+      "amount": -0.35420725
+    },
+    {
+      "date": "2026-01-13",
+      "category": "commission",
+      "symbol": "MU",
+      "description": "MICRON TECHNOLOGY INC",
+      "amount": -0.34585725
+    },
+    {
+      "date": "2026-01-12",
+      "category": "commission",
+      "symbol": "META",
+      "description": "META PLATFORMS INC-CLASS A",
+      "amount": -0.34662725
+    },
+    {
+      "date": "2026-01-12",
+      "category": "commission",
+      "symbol": "EWY",
+      "description": "ISHARES MSCI SOUTH KOREA ETF",
+      "amount": -0.36225725
+    },
+    {
+      "date": "2026-01-12",
+      "category": "commission",
+      "symbol": "SMH",
+      "description": "VANECK SEMICONDUCTOR ETF",
+      "amount": -0.34865725
+    },
+    {
+      "date": "2026-01-08",
+      "category": "dividend",
+      "symbol": "TSM",
+      "description": "TSM(US8740391003) 现金红利 USD 0.79542 每股 (Ordinary Div - NRA Withholding Exempt)",
+      "amount": 7.95
+    },
+    {
+      "date": "2026-01-08",
+      "category": "withholding_tax",
+      "symbol": "TSM",
+      "description": "TSM(US8740391003) 现金红利 USD 0.79542 每股 - TW 税收",
+      "amount": -1.67
+    },
+    {
+      "date": "2026-01-08",
+      "category": "commission",
+      "symbol": "EWY",
+      "description": "ISHARES MSCI SOUTH KOREA ETF",
+      "amount": -0.34725725
+    },
+    {
+      "date": "2026-01-08",
+      "category": "commission",
+      "symbol": "EWY",
+      "description": "ISHARES MSCI SOUTH KOREA ETF",
+      "amount": -0.0128
+    },
+    {
+      "date": "2026-01-08",
+      "category": "commission",
+      "symbol": "MU",
+      "description": "MICRON TECHNOLOGY INC",
+      "amount": -0.34585725
+    },
+    {
+      "date": "2026-01-06",
+      "category": "commission",
+      "symbol": "AMD",
+      "description": "ADVANCED MICRO DEVICES",
+      "amount": -0.33225725
+    },
+    {
+      "date": "2026-01-06",
+      "category": "credit_interest",
+      "symbol": "",
+      "description": "USD 贷方利息- 十二月-2025",
+      "amount": 0.36
+    },
+    {
+      "date": "2026-01-06",
+      "category": "debit_interest",
+      "symbol": "",
+      "description": "USD 借方利息 十二月-2025",
+      "amount": -0.35
+    },
+    {
+      "date": "2026-01-06",
+      "category": "commission",
+      "symbol": "SNDK",
+      "description": "SANDISK CORP",
+      "amount": -0.35220725
+    },
+    {
+      "date": "2026-01-06",
+      "category": "commission",
+      "symbol": "SNDK",
+      "description": "SANDISK CORP",
+      "amount": -0.35225725
+    },
+    {
+      "date": "2026-01-05",
+      "category": "commission",
+      "symbol": "AVGO",
+      "description": "BROADCOM INC",
+      "amount": -0.35420725
+    },
+    {
+      "date": "2026-01-05",
+      "category": "commission",
+      "symbol": "USD.SGD",
+      "description": "外汇交易基础货币净额: 1,555.69 USD.SGD",
+      "amount": -2.0
+    },
+    {
+      "date": "2026-01-02",
+      "category": "commission",
+      "symbol": "QQQI",
+      "description": "NEOS NASDAQ-100 HIGH INC ETF",
+      "amount": -0.41025725
+    },
+    {
+      "date": "2026-01-02",
+      "category": "commission",
+      "symbol": "QQQI",
+      "description": "NEOS NASDAQ-100 HIGH INC ETF",
+      "amount": -0.41745725
+    },
+    {
+      "date": "2026-01-02",
+      "category": "commission",
+      "symbol": "BOXX",
+      "description": "ALPHA ARCHITECT 1-3 MNTH BOX",
+      "amount": -0.35815725
+    },
+    {
+      "date": "2026-01-02",
+      "category": "commission",
+      "symbol": "BOXX",
+      "description": "ALPHA ARCHITECT 1-3 MNTH BOX",
+      "amount": -0.005135
+    },
+    {
+      "date": "2025-12-31",
+      "category": "commission",
+      "symbol": "QQQI",
+      "description": "NEOS NASDAQ-100 HIGH INC ETF",
+      "amount": -0.35985725
+    },
+    {
+      "date": "2025-12-26",
+      "category": "commission",
+      "symbol": "MU",
+      "description": "MICRON TECHNOLOGY INC",
+      "amount": -0.38225725
+    },
+    {
+      "date": "2025-12-26",
+      "category": "commission",
+      "symbol": "USD.SGD",
+      "description": "外汇交易基础货币净额: 1,558.36 USD.SGD",
+      "amount": -2.0
+    },
+    {
+      "date": "2025-12-26",
+      "category": "commission",
+      "symbol": "EWY",
+      "description": "ISHARES MSCI SOUTH KOREA ETF",
+      "amount": -0.41425725
+    },
+    {
+      "date": "2025-12-26",
+      "category": "commission",
+      "symbol": "BOXX",
+      "description": "ALPHA ARCHITECT 1-3 MNTH BOX",
+      "amount": -0.35025725
+    },
+    {
+      "date": "2025-12-26",
+      "category": "dividend",
+      "symbol": "QQQI",
+      "description": "QQQI(US78433H6751) 现金红利 USD 0.641285 每股 (常规股息)",
+      "amount": 105.17
+    },
+    {
+      "date": "2025-12-26",
+      "category": "withholding_tax",
+      "symbol": "QQQI",
+      "description": "QQQI(US78433H6751) 现金红利 USD 0.641285 每股 - US 税收",
+      "amount": -10.52
+    },
+    {
+      "date": "2025-12-26",
+      "category": "withholding_tax",
+      "symbol": "QQQI",
+      "description": "QQQI(US78433H6751) 现金红利 USD 0.641285 每股 - US 税收",
+      "amount": 10.52
+    },
+    {
+      "date": "2025-12-26",
+      "category": "withholding_tax",
+      "symbol": "QQQI",
+      "description": "QQQI(US78433H6751) 现金红利 USD 0.641285 每股 - US 税收",
+      "amount": -0.04
+    },
+    {
+      "date": "2025-12-23",
+      "category": "withholding_tax",
+      "symbol": "META",
+      "description": "META(US30303M1027) 现金红利 USD 0.525 每股 - US 税收",
+      "amount": -0.68
+    },
+    {
+      "date": "2025-12-23",
+      "category": "commission",
+      "symbol": "CRCL",
+      "description": "CIRCLE INTERNET GROUP INC",
+      "amount": -0.35391725
+    },
+    {
+      "date": "2025-12-23",
+      "category": "commission",
+      "symbol": "CRCL",
+      "description": "CIRCLE INTERNET GROUP INC",
+      "amount": -0.35225725
+    },
+    {
+      "date": "2025-12-23",
+      "category": "dividend",
+      "symbol": "META",
+      "description": "META(US30303M1027) 现金红利 USD 0.525 每股 (常规股息)",
+      "amount": 6.83
+    },
+    {
+      "date": "2025-12-22",
+      "category": "commission",
+      "symbol": "AVGO",
+      "description": "BROADCOM INC",
+      "amount": -0.35125725
+    },
+    {
+      "date": "2025-12-22",
+      "category": "commission",
+      "symbol": "AVGO",
+      "description": "BROADCOM INC",
+      "amount": -0.001
+    },
+    {
+      "date": "2025-12-18",
+      "category": "commission",
+      "symbol": "AVGO",
+      "description": "BROADCOM INC",
+      "amount": -0.35391725
+    },
+    {
+      "date": "2025-12-18",
+      "category": "commission",
+      "symbol": "QQQI",
+      "description": "NEOS NASDAQ-100 HIGH INC ETF",
+      "amount": -0.41025725
+    },
+    {
+      "date": "2025-12-18",
+      "category": "commission",
+      "symbol": "TSM",
+      "description": "TAIWAN SEMICONDUCTOR-SP ADR",
+      "amount": -0.35391725
+    },
+    {
+      "date": "2025-12-18",
+      "category": "commission",
+      "symbol": "MU",
+      "description": "MICRON TECHNOLOGY INC",
+      "amount": -0.35391725
+    },
+    {
+      "date": "2025-12-18",
+      "category": "commission",
+      "symbol": "MU",
+      "description": "MICRON TECHNOLOGY INC",
+      "amount": -0.35225725
+    },
+    {
+      "date": "2025-12-17",
+      "category": "commission",
+      "symbol": "QQQI",
+      "description": "NEOS NASDAQ-100 HIGH INC ETF",
+      "amount": -0.36705725
+    },
+    {
+      "date": "2025-12-17",
+      "category": "commission",
+      "symbol": "USD.CNH",
+      "description": "外汇交易基础货币净额: 7,101.95 USD.CNH",
+      "amount": -2.0
+    },
+    {
+      "date": "2025-12-15",
+      "category": "dividend",
+      "symbol": "GOOG",
+      "description": "GOOG(US02079K1079) 现金红利 USD 0.21 每股 (常规股息)",
+      "amount": 6.51
+    },
+    {
+      "date": "2025-12-15",
+      "category": "withholding_tax",
+      "symbol": "GOOG",
+      "description": "GOOG(US02079K1079) 现金红利 USD 0.21 每股 - US 税收",
+      "amount": -0.65
+    },
+    {
+      "date": "2025-12-12",
+      "category": "commission",
+      "symbol": "QQQI",
+      "description": "NEOS NASDAQ-100 HIGH INC ETF",
+      "amount": -0.67025725
+    },
+    {
+      "date": "2025-12-12",
+      "category": "commission",
+      "symbol": "NVDA",
+      "description": "NVIDIA CORP",
+      "amount": 0.001902
+    },
+    {
+      "date": "2025-12-12",
+      "category": "commission",
+      "symbol": "NVDA",
+      "description": "NVIDIA CORP",
+      "amount": 0.001902
+    },
+    {
+      "date": "2025-12-12",
+      "category": "commission",
+      "symbol": "NVDA",
+      "description": "NVIDIA CORP",
+      "amount": 0.001902
+    },
+    {
+      "date": "2025-12-12",
+      "category": "commission",
+      "symbol": "NVDA",
+      "description": "NVIDIA CORP",
+      "amount": 0.001902
+    },
+    {
+      "date": "2025-12-12",
+      "category": "commission",
+      "symbol": "NVDA",
+      "description": "NVIDIA CORP",
+      "amount": 0.001268
+    },
+    {
+      "date": "2025-12-12",
+      "category": "commission",
+      "symbol": "AVGO",
+      "description": "BROADCOM INC",
+      "amount": -0.36225725
+    },
+    {
+      "date": "2025-12-12",
+      "category": "commission",
+      "symbol": "QQQ",
+      "description": "INVESCO QQQ TRUST SERIES 1",
+      "amount": -0.34391725
+    },
+    {
+      "date": "2025-12-12",
+      "category": "commission",
+      "symbol": "NVDA",
+      "description": "NVIDIA CORP",
+      "amount": -0.34835525
+    },
+    {
+      "date": "2025-12-12",
+      "category": "commission",
+      "symbol": "NVDA",
+      "description": "NVIDIA CORP",
+      "amount": 0.001902
+    },
+    {
+      "date": "2025-12-11",
+      "category": "commission",
+      "symbol": "NVDA",
+      "description": "NVIDIA CORP",
+      "amount": -0.41425725
+    },
+    {
+      "date": "2025-12-11",
+      "category": "commission",
+      "symbol": "META",
+      "description": "META PLATFORMS INC-CLASS A",
+      "amount": -0.34945725
+    },
+    {
+      "date": "2025-12-11",
+      "category": "withholding_tax",
+      "symbol": "MSFT",
+      "description": "MSFT(US5949181045) 现金红利 USD 0.91 每股 - US 税收",
+      "amount": -0.36
+    },
+    {
+      "date": "2025-12-11",
+      "category": "commission",
+      "symbol": "AVGO",
+      "description": "BROADCOM INC",
+      "amount": -0.35391725
+    },
+    {
+      "date": "2025-12-11",
+      "category": "dividend",
+      "symbol": "MSFT",
+      "description": "MSFT(US5949181045) 现金红利 USD 0.91 每股 (常规股息)",
+      "amount": 3.64
+    },
+    {
+      "date": "2025-12-10",
+      "category": "commission",
+      "symbol": "USD.SGD",
+      "description": "外汇交易基础货币净额: 1,542.85 USD.SGD",
+      "amount": -2.0
+    },
+    {
+      "date": "2025-12-10",
+      "category": "commission",
+      "symbol": "META",
+      "description": "META PLATFORMS INC-CLASS A",
+      "amount": -0.34865725
+    },
+    {
+      "date": "2025-12-08",
+      "category": "commission",
+      "symbol": "GOOG",
+      "description": "ALPHABET INC-CL C",
+      "amount": -0.34475725
+    },
+    {
+      "date": "2025-12-04",
+      "category": "commission",
+      "symbol": "TSM",
+      "description": "TAIWAN SEMICONDUCTOR-SP ADR",
+      "amount": -0.32025725
+    },
+    {
+      "date": "2025-12-04",
+      "category": "commission",
+      "symbol": "SNDK",
+      "description": "SANDISK CORP",
+      "amount": -0.35391725
+    },
+    {
+      "date": "2025-12-04",
+      "category": "commission",
+      "symbol": "SNDK",
+      "description": "SANDISK CORP",
+      "amount": -0.35225725
+    },
+    {
+      "date": "2025-12-03",
+      "category": "debit_interest",
+      "symbol": "",
+      "description": "USD 借贷费用—— 十一月-2025",
+      "amount": -0.03
+    },
+    {
+      "date": "2025-12-03",
+      "category": "credit_interest",
+      "symbol": "",
+      "description": "USD 贷方利息- 十一月-2025",
+      "amount": 2.67
+    },
+    {
+      "date": "2025-12-03",
+      "category": "debit_interest",
+      "symbol": "",
+      "description": "USD 借方利息 十一月-2025",
+      "amount": -0.03
+    },
+    {
+      "date": "2025-12-03",
+      "category": "commission",
+      "symbol": "AVGO",
+      "description": "BROADCOM INC",
+      "amount": -0.34225725
+    },
+    {
+      "date": "2025-12-02",
+      "category": "commission",
+      "symbol": "QQQ",
+      "description": "INVESCO QQQ TRUST SERIES 1",
+      "amount": -0.34225725
+    },
+    {
+      "date": "2025-11-28",
+      "category": "commission",
+      "symbol": "META",
+      "description": "META PLATFORMS INC-CLASS A",
+      "amount": -0.34247725
+    },
+    {
+      "date": "2025-11-25",
+      "category": "commission",
+      "symbol": "MU",
+      "description": "MICRON TECHNOLOGY INC",
+      "amount": -0.35247725
+    },
+    {
+      "date": "2025-11-24",
+      "category": "commission",
+      "symbol": "MU",
+      "description": "MICRON TECHNOLOGY INC",
+      "amount": -0.34113725
+    },
+    {
+      "date": "2025-11-21",
+      "category": "commission",
+      "symbol": "TSM",
+      "description": "TAIWAN SEMICONDUCTOR-SP ADR",
+      "amount": -0.38313725
+    },
+    {
+      "date": "2025-11-21",
+      "category": "commission",
+      "symbol": "TSM",
+      "description": "TAIWAN SEMICONDUCTOR-SP ADR",
+      "amount": 0.005624
+    },
+    {
+      "date": "2025-11-21",
+      "category": "commission",
+      "symbol": "NVDA",
+      "description": "NVIDIA CORP",
+      "amount": -0.35801725
+    },
+    {
+      "date": "2025-11-20",
+      "category": "commission",
+      "symbol": "MSFT",
+      "description": "MICROSOFT CORP",
+      "amount": -0.35180925
+    },
+    {
+      "date": "2025-11-20",
+      "category": "commission",
+      "symbol": "PDD",
+      "description": "PDD HOLDINGS INC",
+      "amount": -0.00111
+    },
+    {
+      "date": "2025-11-20",
+      "category": "commission",
+      "symbol": "MU",
+      "description": "MICRON TECHNOLOGY INC",
+      "amount": -0.35685325
+    },
+    {
+      "date": "2025-11-20",
+      "category": "commission",
+      "symbol": "PDD",
+      "description": "PDD HOLDINGS INC",
+      "amount": -0.35136725
+    },
+    {
+      "date": "2025-11-19",
+      "category": "commission",
+      "symbol": "PDD",
+      "description": "PDD HOLDINGS INC",
+      "amount": -0.35413725
+    },
+    {
+      "date": "2025-11-17",
+      "category": "commission",
+      "symbol": "USD.CNH",
+      "description": "外汇交易基础货币净额: 8,438.75 USD.CNH",
+      "amount": -2.0
+    },
+    {
+      "date": "2025-11-11",
+      "category": "commission",
+      "symbol": "MU",
+      "description": "MICRON TECHNOLOGY INC",
+      "amount": -0.34247725
+    },
+    {
+      "date": "2025-11-11",
+      "category": "commission",
+      "symbol": "META",
+      "description": "META PLATFORMS INC-CLASS A",
+      "amount": -0.35180925
+    },
+    {
+      "date": "2025-11-07",
+      "category": "commission",
+      "symbol": "MU",
+      "description": "MICRON TECHNOLOGY INC",
+      "amount": -0.34870125
+    },
+    {
+      "date": "2025-11-06",
+      "category": "commission",
+      "symbol": "VNM",
+      "description": "VANECK VIETNAM ETF",
+      "amount": -0.35413725
+    },
+    {
+      "date": "2025-11-06",
+      "category": "commission",
+      "symbol": "BABA",
+      "description": "ALIBABA GROUP HOLDING-SP ADR",
+      "amount": -0.35064525
+    },
+    {
+      "date": "2025-11-06",
+      "category": "commission",
+      "symbol": "MU",
+      "description": "MICRON TECHNOLOGY INC",
+      "amount": -0.34792325
+    },
+    {
+      "date": "2025-11-06",
+      "category": "commission",
+      "symbol": "NVDA",
+      "description": "NVIDIA CORP",
+      "amount": -0.36636725
+    },
+    {
+      "date": "2025-11-05",
+      "category": "commission",
+      "symbol": "USD.SGD",
+      "description": "外汇交易基础货币净额: 2,142.06 USD.SGD",
+      "amount": -2.0
+    },
+    {
+      "date": "2025-11-05",
+      "category": "debit_interest",
+      "symbol": "",
+      "description": "USD 借方利息 十月-2025",
+      "amount": -2.18
+    },
+    {
+      "date": "2025-11-05",
+      "category": "commission",
+      "symbol": "MU",
+      "description": "MICRON TECHNOLOGY INC",
+      "amount": -0.34807925
+    },
+    {
+      "date": "2025-10-30",
+      "category": "commission",
+      "symbol": "CAN",
+      "description": "CANAAN INC.",
+      "amount": -0.162815918
+    },
+    {
+      "date": "2025-10-29",
+      "category": "commission",
+      "symbol": "CAN",
+      "description": "CANAAN INC.",
+      "amount": -0.129982165
+    },
+    {
+      "date": "2025-10-28",
+      "category": "commission",
+      "symbol": "VNM",
+      "description": "VANECK VIETNAM ETF",
+      "amount": -0.38247725
+    },
+    {
+      "date": "2025-10-21",
+      "category": "dividend",
+      "symbol": "MU",
+      "description": "MU(US5951121038) 现金红利 USD 0.115 每股 (常规股息)",
+      "amount": 0.12
+    },
+    {
+      "date": "2025-10-21",
+      "category": "withholding_tax",
+      "symbol": "MU",
+      "description": "MU(US5951121038) 现金红利 USD 0.115 每股 - US 税收",
+      "amount": -0.01
+    },
+    {
+      "date": "2025-10-21",
+      "category": "commission",
+      "symbol": "GOOG",
+      "description": "ALPHABET INC-CL C",
+      "amount": -0.34714525
+    },
+    {
+      "date": "2025-10-14",
+      "category": "commission",
+      "symbol": "USD.SGD",
+      "description": "外汇交易基础货币净额: 768.87 USD.SGD",
+      "amount": -2.0
+    },
+    {
+      "date": "2025-10-14",
+      "category": "commission",
+      "symbol": "NVDA",
+      "description": "NVIDIA CORP",
+      "amount": -0.36636725
+    },
+    {
+      "date": "2025-10-14",
+      "category": "commission",
+      "symbol": "TSM",
+      "description": "TAIWAN SEMICONDUCTOR-SP ADR",
+      "amount": -0.35650125
+    },
+    {
+      "date": "2025-10-13",
+      "category": "commission",
+      "symbol": "USD.CNH",
+      "description": "外汇交易基础货币净额: 4,103.27 USD.CNH",
+      "amount": -2.0
+    },
+    {
+      "date": "2025-10-13",
+      "category": "commission",
+      "symbol": "MSFT",
+      "description": "MICROSOFT CORP",
+      "amount": -0.34714525
+    },
+    {
+      "date": "2025-10-10",
+      "category": "commission",
+      "symbol": "MSFT",
+      "description": "MICROSOFT CORP",
+      "amount": -0.34780925
+    },
+    {
+      "date": "2025-10-10",
+      "category": "commission",
+      "symbol": "GOOG",
+      "description": "ALPHABET INC-CL C",
+      "amount": -0.34325525
+    },
+    {
+      "date": "2025-10-09",
+      "category": "withholding_tax",
+      "symbol": "TSM",
+      "description": "TSM(US8740391003) 现金红利 USD 0.821965 每股 - TW 税收",
+      "amount": -1.73
+    },
+    {
+      "date": "2025-10-09",
+      "category": "commission",
+      "symbol": "USD.CNH",
+      "description": "外汇交易基础货币净额: 2,886.31 USD.CNH",
+      "amount": -2.0
+    },
+    {
+      "date": "2025-10-09",
+      "category": "commission",
+      "symbol": "META",
+      "description": "META PLATFORMS INC-CLASS A",
+      "amount": -0.35114525
+    },
+    {
+      "date": "2025-10-09",
+      "category": "dividend",
+      "symbol": "TSM",
+      "description": "TSM(US8740391003) 现金红利 USD 0.821965 每股 (Ordinary Div - NRA Withholding Exempt)",
+      "amount": 8.22
+    },
+    {
+      "date": "2025-10-03",
+      "category": "credit_interest",
+      "symbol": "",
+      "description": "USD IBKR管理的证券（股票收益提升计划）利息- 九月-2025",
+      "amount": 0.84
+    },
+    {
+      "date": "2025-10-03",
+      "category": "commission",
+      "symbol": "GOOG",
+      "description": "ALPHABET INC-CL C",
+      "amount": -0.35136725
+    },
+    {
+      "date": "2025-10-03",
+      "category": "debit_interest",
+      "symbol": "",
+      "description": "USD 借方利息 九月-2025",
+      "amount": -0.28
+    },
+    {
+      "date": "2025-10-02",
+      "category": "commission",
+      "symbol": "BABA",
+      "description": "ALIBABA GROUP HOLDING-SP ADR",
+      "amount": -0.35047925
+    },
+    {
+      "date": "2025-10-02",
+      "category": "commission",
+      "symbol": "MU",
+      "description": "MICRON TECHNOLOGY INC",
+      "amount": -0.35047925
+    },
+    {
+      "date": "2025-10-02",
+      "category": "dividend",
+      "symbol": "NVDA",
+      "description": "NVDA(US67066G1040) 现金红利 USD 0.01 每股 (常规股息)",
+      "amount": 0.1
+    },
+    {
+      "date": "2025-10-02",
+      "category": "withholding_tax",
+      "symbol": "NVDA",
+      "description": "NVDA(US67066G1040) 现金红利 USD 0.01 每股 - US 税收",
+      "amount": -0.01
+    },
+    {
+      "date": "2025-10-01",
+      "category": "commission",
+      "symbol": "USD.SGD",
+      "description": "外汇交易基础货币净额: 1,554 USD.SGD",
+      "amount": -2.0
+    },
+    {
+      "date": "2025-09-30",
+      "category": "commission",
+      "symbol": "GOOG",
+      "description": "ALPHABET INC-CL C",
+      "amount": -0.35047925
+    },
+    {
+      "date": "2025-09-22",
+      "category": "commission",
+      "symbol": "GOOG",
+      "description": "ALPHABET INC-CL C",
+      "amount": -0.35181125
+    },
+    {
+      "date": "2025-09-18",
+      "category": "commission",
+      "symbol": "MPNGY",
+      "description": "MEITUAN - UNSP ADR",
+      "amount": -0.59935753
+    },
+    {
+      "date": "2025-09-10",
+      "category": "commission",
+      "symbol": "GOOG",
+      "description": "ALPHABET INC-CL C",
+      "amount": -0.35139225
+    },
+    {
+      "date": "2025-09-10",
+      "category": "commission",
+      "symbol": "MSFT",
+      "description": "MICROSOFT CORP",
+      "amount": -0.35116525
+    },
+    {
+      "date": "2025-09-08",
+      "category": "commission",
+      "symbol": "TSM",
+      "description": "TAIWAN SEMICONDUCTOR-SP ADR",
+      "amount": -0.35497325
+    },
+    {
+      "date": "2025-09-05",
+      "category": "commission",
+      "symbol": "AVGO",
+      "description": "BROADCOM INC",
+      "amount": -0.35104325
+    },
+    {
+      "date": "2025-09-05",
+      "category": "commission",
+      "symbol": "AVGO",
+      "description": "BROADCOM INC",
+      "amount": -0.35104325
+    },
+    {
+      "date": "2025-09-05",
+      "category": "commission",
+      "symbol": "NVDA",
+      "description": "NVIDIA CORP",
+      "amount": -0.35252725
+    },
+    {
+      "date": "2025-09-04",
+      "category": "debit_interest",
+      "symbol": "",
+      "description": "USD 借方利息 八月-2025",
+      "amount": -0.48
+    },
+    {
+      "date": "2025-09-02",
+      "category": "commission",
+      "symbol": "MPNGY",
+      "description": "MEITUAN - UNSP ADR",
+      "amount": -0.47826805
+    },
+    {
+      "date": "2025-09-02",
+      "category": "commission",
+      "symbol": "USD.SGD",
+      "description": "外汇交易基础货币净额: 1,553.57 USD.SGD",
+      "amount": -2.0
+    },
+    {
+      "date": "2025-08-29",
+      "category": "commission",
+      "symbol": "MPNGY",
+      "description": "MEITUAN - UNSP ADR",
+      "amount": -0.36305833
+    },
+    {
+      "date": "2025-08-28",
+      "category": "commission",
+      "symbol": "USD.SGD",
+      "description": "外汇交易基础货币净额: 779.27 USD.SGD",
+      "amount": -2.0
+    },
+    {
+      "date": "2025-08-28",
+      "category": "commission",
+      "symbol": "MPNGY",
+      "description": "MEITUAN - UNSP ADR",
+      "amount": -0.44626535
+    },
+    {
+      "date": "2025-08-22",
+      "category": "commission",
+      "symbol": "CAN",
+      "description": "CANAAN INC.",
+      "amount": -0.38955725
+    },
+    {
+      "date": "2025-08-22",
+      "category": "commission",
+      "symbol": "CAN",
+      "description": "CANAAN INC.",
+      "amount": -0.38562725
+    },
+    {
+      "date": "2025-08-21",
+      "category": "commission",
+      "symbol": "CAN",
+      "description": "CANAAN INC.",
+      "amount": -0.335661525
+    },
+    {
+      "date": "2025-08-21",
+      "category": "commission",
+      "symbol": "CAN",
+      "description": "CANAAN INC.",
+      "amount": -0.37295725
+    },
+    {
+      "date": "2025-08-20",
+      "category": "commission",
+      "symbol": "TSM",
+      "description": "TAIWAN SEMICONDUCTOR-SP ADR",
+      "amount": -0.35184625
+    },
+    {
+      "date": "2025-08-20",
+      "category": "commission",
+      "symbol": "USD.SGD",
+      "description": "外汇交易基础货币净额: 1,085.96 USD.SGD",
+      "amount": -2.0
+    },
+    {
+      "date": "2025-08-19",
+      "category": "commission",
+      "symbol": "AVGO",
+      "description": "BROADCOM INC",
+      "amount": -0.35071125
+    },
+    {
+      "date": "2025-08-19",
+      "category": "commission",
+      "symbol": "TSM",
+      "description": "TAIWAN SEMICONDUCTOR-SP ADR",
+      "amount": -0.35139225
+    },
+    {
+      "date": "2025-08-07",
+      "category": "commission",
+      "symbol": "CAN",
+      "description": "CANAAN INC.",
+      "amount": -2.63008625
+    },
+    {
+      "date": "2025-08-01",
+      "category": "commission",
+      "symbol": "CAN",
+      "description": "CANAAN INC.",
+      "amount": -1.86478625
+    },
+    {
+      "date": "2025-07-29",
+      "category": "commission",
+      "symbol": "AVGO",
+      "description": "BROADCOM INC",
+      "amount": -0.35048425
+    },
+    {
+      "date": "2025-07-10",
+      "category": "withholding_tax",
+      "symbol": "TSM",
+      "description": "TSM(US8740391003) 现金红利 USD 0.780305 每股 - TW 税收",
+      "amount": -1.64
+    },
+    {
+      "date": "2025-07-10",
+      "category": "dividend",
+      "symbol": "TSM",
+      "description": "TSM(US8740391003) 现金红利 USD 0.780305 每股 (Ordinary Div - NRA Withholding Exempt)",
+      "amount": 7.8
+    },
+    {
+      "date": "2025-07-02",
+      "category": "commission",
+      "symbol": "CAN",
+      "description": "CANAAN INC.",
+      "amount": -0.38955725
+    },
+    {
+      "date": "2025-07-02",
+      "category": "commission",
+      "symbol": "CAN",
+      "description": "CANAAN INC.",
+      "amount": -1.558229
+    },
+    {
+      "date": "2025-07-01",
+      "category": "commission",
+      "symbol": "UNH",
+      "description": "UNITEDHEALTH GROUP INC",
+      "amount": -0.35065025
+    },
+    {
+      "date": "2025-06-30",
+      "category": "withholding_tax",
+      "symbol": "AVGO",
+      "description": "AVGO(US11135F1012) 现金红利 USD 0.59 每股 - US 税收",
+      "amount": -0.06
+    },
+    {
+      "date": "2025-06-30",
+      "category": "dividend",
+      "symbol": "AVGO",
+      "description": "AVGO(US11135F1012) 现金红利 USD 0.59 每股 (常规股息)",
+      "amount": 0.59
+    },
+    {
+      "date": "2025-06-30",
+      "category": "commission",
+      "symbol": "CAN",
+      "description": "CANAAN INC.",
+      "amount": -1.87428625
+    },
+    {
+      "date": "2025-06-24",
+      "category": "withholding_tax",
+      "symbol": "UNH",
+      "description": "UNH(US91324P1021) 现金红利 USD 2.21 每股 - US 税收",
+      "amount": -0.22
+    },
+    {
+      "date": "2025-06-24",
+      "category": "dividend",
+      "symbol": "UNH",
+      "description": "UNH(US91324P1021) 现金红利 USD 2.21 每股 (常规股息)",
+      "amount": 2.21
+    },
+    {
+      "date": "2025-06-05",
+      "category": "commission",
+      "symbol": "PDD",
+      "description": "PDD HOLDINGS INC",
+      "amount": -0.34756025
+    },
+    {
+      "date": "2025-06-03",
+      "category": "commission",
+      "symbol": "AVGO",
+      "description": "BROADCOM INC",
+      "amount": -0.35050325
+    },
+    {
+      "date": "2025-05-27",
+      "category": "commission",
+      "symbol": "CAN",
+      "description": "CANAAN INC.",
+      "amount": -1.2016745
+    },
+    {
+      "date": "2025-05-27",
+      "category": "commission",
+      "symbol": "PDD",
+      "description": "PDD HOLDINGS INC",
+      "amount": -0.35050325
+    },
+    {
+      "date": "2025-05-27",
+      "category": "commission",
+      "symbol": "PDD",
+      "description": "PDD HOLDINGS INC",
+      "amount": -0.000492
+    },
+    {
+      "date": "2025-05-23",
+      "category": "commission",
+      "symbol": "CAN",
+      "description": "CANAAN INC.",
+      "amount": -0.37485725
+    },
+    {
+      "date": "2025-05-21",
+      "category": "commission",
+      "symbol": "CAN",
+      "description": "CANAAN INC.",
+      "amount": -0.37485725
+    },
+    {
+      "date": "2025-05-20",
+      "category": "commission",
+      "symbol": "UNH",
+      "description": "UNITEDHEALTH GROUP INC",
+      "amount": -0.35050325
+    },
+    {
+      "date": "2025-05-16",
+      "category": "commission",
+      "symbol": "UNH",
+      "description": "UNITEDHEALTH GROUP INC",
+      "amount": -0.35099525
+    },
+    {
+      "date": "2025-05-16",
+      "category": "commission",
+      "symbol": "UNH",
+      "description": "UNITEDHEALTH GROUP INC",
+      "amount": -0.35365825
+    },
+    {
+      "date": "2025-05-16",
+      "category": "commission",
+      "symbol": "UNH",
+      "description": "UNITEDHEALTH GROUP INC",
+      "amount": -0.006802
+    },
+    {
+      "date": "2025-05-13",
+      "category": "commission",
+      "symbol": "AVGO",
+      "description": "BROADCOM INC",
+      "amount": -0.391300082
+    },
+    {
+      "date": "2025-05-09",
+      "category": "commission",
+      "symbol": "GOOG",
+      "description": "ALPHABET INC-CL C",
+      "amount": -0.397659348
+    },
+    {
+      "date": "2025-05-07",
+      "category": "commission",
+      "symbol": "GOOG",
+      "description": "ALPHABET INC-CL C",
+      "amount": -0.35271725
+    },
+    {
+      "date": "2025-04-25",
+      "category": "commission",
+      "symbol": "NVDA",
+      "description": "NVIDIA CORP",
+      "amount": -0.36384725
+    },
+    {
+      "date": "2025-04-17",
+      "category": "commission",
+      "symbol": "NVDA",
+      "description": "NVIDIA CORP",
+      "amount": -0.35271725
+    },
+    {
+      "date": "2025-04-16",
+      "category": "commission",
+      "symbol": "NVDA",
+      "description": "NVIDIA CORP",
+      "amount": -0.360169519
+    },
+    {
+      "date": "2025-04-16",
+      "category": "commission",
+      "symbol": "NVDA",
+      "description": "NVIDIA CORP",
+      "amount": -0.35099525
+    },
+    {
+      "date": "2025-04-10",
+      "category": "withholding_tax",
+      "symbol": "TSM",
+      "description": "TSM(US8740391003) 现金红利 USD 0.677693 每股 - TW 税收",
+      "amount": -1.42
+    },
+    {
+      "date": "2025-04-10",
+      "category": "dividend",
+      "symbol": "TSM",
+      "description": "TSM(US8740391003) 现金红利 USD 0.677693 每股 (Ordinary Div - NRA Withholding Exempt)",
+      "amount": 6.77
+    },
+    {
+      "date": "2025-04-02",
+      "category": "dividend",
+      "symbol": "NVDA",
+      "description": "NVDA(US67066G1040) 现金红利 USD 0.01 每股 (常规股息)",
+      "amount": 0.01
+    },
+    {
+      "date": "2025-03-31",
+      "category": "dividend",
+      "symbol": "AVGO",
+      "description": "AVGO(US11135F1012) 现金红利 USD 0.59 每股 (常规股息)",
+      "amount": 3.54
+    },
+    {
+      "date": "2025-03-31",
+      "category": "withholding_tax",
+      "symbol": "AVGO",
+      "description": "AVGO(US11135F1012) 现金红利 USD 0.59 每股 - US 税收",
+      "amount": -0.35
+    },
+    {
+      "date": "2025-03-17",
+      "category": "commission",
+      "symbol": "NVDA",
+      "description": "NVIDIA CORP",
+      "amount": -0.354067661
+    },
+    {
+      "date": "2025-03-04",
+      "category": "misc_expense",
+      "symbol": "",
+      "description": "J********AN:全球快照PNP- 二月 2025",
+      "amount": -0.09
+    },
+    {
+      "date": "2025-03-04",
+      "category": "misc_income",
+      "symbol": "",
+      "description": "J********AN:全球快照PNP- 二月 2025",
+      "amount": 0.09
+    },
+    {
+      "date": "2025-02-28",
+      "category": "commission",
+      "symbol": "NVDA",
+      "description": "NVIDIA CORP",
+      "amount": -0.35050325
+    },
+    {
+      "date": "2025-02-12",
+      "category": "commission",
+      "symbol": "TSM",
+      "description": "TAIWAN SEMICONDUCTOR-SP ADR",
+      "amount": -0.35197925
+    },
+    {
+      "date": "2025-01-23",
+      "category": "commission",
+      "symbol": "TSM",
+      "description": "TAIWAN SEMICONDUCTOR-SP ADR",
+      "amount": -0.34736225
+    },
+    {
+      "date": "2025-01-16",
+      "category": "commission",
+      "symbol": "AVGO",
+      "description": "BROADCOM INC",
+      "amount": -0.000738
+    },
+    {
+      "date": "2025-01-16",
+      "category": "commission",
+      "symbol": "AVGO",
+      "description": "BROADCOM INC",
+      "amount": -0.35099525
+    },
+    {
+      "date": "2025-01-03",
+      "category": "misc_income",
+      "symbol": "",
+      "description": "J********AN:美国合并快照- 十二月 2024",
+      "amount": 0.02
+    },
+    {
+      "date": "2025-01-03",
+      "category": "misc_expense",
+      "symbol": "",
+      "description": "J********AN:美国合并快照- 十二月 2024",
+      "amount": -0.02
+    }
+  ]
+}

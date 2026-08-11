@@ -1,7 +1,6 @@
 .streamlit/
 __pycache__/
 .venv/
-.trade/
 todo.md
 U*.TRANSACTIONS.*.csv
 U*.TRADES.json

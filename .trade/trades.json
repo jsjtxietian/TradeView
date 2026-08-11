@@ -1,0 +1,2767 @@
+[
+  {
+    "id": 1,
+    "symbol": "AVGO",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-01-16",
+        "quantity": 3.0,
+        "price": 233.6,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-01-16",
+        "quantity": 3.0,
+        "price": 233.6,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2025-05-13",
+        "quantity": 6.0,
+        "price": 231.24,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "symbol": "TSM",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-01-23",
+        "quantity": 3.0,
+        "price": 222.39,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-02-12",
+        "quantity": 7.0,
+        "price": 205.93,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2025-08-19",
+        "quantity": 5.0,
+        "price": 236.55,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2025-08-20",
+        "quantity": 7.0,
+        "price": 224.63,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2025-09-08",
+        "quantity": 12.0,
+        "price": 244.71,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2025-10-14",
+        "quantity": 2.0,
+        "price": 291.8,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2025-11-21",
+        "quantity": 10.0,
+        "price": 272.54,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2025-11-21",
+        "quantity": 2.0,
+        "price": 272.38,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "symbol": "NVDA",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-02-28",
+        "quantity": 1.0,
+        "price": 121.845,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-03-17",
+        "quantity": 1.0,
+        "price": 122.245,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "symbol": "NVDA",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-04-16",
+        "quantity": 3.0,
+        "price": 105.287,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-04-16",
+        "quantity": 3.0,
+        "price": 104.032,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "symbol": "NVDA",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-04-17",
+        "quantity": 10.0,
+        "price": 101.1093,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-04-25",
+        "quantity": 10.0,
+        "price": 110.0,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "symbol": "GOOG",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-05-07",
+        "quantity": 10.0,
+        "price": 152.105,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-05-09",
+        "quantity": 10.0,
+        "price": 155.691,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 7,
+    "symbol": "UNH",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-05-16",
+        "quantity": 3.0,
+        "price": 282.21,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-05-16",
+        "quantity": 1.0,
+        "price": 269.76,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2025-05-16",
+        "quantity": 2.0,
+        "price": 269.78,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 8,
+    "symbol": "UNH",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-05-20",
+        "quantity": 1.0,
+        "price": 321.5561,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-07-01",
+        "quantity": 1.0,
+        "price": 325.715,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 9,
+    "symbol": "CAN",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-05-21",
+        "quantity": 100.0,
+        "price": 0.7101,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-05-23",
+        "quantity": 100.0,
+        "price": 0.6455,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2025-05-27",
+        "quantity": 200.0,
+        "price": 0.7016,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 10,
+    "symbol": "PDD",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-05-27",
+        "quantity": 1.0,
+        "price": 98.9486,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-05-27",
+        "quantity": 2.0,
+        "price": 98.949,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2025-06-05",
+        "quantity": 3.0,
+        "price": 100.05,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 11,
+    "symbol": "AVGO",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-06-03",
+        "quantity": 1.0,
+        "price": 252.98,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-07-29",
+        "quantity": 1.0,
+        "price": 300.2458,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2025-08-19",
+        "quantity": 2.0,
+        "price": 298.38,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2025-09-05",
+        "quantity": 2.0,
+        "price": 349.54,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2025-09-05",
+        "quantity": 2.0,
+        "price": 350.34,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 12,
+    "symbol": "CAN",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-06-30",
+        "quantity": 500.0,
+        "price": 0.5938,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-07-02",
+        "quantity": 100.0,
+        "price": 0.6281,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2025-07-02",
+        "quantity": 400.0,
+        "price": 0.6288,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 13,
+    "symbol": "CAN",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-08-01",
+        "quantity": 500.0,
+        "price": 0.6329,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-08-07",
+        "quantity": 500.0,
+        "price": 0.6848,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 14,
+    "symbol": "CAN",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-08-21",
+        "quantity": 90.0,
+        "price": 0.6776,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-08-21",
+        "quantity": 100.0,
+        "price": 0.6794,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2025-08-22",
+        "quantity": 100.0,
+        "price": 0.7188,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2025-08-22",
+        "quantity": 90.0,
+        "price": 0.7188,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 15,
+    "symbol": "MPNGY",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-08-28",
+        "quantity": 30.0,
+        "price": 26.31,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-08-29",
+        "quantity": 4.0,
+        "price": 26.41,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2025-09-02",
+        "quantity": 40.0,
+        "price": 26.03,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2025-09-18",
+        "quantity": 74.0,
+        "price": 27.0,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 16,
+    "symbol": "NVDA",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-09-05",
+        "quantity": 10.0,
+        "price": 164.5893,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-10-14",
+        "quantity": 5.0,
+        "price": 180.59,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2025-11-06",
+        "quantity": 5.0,
+        "price": 190.61,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2025-11-21",
+        "quantity": 20.0,
+        "price": 178.46,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 17,
+    "symbol": "MSFT",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-09-10",
+        "quantity": 4.0,
+        "price": 498.7165,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-10-10",
+        "quantity": 4.0,
+        "price": 513.995,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 18,
+    "symbol": "GOOG",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-09-10",
+        "quantity": 5.0,
+        "price": 240.685,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-09-22",
+        "quantity": 7.0,
+        "price": 254.09,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2025-09-30",
+        "quantity": 1.0,
+        "price": 241.09,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2025-10-03",
+        "quantity": 5.0,
+        "price": 243.455,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2025-10-10",
+        "quantity": 9.0,
+        "price": 238.2,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2025-10-21",
+        "quantity": 4.0,
+        "price": 249.145,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2025-12-08",
+        "quantity": 5.0,
+        "price": 315.0,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-01-15",
+        "quantity": 2.0,
+        "price": 332.455,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-02-05",
+        "quantity": 1.0,
+        "price": 317.935,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-02-05",
+        "quantity": 1.0,
+        "price": 317.935,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-02-10",
+        "quantity": 2.0,
+        "price": 317.31,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-02-17",
+        "quantity": 14.0,
+        "price": 298.71,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-03-23",
+        "quantity": 12.0,
+        "price": 301.25,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-03-26",
+        "quantity": 12.0,
+        "price": 281.1112,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 19,
+    "symbol": "BABA",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-10-02",
+        "quantity": 1.0,
+        "price": 189.93,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-11-06",
+        "quantity": 1.0,
+        "price": 166.53,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 20,
+    "symbol": "MU",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-10-02",
+        "quantity": 1.0,
+        "price": 183.28,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-11-05",
+        "quantity": 1.0,
+        "price": 235.29,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2025-11-06",
+        "quantity": 3.0,
+        "price": 239.9,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2025-11-07",
+        "quantity": 2.0,
+        "price": 237.415,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2025-11-11",
+        "quantity": 10.0,
+        "price": 246.26,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2025-11-20",
+        "quantity": 17.0,
+        "price": 224.66,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 21,
+    "symbol": "META",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-10-09",
+        "quantity": 4.0,
+        "price": 719.76,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-11-11",
+        "quantity": 4.0,
+        "price": 625.782,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 22,
+    "symbol": "MSFT",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-10-13",
+        "quantity": 4.0,
+        "price": 514.225,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-11-20",
+        "quantity": 4.0,
+        "price": 486.62,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 23,
+    "symbol": "VNM",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-10-28",
+        "quantity": 10.0,
+        "price": 18.06,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-11-06",
+        "quantity": 10.0,
+        "price": 17.4101,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 24,
+    "symbol": "CAN",
+    "currency": "USD",
+    "direction": "short",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-10-29",
+        "quantity": 10.0,
+        "price": 1.39,
+        "action": "short",
+        "note": ""
+      },
+      {
+        "date": "2025-10-30",
+        "quantity": 10.0,
+        "price": 1.305,
+        "action": "cover",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 25,
+    "symbol": "PDD",
+    "currency": "USD",
+    "direction": "short",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-11-19",
+        "quantity": 10.0,
+        "price": 117.46,
+        "action": "short",
+        "note": ""
+      },
+      {
+        "date": "2025-11-20",
+        "quantity": 5.0,
+        "price": 118.08,
+        "action": "cover",
+        "note": ""
+      },
+      {
+        "date": "2025-11-20",
+        "quantity": 5.0,
+        "price": 118.1,
+        "action": "cover",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 26,
+    "symbol": "MU",
+    "currency": "USD",
+    "direction": "short",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-11-24",
+        "quantity": 10.0,
+        "price": 224.0,
+        "action": "short",
+        "note": ""
+      },
+      {
+        "date": "2025-11-25",
+        "quantity": 10.0,
+        "price": 223.525,
+        "action": "cover",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 27,
+    "symbol": "META",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-11-28",
+        "quantity": 10.0,
+        "price": 642.69,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-12-10",
+        "quantity": 2.0,
+        "price": 650.755,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2025-12-11",
+        "quantity": 1.0,
+        "price": 653.14,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-01-12",
+        "quantity": 6.0,
+        "price": 647.695,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-01-14",
+        "quantity": 7.0,
+        "price": 618.8052,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 28,
+    "symbol": "QQQ",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-12-02",
+        "quantity": 10.0,
+        "price": 621.915,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-12-12",
+        "quantity": 10.0,
+        "price": 622.01,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 29,
+    "symbol": "AVGO",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-12-03",
+        "quantity": 10.0,
+        "price": 376.37,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-12-11",
+        "quantity": 10.0,
+        "price": 395.03,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 30,
+    "symbol": "SNDK",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-12-04",
+        "quantity": 10.0,
+        "price": 209.98,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-12-04",
+        "quantity": 10.0,
+        "price": 205.48,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 31,
+    "symbol": "TSM",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-12-04",
+        "quantity": 10.0,
+        "price": 291.58,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-12-18",
+        "quantity": 10.0,
+        "price": 281.95,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 32,
+    "symbol": "NVDA",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-12-11",
+        "quantity": 20.0,
+        "price": 177.645,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-12-12",
+        "quantity": 3.0,
+        "price": 180.76,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2025-12-12",
+        "quantity": 3.0,
+        "price": 180.76,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2025-12-12",
+        "quantity": 3.0,
+        "price": 180.76,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2025-12-12",
+        "quantity": 3.0,
+        "price": 180.76,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2025-12-12",
+        "quantity": 2.0,
+        "price": 180.76,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2025-12-12",
+        "quantity": 3.0,
+        "price": 180.76,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2025-12-12",
+        "quantity": 3.0,
+        "price": 180.76,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 33,
+    "symbol": "AVGO",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-12-12",
+        "quantity": 10.0,
+        "price": 389.09,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-12-18",
+        "quantity": 10.0,
+        "price": 331.93,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 34,
+    "symbol": "MU",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-12-18",
+        "quantity": 10.0,
+        "price": 252.29,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-12-18",
+        "quantity": 10.0,
+        "price": 252.71,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 35,
+    "symbol": "AVGO",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-12-22",
+        "quantity": 5.0,
+        "price": 340.8,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-12-22",
+        "quantity": 5.0,
+        "price": 340.81,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-01-05",
+        "quantity": 10.0,
+        "price": 339.612,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 36,
+    "symbol": "CRCL",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-12-23",
+        "quantity": 10.0,
+        "price": 82.7,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-12-23",
+        "quantity": 10.0,
+        "price": 83.0105,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 37,
+    "symbol": "BOXX",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-12-26",
+        "quantity": 3.0,
+        "price": 115.03,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2025-12-26",
+        "quantity": 30.0,
+        "price": 115.03,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-01-02",
+        "quantity": 20.0,
+        "price": 115.145,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-01-02",
+        "quantity": 13.0,
+        "price": 115.145,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 38,
+    "symbol": "MU",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-12-26",
+        "quantity": 10.0,
+        "price": 285.65,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-01-08",
+        "quantity": 4.0,
+        "price": 332.0,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-01-13",
+        "quantity": 4.0,
+        "price": 338.8,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-02-03",
+        "quantity": 4.0,
+        "price": 422.965,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-02-10",
+        "quantity": 1.0,
+        "price": 366.775,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-02-10",
+        "quantity": 21.0,
+        "price": 366.775,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 39,
+    "symbol": "EWY",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2025-12-26",
+        "quantity": 20.0,
+        "price": 95.405,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-01-08",
+        "quantity": 1.0,
+        "price": 106.145,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-01-08",
+        "quantity": 4.0,
+        "price": 106.14,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-01-12",
+        "quantity": 10.0,
+        "price": 108.36,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-02-27",
+        "quantity": 7.0,
+        "price": 148.795,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-03-03",
+        "quantity": 25.0,
+        "price": 127.2,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-03-03",
+        "quantity": 17.0,
+        "price": 127.205,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 40,
+    "symbol": "SNDK",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-01-06",
+        "quantity": 10.0,
+        "price": 337.15,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-01-06",
+        "quantity": 10.0,
+        "price": 336.53,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 41,
+    "symbol": "AMD",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-01-06",
+        "quantity": 10.0,
+        "price": 212.735,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-01-13",
+        "quantity": 10.0,
+        "price": 219.2405,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 42,
+    "symbol": "SMH",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-01-12",
+        "quantity": 2.0,
+        "price": 388.605,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-01-14",
+        "quantity": 5.0,
+        "price": 386.665,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-01-14",
+        "quantity": 3.0,
+        "price": 386.9261,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-01-14",
+        "quantity": 3.0,
+        "price": 385.4978,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-01-14",
+        "quantity": 3.0,
+        "price": 384.41,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-01-20",
+        "quantity": 3.0,
+        "price": 394.0,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-02-03",
+        "quantity": 4.0,
+        "price": 398.33,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-02-05",
+        "quantity": 7.0,
+        "price": 377.15,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-02-05",
+        "quantity": 10.0,
+        "price": 383.95,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-02-05",
+        "quantity": 23.0,
+        "price": 377.55,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-02-05",
+        "quantity": 7.0,
+        "price": 377.55,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-02-17",
+        "quantity": 10.0,
+        "price": 399.44,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-02-17",
+        "quantity": 10.0,
+        "price": 400.255,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-02-17",
+        "quantity": 10.0,
+        "price": 399.965,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 43,
+    "symbol": "SOXL",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-02-04",
+        "quantity": 20.0,
+        "price": 55.0,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-02-04",
+        "quantity": 10.0,
+        "price": 53.88,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-02-04",
+        "quantity": 10.0,
+        "price": 53.9,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 44,
+    "symbol": "SOXL",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-02-05",
+        "quantity": 10.0,
+        "price": 52.8891,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-02-06",
+        "quantity": 10.0,
+        "price": 57.84,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 45,
+    "symbol": "MAGS",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-02-06",
+        "quantity": 20.0,
+        "price": 62.68,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-02-06",
+        "quantity": 10.0,
+        "price": 62.6,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-02-06",
+        "quantity": 25.0,
+        "price": 62.72,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-02-10",
+        "quantity": 25.0,
+        "price": 63.5,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-02-10",
+        "quantity": 25.0,
+        "price": 63.4993,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-02-11",
+        "quantity": 10.0,
+        "price": 63.12,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-02-12",
+        "quantity": 70.0,
+        "price": 62.005,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-02-24",
+        "quantity": 60.0,
+        "price": 61.7,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-02-24",
+        "quantity": 55.0,
+        "price": 62.075,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-03-03",
+        "quantity": 70.0,
+        "price": 60.655,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 46,
+    "symbol": "AGQ",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-02-10",
+        "quantity": 10.0,
+        "price": 153.8361,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-02-10",
+        "quantity": 5.0,
+        "price": 151.655,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-02-10",
+        "quantity": 5.0,
+        "price": 151.655,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 47,
+    "symbol": "BOXX",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-02-10",
+        "quantity": 10.0,
+        "price": 115.5999,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-02-10",
+        "quantity": 90.0,
+        "price": 115.598,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-02-12",
+        "quantity": 40.0,
+        "price": 115.61,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-02-13",
+        "quantity": 60.0,
+        "price": 115.635,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 48,
+    "symbol": "DXJ",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-02-17",
+        "quantity": 10.0,
+        "price": 163.74,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-02-19",
+        "quantity": 10.0,
+        "price": 165.61,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-03-02",
+        "quantity": 6.0,
+        "price": 166.8,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-03-03",
+        "quantity": 26.0,
+        "price": 156.76,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 49,
+    "symbol": "MU",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-02-17",
+        "quantity": 5.0,
+        "price": 402.845,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-02-23",
+        "quantity": 3.0,
+        "price": 422.755,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-02-23",
+        "quantity": 2.0,
+        "price": 418.46,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-02-26",
+        "quantity": 5.0,
+        "price": 414.77,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-03-03",
+        "quantity": 5.0,
+        "price": 385.94,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 50,
+    "symbol": "BOXX",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-02-23",
+        "quantity": 78.0,
+        "price": 115.755,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-02-23",
+        "quantity": 20.0,
+        "price": 115.755,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-02-24",
+        "quantity": 62.0,
+        "price": 115.76,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-02-27",
+        "quantity": 10.0,
+        "price": 115.815,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-03-06",
+        "quantity": 74.0,
+        "price": 115.875,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-03-16",
+        "quantity": 28.0,
+        "price": 115.995,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-03-27",
+        "quantity": 90.0,
+        "price": 116.105,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-04-01",
+        "quantity": 10.0,
+        "price": 116.2007,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-04-09",
+        "quantity": 20.0,
+        "price": 116.285,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-04-10",
+        "quantity": 30.0,
+        "price": 116.295,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-04-14",
+        "quantity": 30.0,
+        "price": 116.3,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-04-14",
+        "quantity": 30.0,
+        "price": 116.302,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-04-15",
+        "quantity": 30.0,
+        "price": 116.315,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-04-20",
+        "quantity": 30.0,
+        "price": 116.415,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-04-28",
+        "quantity": 60.0,
+        "price": 116.505,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-05-04",
+        "quantity": 62.0,
+        "price": 116.5707,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 51,
+    "symbol": "SOXL",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-02-26",
+        "quantity": 30.0,
+        "price": 64.0,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-02-27",
+        "quantity": 30.0,
+        "price": 61.0012,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 52,
+    "symbol": "IAU",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-02-27",
+        "quantity": 10.0,
+        "price": 98.405,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-03-13",
+        "quantity": 10.0,
+        "price": 95.835,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 53,
+    "symbol": "TSM",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-03-04",
+        "quantity": 10.0,
+        "price": 357.07,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-03-04",
+        "quantity": 10.0,
+        "price": 358.0024,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 54,
+    "symbol": "TSM",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-03-05",
+        "quantity": 20.0,
+        "price": 356.0,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-03-23",
+        "quantity": 10.0,
+        "price": 333.79,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-03-27",
+        "quantity": 10.0,
+        "price": 326.8015,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 55,
+    "symbol": "MU",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-04-01",
+        "quantity": 10.0,
+        "price": 360.2,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-04-01",
+        "quantity": 10.0,
+        "price": 369.98,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 56,
+    "symbol": "CWEN",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-04-02",
+        "quantity": 20.0,
+        "price": 39.875,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-04-14",
+        "quantity": 10.0,
+        "price": 39.995,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-04-14",
+        "quantity": 10.0,
+        "price": 39.995,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 57,
+    "symbol": "SPHR",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-04-06",
+        "quantity": 5.0,
+        "price": 127.79,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-04-14",
+        "quantity": 5.0,
+        "price": 130.1467,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 58,
+    "symbol": "MU",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-04-06",
+        "quantity": 10.0,
+        "price": 382.06,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-04-21",
+        "quantity": 5.0,
+        "price": 448.885,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-05-12",
+        "quantity": 15.0,
+        "price": 720.41,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 59,
+    "symbol": "DXJ",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-04-10",
+        "quantity": 10.0,
+        "price": 165.38,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-04-14",
+        "quantity": 10.0,
+        "price": 165.3,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-04-15",
+        "quantity": 10.0,
+        "price": 164.69,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-04-24",
+        "quantity": 30.0,
+        "price": 159.655,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 60,
+    "symbol": "EWY",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-04-10",
+        "quantity": 10.0,
+        "price": 137.91,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-04-14",
+        "quantity": 10.0,
+        "price": 142.615,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-04-15",
+        "quantity": 8.0,
+        "price": 144.515,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-04-15",
+        "quantity": 2.0,
+        "price": 144.51,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-05-12",
+        "quantity": 30.0,
+        "price": 175.47,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 61,
+    "symbol": "TSM",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-04-14",
+        "quantity": 10.0,
+        "price": 375.54,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-04-15",
+        "quantity": 5.0,
+        "price": 380.585,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-05-19",
+        "quantity": 1.0,
+        "price": 392.64,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-05-19",
+        "quantity": 14.0,
+        "price": 392.62,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 62,
+    "symbol": "SNDK",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-04-16",
+        "quantity": 2.0,
+        "price": 910.19,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-04-23",
+        "quantity": 2.0,
+        "price": 947.155,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 63,
+    "symbol": "EWZ",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-04-20",
+        "quantity": 30.0,
+        "price": 41.315,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-04-23",
+        "quantity": 30.0,
+        "price": 40.515,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 64,
+    "symbol": "GOOG",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-04-22",
+        "quantity": 5.0,
+        "price": 337.995,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-05-05",
+        "quantity": 5.0,
+        "price": 383.125,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-05-28",
+        "quantity": 5.0,
+        "price": 385.545,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-06-11",
+        "quantity": 15.0,
+        "price": 344.215,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 65,
+    "symbol": "SMH",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-04-23",
+        "quantity": 2.0,
+        "price": 483.8,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-04-23",
+        "quantity": 3.0,
+        "price": 483.83,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-04-27",
+        "quantity": 5.0,
+        "price": 502.795,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-05-12",
+        "quantity": 5.0,
+        "price": 554.995,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-05-19",
+        "quantity": 10.0,
+        "price": 532.585,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-05-19",
+        "quantity": 5.0,
+        "price": 532.185,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 66,
+    "symbol": "DRAM",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-04-24",
+        "quantity": 1.0,
+        "price": 37.41,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-04-24",
+        "quantity": 1.0,
+        "price": 37.42,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 67,
+    "symbol": "ASML",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-04-27",
+        "quantity": 3.0,
+        "price": 1430.27,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-05-18",
+        "quantity": 2.0,
+        "price": 1480.08,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-05-18",
+        "quantity": 1.0,
+        "price": 1480.15,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 68,
+    "symbol": "BESI",
+    "currency": "EUR",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-04-28",
+        "quantity": 10.0,
+        "price": 235.0,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-04-29",
+        "quantity": 10.0,
+        "price": 240.0,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-05-15",
+        "quantity": 5.0,
+        "price": 261.9,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-05-19",
+        "quantity": 25.0,
+        "price": 253.9,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 69,
+    "symbol": "DRAM",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-04-28",
+        "quantity": 50.0,
+        "price": 37.0993,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-04-30",
+        "quantity": 50.0,
+        "price": 38.47,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-05-07",
+        "quantity": 30.0,
+        "price": 47.95,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-05-12",
+        "quantity": 100.0,
+        "price": 50.149,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-05-19",
+        "quantity": 30.0,
+        "price": 48.49,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-05-19",
+        "quantity": 40.0,
+        "price": 48.49,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-05-19",
+        "quantity": 50.0,
+        "price": 47.435,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-05-19",
+        "quantity": 110.0,
+        "price": 47.29,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 70,
+    "symbol": "IREN",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-05-05",
+        "quantity": 10.0,
+        "price": 51.965,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-05-05",
+        "quantity": 20.0,
+        "price": 51.96,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-05-12",
+        "quantity": 30.0,
+        "price": 54.075,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 71,
+    "symbol": "SNDK",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-05-13",
+        "quantity": 5.0,
+        "price": 1419.98,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-05-18",
+        "quantity": 5.0,
+        "price": 1303.5,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 72,
+    "symbol": "INTC",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-05-20",
+        "quantity": 30.0,
+        "price": 116.368,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-05-29",
+        "quantity": 10.0,
+        "price": 124.475,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-06-01",
+        "quantity": 20.0,
+        "price": 110.29,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-06-05",
+        "quantity": 10.0,
+        "price": 105.035,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-06-05",
+        "quantity": 10.0,
+        "price": 102.08,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 73,
+    "symbol": "NOK",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-05-20",
+        "quantity": 200.0,
+        "price": 13.995,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-06-09",
+        "quantity": 200.0,
+        "price": 14.005,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 74,
+    "symbol": "SMTC",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-05-20",
+        "quantity": 20.0,
+        "price": 139.08,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-05-28",
+        "quantity": 5.0,
+        "price": 168.415,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-06-10",
+        "quantity": 22.0,
+        "price": 153.525,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-06-10",
+        "quantity": 3.0,
+        "price": 153.525,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 75,
+    "symbol": "268A.T",
+    "currency": "JPY",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-05-21",
+        "quantity": 100.0,
+        "price": 2521.0,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-06-01",
+        "quantity": 100.0,
+        "price": 2881.0,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-06-11",
+        "quantity": 100.0,
+        "price": 2377.1,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-06-11",
+        "quantity": 100.0,
+        "price": 2377.1,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 76,
+    "symbol": "SOXL",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-06-11",
+        "quantity": 5.0,
+        "price": 205.9956,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-06-11",
+        "quantity": 5.0,
+        "price": 199.12,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-06-11",
+        "quantity": 5.0,
+        "price": 195.18,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-06-11",
+        "quantity": 5.0,
+        "price": 193.74,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 77,
+    "symbol": "SPCX",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-06-12",
+        "quantity": 10.0,
+        "price": 152.95,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-06-12",
+        "quantity": 10.0,
+        "price": 158.8598,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-06-12",
+        "quantity": 16.0,
+        "price": 159.9,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-06-12",
+        "quantity": 4.0,
+        "price": 159.9,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-06-12",
+        "quantity": 40.0,
+        "price": 159.9948,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-06-12",
+        "quantity": 40.0,
+        "price": 158.408,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-06-12",
+        "quantity": 20.0,
+        "price": 166.405,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-06-12",
+        "quantity": 20.0,
+        "price": 159.33,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  }
+]
