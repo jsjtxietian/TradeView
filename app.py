@@ -25,6 +25,7 @@ TRADE_DIR = Path(".trade")
 TRADE_FILE = TRADE_DIR / "trades.json"
 LEDGER_FILE = TRADE_DIR / "ledger.json"
 WATCHLIST_FILE = TRADE_DIR / "watchlist.json"
+NOTES_FILE = TRADE_DIR / "notes.json"
 STATIC_DIR = Path("static")
 PROMPT_TEMPLATE_PATH = Path("prompt_template.md")
 DEFAULT_HISTORY_PERIOD = "3y"
@@ -338,6 +339,67 @@ def save_watchlist_state(payload: dict[str, Any]) -> dict[str, Any]:
         encoding="utf-8",
     )
     temp_path.replace(WATCHLIST_FILE)
+    return normalized
+
+
+def normalize_symbol_notes(payload: Any) -> dict[str, dict[str, Any]]:
+    if not isinstance(payload, dict):
+        raise ValueError("股票笔记文件格式无效。")
+    notes: dict[str, dict[str, Any]] = {}
+    for raw_symbol, raw_note in payload.items():
+        symbol = normalize_symbol(str(raw_symbol))
+        if not symbol:
+            continue
+        if isinstance(raw_note, str):
+            text = raw_note.strip()
+            if text:
+                notes[symbol] = {"text": text, "isHolding": False, "costBasis": None, "shares": None}
+            continue
+        if not isinstance(raw_note, dict) or isinstance(raw_note, list):
+            continue
+        text = str(raw_note.get("text", "")).strip()
+        cost_basis = parse_optional_positive_float(raw_note.get("costBasis"))
+        shares = parse_optional_positive_float(raw_note.get("shares"))
+        is_holding = bool(raw_note.get("isHolding")) or cost_basis is not None or shares is not None
+        if text or is_holding or cost_basis is not None or shares is not None:
+            notes[symbol] = {
+                "text": text,
+                "isHolding": is_holding,
+                "costBasis": cost_basis,
+                "shares": shares,
+            }
+    return dict(sorted(notes.items()))
+
+
+def parse_optional_positive_float(value: Any) -> float | None:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not np.isfinite(parsed) or parsed <= 0:
+        return None
+    return round(parsed, 4)
+
+
+def load_symbol_notes() -> dict[str, dict[str, Any]] | None:
+    if not NOTES_FILE.exists():
+        return None
+    try:
+        payload = json.loads(NOTES_FILE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"股票笔记文件读取失败: {exc}") from exc
+    return normalize_symbol_notes(payload)
+
+
+def save_symbol_notes(payload: Any) -> dict[str, dict[str, Any]]:
+    normalized = normalize_symbol_notes(payload)
+    TRADE_DIR.mkdir(exist_ok=True)
+    temp_path = NOTES_FILE.with_suffix(".json.tmp")
+    temp_path.write_text(
+        json.dumps(normalized, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    temp_path.replace(NOTES_FILE)
     return normalized
 
 
@@ -2516,6 +2578,26 @@ def put_watchlist_state(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
     try:
         state = save_watchlist_state(payload)
         return {"configured": True, **state}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/api/notes")
+def get_symbol_notes() -> dict[str, Any]:
+    try:
+        notes = load_symbol_notes()
+        return {"configured": notes is not None, "notes": notes or {}}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.put("/api/notes")
+def put_symbol_notes(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
+    try:
+        notes = save_symbol_notes(payload.get("notes", payload))
+        return {"configured": True, "notes": notes}
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:

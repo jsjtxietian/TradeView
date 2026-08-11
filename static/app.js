@@ -175,14 +175,23 @@ init().catch((error) => {
 
 async function init() {
   bindEvents();
-  const [config, tradesPayload, watchlistPayload] = await Promise.all([
+  const [config, tradesPayload, watchlistPayload, notesPayload] = await Promise.all([
     fetchJson("/api/config"),
     fetchJson("/api/trades"),
     fetchJson("/api/watchlist/state"),
+    fetchJson("/api/notes"),
   ]);
   state.allTrades = tradesPayload.trades || [];
   loadChartPrefs();
-  state.notes = loadStoredNotes();
+  const legacyNotes = loadLegacyStoredNotes();
+  if (notesPayload.configured) {
+    state.notes = normalizeNotes(notesPayload.notes || {});
+    clearLegacyStoredNotes();
+  } else {
+    state.notes = legacyNotes;
+    await persistNotes();
+    clearLegacyStoredNotes();
+  }
   state.alerts = loadStoredAlerts();
   state.alertsSnapshot = loadStoredAlertsSnapshot();
   state.filterTrendTemplateOnly = loadStoredTrendFilter();
@@ -418,7 +427,9 @@ function bindEvents() {
   });
 
   elements.saveNoteButton.addEventListener("click", () => {
-    saveNote();
+    saveNote().catch((error) => {
+      showToast(error.message || String(error), true);
+    });
   });
 
   elements.noteHoldingCheckbox.addEventListener("change", () => {
@@ -1553,18 +1564,45 @@ function renderAlerts() {
     return;
   }
 
-  for (const alert of state.alerts) {
+  for (const group of groupAlertsBySymbol(state.alerts)) {
     const node = document.createElement("article");
-    node.className = "alert-item";
+    node.className = "alert-item alert-symbol-group";
     node.innerHTML = `
       <div class="alert-item-head">
-        <strong>${escapeHtml(alert.symbol)}</strong>
-        <span class="alert-item-time">${escapeHtml(alert.timeLabel)}</span>
+        <strong>${escapeHtml(group.symbol)}</strong>
+        <span class="alert-item-time">${escapeHtml(group.latestTimeLabel)}</span>
       </div>
-      <p>${escapeHtml(alert.message)}</p>
+      <div class="alert-message-list">
+        ${group.alerts
+          .map((alert) => `
+            <div class="alert-message-row">
+              <span class="alert-item-time">${escapeHtml(alert.timeLabel)}</span>
+              <p>${escapeHtml(alert.message)}</p>
+            </div>
+          `)
+          .join("")}
+      </div>
     `;
     elements.alertsList.appendChild(node);
   }
+}
+
+function groupAlertsBySymbol(alerts) {
+  const groups = [];
+  const bySymbol = new Map();
+  for (const alert of alerts) {
+    const symbol = normalizeSymbol(alert.symbol || "");
+    if (!symbol) {
+      continue;
+    }
+    if (!bySymbol.has(symbol)) {
+      const group = { symbol, latestTimeLabel: alert.timeLabel || "", alerts: [] };
+      bySymbol.set(symbol, group);
+      groups.push(group);
+    }
+    bySymbol.get(symbol).alerts.push(alert);
+  }
+  return groups;
 }
 
 function logDetailMessages(detail) {
@@ -2647,8 +2685,13 @@ async function saveWatchlistState() {
   mirrorWatchlistStateLocally();
 }
 
-function persistNotes() {
-  localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(state.notes));
+async function persistNotes() {
+  const payload = await fetchJson("/api/notes", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ notes: state.notes }),
+  });
+  state.notes = normalizeNotes(payload.notes || {});
 }
 
 function persistTrendFilter() {
@@ -2762,44 +2805,56 @@ function loadStoredWatchlistGroups(fallback) {
   }
 }
 
-function loadStoredNotes() {
+function loadLegacyStoredNotes() {
   try {
     const raw = localStorage.getItem(NOTES_STORAGE_KEY);
     if (!raw) {
       return {};
     }
     const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return {};
-    }
-    return Object.fromEntries(
-      Object.entries(parsed)
-        .map(([symbol, note]) => {
-          const normalizedSymbol = normalizeSymbol(symbol);
-          if (!normalizedSymbol) {
-            return null;
-          }
-          if (typeof note === "string") {
-            const text = note.trim();
-            return text ? [normalizedSymbol, { text, isHolding: false, costBasis: null, shares: null }] : null;
-          }
-          if (!note || typeof note !== "object" || Array.isArray(note)) {
-            return null;
-          }
-          const costBasis = parsePositiveNumber(note.costBasis);
-          const shares = parsePositiveNumber(note.shares);
-          const text = String(note.text || "").trim();
-          const isHolding = !!note.isHolding || costBasis != null || shares != null;
-          if (!text && !isHolding && costBasis == null && shares == null) {
-            return null;
-          }
-          return [normalizedSymbol, { text, isHolding, costBasis, shares }];
-        })
-        .filter(Boolean),
-    );
+    return normalizeNotes(parsed);
   } catch {
     return {};
   }
+}
+
+function clearLegacyStoredNotes() {
+  try {
+    localStorage.removeItem(NOTES_STORAGE_KEY);
+  } catch {
+    // Ignore browsers that block localStorage access.
+  }
+}
+
+function normalizeNotes(payload) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(payload)
+      .map(([symbol, note]) => {
+        const normalizedSymbol = normalizeSymbol(symbol);
+        if (!normalizedSymbol) {
+          return null;
+        }
+        if (typeof note === "string") {
+          const text = note.trim();
+          return text ? [normalizedSymbol, { text, isHolding: false, costBasis: null, shares: null }] : null;
+        }
+        if (!note || typeof note !== "object" || Array.isArray(note)) {
+          return null;
+        }
+        const costBasis = parsePositiveNumber(note.costBasis);
+        const shares = parsePositiveNumber(note.shares);
+        const text = String(note.text || "").trim();
+        const isHolding = !!note.isHolding || costBasis != null || shares != null;
+        if (!text && !isHolding && costBasis == null && shares == null) {
+          return null;
+        }
+        return [normalizedSymbol, { text, isHolding, costBasis, shares }];
+      })
+      .filter(Boolean),
+  );
 }
 
 function loadStoredTrendFilter() {
@@ -3412,7 +3467,7 @@ function openNoteEditor(symbol) {
   elements.noteTextarea.focus();
 }
 
-function saveNote() {
+async function saveNote() {
   if (!state.activeNoteSymbol) {
     return;
   }
@@ -3431,7 +3486,7 @@ function saveNote() {
   } else {
     delete state.notes[symbol];
   }
-  persistNotes();
+  await persistNotes();
   renderWatchlist();
   elements.noteDialog.close();
 }
@@ -3453,7 +3508,7 @@ async function deleteActiveSymbol() {
   }
   persistWatchlist();
   persistWatchlistGroups();
-  persistNotes();
+  await persistNotes();
   persistAlerts();
   persistAlertsSnapshot();
   elements.noteDialog.close();
