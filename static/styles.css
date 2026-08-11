@@ -386,10 +386,29 @@ button:disabled {
   min-width: min(760px, calc(100vw - 24px));
 }
 
+.alerts-history-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.alerts-history-controls input {
+  width: 86px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.84rem;
+  text-transform: uppercase;
+}
+
 .alert-item,
 .alerts-empty {
-  border-radius: 14px;
-  padding: 12px 14px;
+  border-radius: 10px;
+  padding: 10px 12px;
   background: rgba(15, 23, 42, 0.04);
   border: 1px solid rgba(15, 23, 42, 0.06);
 }
@@ -399,7 +418,7 @@ button:disabled {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .alert-item-head strong {
@@ -419,23 +438,7 @@ button:disabled {
   font-size: 0.84rem;
 }
 
-.alert-message-list {
-  display: grid;
-  gap: 6px;
-}
-
-.alert-message-row {
-  display: grid;
-  grid-template-columns: 58px minmax(0, 1fr);
-  gap: 10px;
-  align-items: start;
-}
-
-.alert-message-row .alert-item-time {
-  padding-top: 1px;
-}
-
-.alert-message-row p {
+.alert-message-inline {
   color: var(--text);
 }
 

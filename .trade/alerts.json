@@ -1,0 +1,122 @@
+[
+  {
+    "symbol": "DELL",
+    "message": "较前一交易日下跌 -5.4%。",
+    "createdAt": "2026-08-07T13:20:24.458Z",
+    "timeLabel": "08/07 21:20"
+  },
+  {
+    "symbol": "FSLY",
+    "message": "较前一交易日下跌 -12.9%。",
+    "createdAt": "2026-08-07T13:20:24.458Z",
+    "timeLabel": "08/07 21:20"
+  },
+  {
+    "symbol": "CRWV",
+    "message": "较前一交易日下跌 -5.1%。",
+    "createdAt": "2026-08-07T13:20:24.458Z",
+    "timeLabel": "08/07 21:20"
+  },
+  {
+    "symbol": "NET",
+    "message": "创近 6 个月新高（310.59）。",
+    "createdAt": "2026-08-11T13:53:32.656Z",
+    "timeLabel": "08/11 21:53"
+  },
+  {
+    "symbol": "FSLY",
+    "message": "刚刚满足趋势模板。",
+    "createdAt": "2026-08-11T13:53:32.662Z",
+    "timeLabel": "08/11 21:53"
+  },
+  {
+    "symbol": "FSLY",
+    "message": "较前一交易日上涨 +20.9%。",
+    "createdAt": "2026-08-11T13:53:32.662Z",
+    "timeLabel": "08/11 21:53"
+  },
+  {
+    "symbol": "ARM",
+    "message": "较前一交易日下跌 -5.2%。",
+    "createdAt": "2026-08-11T13:53:32.662Z",
+    "timeLabel": "08/11 21:53"
+  },
+  {
+    "symbol": "COHR",
+    "message": "较前一交易日下跌 -14.2%。",
+    "createdAt": "2026-08-11T13:53:32.663Z",
+    "timeLabel": "08/11 21:53"
+  },
+  {
+    "symbol": "SMTC",
+    "message": "较前一交易日下跌 -5.9%。",
+    "createdAt": "2026-08-11T13:53:32.663Z",
+    "timeLabel": "08/11 21:53"
+  },
+  {
+    "symbol": "LITE",
+    "message": "已不再满足趋势模板。",
+    "createdAt": "2026-08-11T13:53:32.663Z",
+    "timeLabel": "08/11 21:53"
+  },
+  {
+    "symbol": "LITE",
+    "message": "较前一交易日下跌 -8.6%。",
+    "createdAt": "2026-08-11T13:53:32.663Z",
+    "timeLabel": "08/11 21:53"
+  },
+  {
+    "symbol": "ENTG",
+    "message": "刚刚满足趋势模板。",
+    "createdAt": "2026-08-11T13:53:32.663Z",
+    "timeLabel": "08/11 21:53"
+  },
+  {
+    "symbol": "ENTG",
+    "message": "较前一交易日下跌 -5.2%。",
+    "createdAt": "2026-08-11T13:53:32.663Z",
+    "timeLabel": "08/11 21:53"
+  },
+  {
+    "symbol": "CIEN",
+    "message": "较前一交易日下跌 -6.0%。",
+    "createdAt": "2026-08-11T13:53:32.663Z",
+    "timeLabel": "08/11 21:53"
+  },
+  {
+    "symbol": "TLT",
+    "message": "创近 6 个月新低（82.06）。",
+    "createdAt": "2026-08-11T13:53:32.663Z",
+    "timeLabel": "08/11 21:53"
+  },
+  {
+    "symbol": "COWZ",
+    "message": "创近 6 个月新高（70.02）。",
+    "createdAt": "2026-08-11T13:53:32.663Z",
+    "timeLabel": "08/11 21:53"
+  },
+  {
+    "symbol": "SCHD",
+    "message": "创近 6 个月新高（34.19）。",
+    "createdAt": "2026-08-11T13:53:32.663Z",
+    "timeLabel": "08/11 21:53"
+  },
+  {
+    "symbol": "PKW",
+    "message": "创近 6 个月新高（149.82）。",
+    "createdAt": "2026-08-11T13:53:32.663Z",
+    "timeLabel": "08/11 21:53"
+  },
+  {
+    "symbol": "VTV",
+    "message": "创近 6 个月新高（225.02）。",
+    "createdAt": "2026-08-11T13:53:32.663Z",
+    "timeLabel": "08/11 21:53"
+  },
+  {
+    "symbol": "IREN",
+    "message": "较前一交易日下跌 -6.0%。",
+    "createdAt": "2026-08-11T13:53:32.663Z",
+    "timeLabel": "08/11 21:53"
+  }
+]

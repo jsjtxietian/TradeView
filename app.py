@@ -26,6 +26,7 @@ TRADE_FILE = TRADE_DIR / "trades.json"
 LEDGER_FILE = TRADE_DIR / "ledger.json"
 WATCHLIST_FILE = TRADE_DIR / "watchlist.json"
 NOTES_FILE = TRADE_DIR / "notes.json"
+ALERTS_FILE = TRADE_DIR / "alerts.json"
 STATIC_DIR = Path("static")
 PROMPT_TEMPLATE_PATH = Path("prompt_template.md")
 DEFAULT_HISTORY_PERIOD = "3y"
@@ -401,6 +402,84 @@ def save_symbol_notes(payload: Any) -> dict[str, dict[str, Any]]:
     )
     temp_path.replace(NOTES_FILE)
     return normalized
+
+
+def normalize_alert_item(payload: Any) -> dict[str, Any] | None:
+    if not isinstance(payload, dict):
+        return None
+    symbol = normalize_symbol(str(payload.get("symbol", "")))
+    message = str(payload.get("message", "")).strip()
+    created_at = str(payload.get("createdAt", "")).strip()
+    if not symbol or not message:
+        return None
+    try:
+        parsed_at = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+    except ValueError:
+        parsed_at = datetime.utcnow()
+        created_at = parsed_at.isoformat(timespec="seconds") + "Z"
+    time_label = str(payload.get("timeLabel", "")).strip()
+    if not time_label:
+        time_label = parsed_at.strftime("%m/%d %H:%M")
+    return {
+        "symbol": symbol,
+        "message": message,
+        "createdAt": created_at,
+        "timeLabel": time_label,
+    }
+
+
+def load_alert_log() -> list[dict[str, Any]]:
+    if not ALERTS_FILE.exists():
+        return []
+    try:
+        payload = json.loads(ALERTS_FILE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"提醒日志读取失败: {exc}") from exc
+    if not isinstance(payload, list):
+        raise ValueError("提醒日志格式无效。")
+    alerts = [alert for item in payload if (alert := normalize_alert_item(item))]
+    return sorted(alerts, key=lambda item: str(item["createdAt"]))
+
+
+def write_alert_log(alerts: list[dict[str, Any]]) -> None:
+    TRADE_DIR.mkdir(exist_ok=True)
+    temp_path = ALERTS_FILE.with_suffix(".json.tmp")
+    temp_path.write_text(
+        json.dumps(alerts, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    temp_path.replace(ALERTS_FILE)
+
+
+def append_alert_log(payload: Any) -> list[dict[str, Any]]:
+    raw_alerts = payload if isinstance(payload, list) else []
+    incoming = [alert for item in raw_alerts if (alert := normalize_alert_item(item))]
+    if not incoming:
+        return []
+    alerts = load_alert_log()
+    seen = {(item["symbol"], item["message"], item["createdAt"]) for item in alerts}
+    appended = []
+    for alert in incoming:
+        key = (alert["symbol"], alert["message"], alert["createdAt"])
+        if key in seen:
+            continue
+        seen.add(key)
+        alerts.append(alert)
+        appended.append(alert)
+    if appended:
+        write_alert_log(sorted(alerts, key=lambda item: str(item["createdAt"])))
+    return appended
+
+
+def query_alert_log(symbol: str | None = None, limit: int | None = 50) -> list[dict[str, Any]]:
+    alerts = load_alert_log()
+    normalized_symbol = normalize_symbol(symbol or "") if symbol else ""
+    if normalized_symbol:
+        alerts = [alert for alert in alerts if alert["symbol"] == normalized_symbol]
+    latest_first = sorted(alerts, key=lambda item: str(item["createdAt"]), reverse=True)
+    if limit is not None and limit > 0:
+        return latest_first[:limit]
+    return latest_first
 
 
 def strip_check_name_prefix(name: str) -> str:
@@ -2598,6 +2677,32 @@ def put_symbol_notes(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
     try:
         notes = save_symbol_notes(payload.get("notes", payload))
         return {"configured": True, "notes": notes}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/api/alerts")
+def get_alerts(
+    symbol: str | None = Query(None, description="Optional stock symbol filter"),
+    all: bool = Query(False, description="Return full alert history"),
+    limit: int = Query(50, ge=1, le=500, description="Maximum number of recent alerts"),
+) -> dict[str, Any]:
+    try:
+        alerts = query_alert_log(symbol=symbol, limit=None if all else limit)
+        return {"configured": ALERTS_FILE.exists(), "alerts": alerts}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/api/alerts/append")
+def append_alerts(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
+    try:
+        appended = append_alert_log(payload.get("alerts", []))
+        return {"appended": appended, "alerts": query_alert_log(limit=50)}
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:

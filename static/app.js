@@ -10,6 +10,7 @@ const VOLUME_BELOW_MA50_FILTER_STORAGE_KEY = "trenddeck_watchlist_filter_volume_
 const ALERTS_STORAGE_KEY = "trenddeck_watchlist_alerts";
 const ALERTS_SNAPSHOT_STORAGE_KEY = "trenddeck_watchlist_alerts_snapshot";
 const DEFAULT_VISIBLE_BARS = 126;
+const DEFAULT_ALERT_LIMIT = 50;
 const WATCHLIST_COLUMN_MIN_WIDTH = 280;
 const WATCHLIST_COLUMN_GAP = 10;
 const CHART_PRICE_SCALE_MIN_WIDTH = 96;
@@ -46,6 +47,8 @@ const state = {
   notes: {},
   alerts: [],
   alertsSnapshot: {},
+  alertHistoryAll: false,
+  alertHistorySymbol: "",
   filterTrendTemplateOnly: false,
   filterTrendTemplateVariantOnly: false,
   filterRangeBelowMA50Only: false,
@@ -95,6 +98,8 @@ const elements = {
   alertsButton: document.getElementById("alertsButton"),
   alertsDialog: document.getElementById("alertsDialog"),
   alertsList: document.getElementById("alertsList"),
+  alertHistorySymbolInput: document.getElementById("alertHistorySymbolInput"),
+  showAllAlertsButton: document.getElementById("showAllAlertsButton"),
   closeAlertsButton: document.getElementById("closeAlertsButton"),
   watchlistFilterButton: document.getElementById("watchlistFilterButton"),
   watchlistFilterCount: document.getElementById("watchlistFilterCount"),
@@ -175,11 +180,12 @@ init().catch((error) => {
 
 async function init() {
   bindEvents();
-  const [config, tradesPayload, watchlistPayload, notesPayload] = await Promise.all([
+  const [config, tradesPayload, watchlistPayload, notesPayload, alertsPayload] = await Promise.all([
     fetchJson("/api/config"),
     fetchJson("/api/trades"),
     fetchJson("/api/watchlist/state"),
     fetchJson("/api/notes"),
+    fetchJson(`/api/alerts?limit=${DEFAULT_ALERT_LIMIT}`),
   ]);
   state.allTrades = tradesPayload.trades || [];
   loadChartPrefs();
@@ -192,7 +198,16 @@ async function init() {
     await persistNotes();
     clearLegacyStoredNotes();
   }
-  state.alerts = loadStoredAlerts();
+  const legacyAlerts = loadLegacyStoredAlerts();
+  if (alertsPayload.configured) {
+    state.alerts = normalizeAlerts(alertsPayload.alerts || []);
+    clearLegacyStoredAlerts();
+  } else if (legacyAlerts.length) {
+    await appendAlertsToServer(legacyAlerts);
+    clearLegacyStoredAlerts();
+  } else {
+    state.alerts = [];
+  }
   state.alertsSnapshot = loadStoredAlertsSnapshot();
   state.filterTrendTemplateOnly = loadStoredTrendFilter();
   state.filterTrendTemplateVariantOnly = loadStoredTrendVariantFilter();
@@ -255,11 +270,36 @@ function bindEvents() {
   });
 
   elements.alertsButton.addEventListener("click", () => {
-    elements.alertsDialog.showModal();
+    openAlertsDialog().catch((error) => {
+      showToast(error.message || String(error), true);
+    });
   });
 
   elements.closeAlertsButton.addEventListener("click", () => {
     elements.alertsDialog.close();
+  });
+
+  elements.showAllAlertsButton.addEventListener("click", () => {
+    state.alertHistoryAll = !state.alertHistoryAll;
+    refreshAlertHistory().catch((error) => {
+      showToast(error.message || String(error), true);
+    });
+  });
+
+  elements.alertHistorySymbolInput.addEventListener("change", () => {
+    state.alertHistorySymbol = normalizeSymbol(elements.alertHistorySymbolInput.value);
+    elements.alertHistorySymbolInput.value = state.alertHistorySymbol;
+    refreshAlertHistory().catch((error) => {
+      showToast(error.message || String(error), true);
+    });
+  });
+
+  elements.alertHistorySymbolInput.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") {
+      return;
+    }
+    event.preventDefault();
+    elements.alertHistorySymbolInput.dispatchEvent(new Event("change"));
   });
 
   elements.watchlistFilterButton.addEventListener("click", () => {
@@ -551,7 +591,7 @@ async function refreshSummaries(forceRefresh = false) {
   try {
     const query = encodeURIComponent(state.watchlist.join(","));
     const payload = await fetchJson(`/api/watchlist/summary?symbols=${query}&refresh=${forceRefresh ? "1" : "0"}`);
-    updateAlertsFromSummary(payload.items || []);
+    await updateAlertsFromSummary(payload.items || []);
     state.summaries.clear();
     for (const item of payload.items || []) {
       state.summaries.set(item.symbol, item);
@@ -593,7 +633,7 @@ async function refreshSingleSymbol(symbol, forceRefresh = false) {
     const summaryItem = summaryPayload.items?.[0] || null;
     if (summaryItem) {
       state.summaries.set(symbol, summaryItem);
-      updateAlertsFromSummary([summaryItem]);
+      await updateAlertsFromSummary([summaryItem]);
     }
 
     if (summaryItem?.data) {
@@ -1553,18 +1593,44 @@ function insertSymbolIntoList(list, symbol, targetSymbol, placement) {
   list.splice(insertIndex, 0, symbol);
 }
 
+async function openAlertsDialog() {
+  state.alertHistoryAll = false;
+  state.alertHistorySymbol = "";
+  elements.alertHistorySymbolInput.value = "";
+  await refreshAlertHistory();
+  elements.alertsDialog.showModal();
+}
+
+async function refreshAlertHistory() {
+  const query = new URLSearchParams();
+  if (state.alertHistoryAll) {
+    query.set("all", "1");
+  } else {
+    query.set("limit", String(DEFAULT_ALERT_LIMIT));
+  }
+  if (state.alertHistorySymbol) {
+    query.set("symbol", state.alertHistorySymbol);
+  }
+  const payload = await fetchJson(`/api/alerts?${query.toString()}`);
+  state.alerts = normalizeAlerts(payload.alerts || []);
+  elements.showAllAlertsButton.textContent = state.alertHistoryAll ? "最近" : "全部";
+  renderAlerts();
+}
+
 function renderAlerts() {
   elements.alertsList.innerHTML = "";
 
   if (!state.alerts.length) {
     const empty = document.createElement("div");
     empty.className = "alerts-empty";
-    empty.textContent = "还没有提醒。会根据本地缓存变化和拉新结果记录重要变化。";
+    empty.textContent = state.alertHistorySymbol
+      ? `${state.alertHistorySymbol} 暂无历史变化。`
+      : "还没有提醒。会根据本地缓存变化和拉新结果记录重要变化。";
     elements.alertsList.appendChild(empty);
     return;
   }
 
-  for (const group of groupAlertsBySymbolAndTime(state.alerts)) {
+  for (const group of groupAlertsBySymbolAndDay(state.alerts)) {
     const node = document.createElement("article");
     node.className = "alert-item alert-symbol-group";
     node.innerHTML = `
@@ -1572,39 +1638,57 @@ function renderAlerts() {
         <strong>${escapeHtml(group.symbol)}</strong>
         <span class="alert-item-time">${escapeHtml(group.latestTimeLabel)}</span>
       </div>
-      <div class="alert-message-list">
-        ${group.alerts
-          .map((alert) => `
-            <div class="alert-message-row">
-              <span class="alert-item-time">${escapeHtml(alert.timeLabel)}</span>
-              <p>${escapeHtml(alert.message)}</p>
-            </div>
-          `)
-          .join("")}
-      </div>
+      <p class="alert-message-inline">${group.alerts.map((alert) => escapeHtml(alert.message)).join(" | ")}</p>
     `;
     elements.alertsList.appendChild(node);
   }
 }
 
-function groupAlertsBySymbolAndTime(alerts) {
+function groupAlertsBySymbolAndDay(alerts) {
   const groups = [];
-  const bySymbolAndTime = new Map();
+  const bySymbolAndDay = new Map();
   for (const alert of alerts) {
     const symbol = normalizeSymbol(alert.symbol || "");
     if (!symbol) {
       continue;
     }
-    const timeLabel = alert.timeLabel || "";
-    const key = `${symbol}\n${timeLabel}`;
-    if (!bySymbolAndTime.has(key)) {
+    const dayKey = getAlertDayKey(alert);
+    const key = `${symbol}\n${dayKey}`;
+    if (!bySymbolAndDay.has(key)) {
       const group = { symbol, latestTimeLabel: alert.timeLabel || "", alerts: [] };
-      bySymbolAndTime.set(key, group);
+      bySymbolAndDay.set(key, group);
       groups.push(group);
     }
-    bySymbolAndTime.get(key).alerts.push(alert);
+    bySymbolAndDay.get(key).alerts.push(alert);
   }
   return groups;
+}
+
+function getAlertDayKey(alert) {
+  const createdAt = Date.parse(alert?.createdAt || "");
+  if (Number.isFinite(createdAt)) {
+    return formatLocalDateKey(new Date(createdAt));
+  }
+  return String(alert?.timeLabel || "").slice(0, 5);
+}
+
+function formatLocalDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+async function appendAlertsToServer(alerts) {
+  if (!alerts.length) {
+    return;
+  }
+  const payload = await fetchJson("/api/alerts/append", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ alerts }),
+  });
+  state.alerts = normalizeAlerts(payload.alerts || []);
 }
 
 function logDetailMessages(detail) {
@@ -2725,10 +2809,6 @@ function persistVolumeBelowMA50Filter() {
   );
 }
 
-function persistAlerts() {
-  localStorage.setItem(ALERTS_STORAGE_KEY, JSON.stringify(state.alerts));
-}
-
 function persistAlertsSnapshot() {
   localStorage.setItem(ALERTS_SNAPSHOT_STORAGE_KEY, JSON.stringify(state.alertsSnapshot));
 }
@@ -2899,7 +2979,7 @@ function loadStoredVolumeBelowMA50Filter() {
   }
 }
 
-function loadStoredAlerts() {
+function loadLegacyStoredAlerts() {
   try {
     const raw = localStorage.getItem(ALERTS_STORAGE_KEY);
     if (!raw) {
@@ -2909,12 +2989,41 @@ function loadStoredAlerts() {
     if (!Array.isArray(parsed)) {
       return [];
     }
-    return parsed
-      .filter((item) => !String(item?.message || "").includes("较上次快照"))
-      .slice(0, 20);
+    return normalizeAlerts(parsed)
+      .filter((item) => !String(item?.message || "").includes("较上次快照"));
   } catch {
     return [];
   }
+}
+
+function clearLegacyStoredAlerts() {
+  try {
+    localStorage.removeItem(ALERTS_STORAGE_KEY);
+  } catch {
+    // Ignore browsers that block localStorage access.
+  }
+}
+
+function normalizeAlerts(payload) {
+  if (!Array.isArray(payload)) {
+    return [];
+  }
+  return payload
+    .map((item) => {
+      const symbol = normalizeSymbol(item?.symbol || "");
+      const message = String(item?.message || "").trim();
+      const createdAt = String(item?.createdAt || "").trim();
+      if (!symbol || !message) {
+        return null;
+      }
+      return {
+        symbol,
+        message,
+        createdAt: createdAt || new Date().toISOString(),
+        timeLabel: String(item?.timeLabel || "").trim() || formatAlertTime(new Date(createdAt || Date.now())),
+      };
+    })
+    .filter(Boolean);
 }
 
 function loadStoredAlertsSnapshot() {
@@ -3501,7 +3610,6 @@ async function deleteActiveSymbol() {
   state.watchlist = state.watchlist.filter((item) => item !== symbol);
   delete state.notes[symbol];
   delete state.alertsSnapshot[symbol];
-  state.alerts = state.alerts.filter((alert) => alert.symbol !== symbol);
   removeSymbolFromGroups(symbol);
   state.summaries.delete(symbol);
   deleteDetailCacheForSymbol(symbol);
@@ -3511,7 +3619,6 @@ async function deleteActiveSymbol() {
   persistWatchlist();
   persistWatchlistGroups();
   await persistNotes();
-  persistAlerts();
   persistAlertsSnapshot();
   elements.noteDialog.close();
   renderAlerts();
@@ -3666,7 +3773,7 @@ function getWatchlistEmptyMessage() {
   return "当前没有自选股，请先添加股票。";
 }
 
-function updateAlertsFromSummary(items) {
+async function updateAlertsFromSummary(items) {
   const nextSnapshot = {};
   const freshAlerts = [];
 
@@ -3740,8 +3847,7 @@ function updateAlertsFromSummary(items) {
   if (!freshAlerts.length) {
     return;
   }
-  state.alerts = [...freshAlerts, ...state.alerts].slice(0, 20);
-  persistAlerts();
+  await appendAlertsToServer(freshAlerts);
   renderAlerts();
 }
 
