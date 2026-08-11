@@ -1832,7 +1832,7 @@ class TradeMarkerPrimitive {
   updateAllViews() {}
 
   setRecords(records) {
-    this.records = records;
+    this.records = buildTradeMarkerRecords(records);
     this.requestUpdate?.();
   }
 
@@ -1867,21 +1867,12 @@ class TradeMarkerPrimitive {
         }
 
         const action = record.action || "buy";
-        const isDownAction = action === "sell" || action === "short" || action === "add_short";
-        const color = action === "sell"
-          ? "#b42318"
-          : action === "short" || action === "add_short"
-            ? "#9f1239"
-            : action === "add" || action === "cover"
-              ? "#0e7490"
-              : "#166534";
+        const isDownAction = !!record.isDownAction;
+        const color = record.color || getTradeMarkerColor(action);
         const direction = isDownAction ? -1 : 1;
         const lineStart = y + direction * 11 * verticalRatio;
         const lineEnd = y + direction * lineLength;
-        const quantity = record.quantity == null
-          ? ""
-          : ` ${fmtTradeQuantity(record.quantity)}股`;
-        const text = `${getTradeActionLabel(action)}${quantity} @ ${fmtPrice(record.price)}`;
+        const rawText = record.markerText || formatTradeMarkerText(record);
 
         context.strokeStyle = color;
         context.lineWidth = Math.max(1, 1.5 * horizontalRatio);
@@ -1904,8 +1895,10 @@ class TradeMarkerPrimitive {
         context.closePath();
         context.fill();
 
-        const textWidth = context.measureText(text).width;
         const paddingX = 7 * horizontalRatio;
+        const maxTextWidth = Math.max(48 * horizontalRatio, width - paddingX * 2 - 12 * horizontalRatio);
+        const text = fitCanvasText(context, rawText, maxTextWidth);
+        const textWidth = context.measureText(text).width;
         const labelHeight = 24 * verticalRatio;
         const labelCenterY = lineEnd + direction * labelGap;
         const labelX = Math.max(
@@ -1925,6 +1918,90 @@ class TradeMarkerPrimitive {
       context.restore();
     });
   }
+}
+
+function buildTradeMarkerRecords(records) {
+  const groups = new Map();
+  for (const record of records || []) {
+    const date = String(record?.date || "");
+    const price = Number(record?.price);
+    if (!date || !Number.isFinite(price)) {
+      continue;
+    }
+    if (!groups.has(date)) {
+      groups.set(date, []);
+    }
+    groups.get(date).push(record);
+  }
+
+  return [...groups.entries()]
+    .sort(([leftDate], [rightDate]) => leftDate.localeCompare(rightDate))
+    .map(([date, dayRecords]) => {
+      if (dayRecords.length === 1) {
+        const record = dayRecords[0];
+        const action = record.action || "buy";
+        return {
+          ...record,
+          action,
+          color: getTradeMarkerColor(action),
+          isDownAction: isDownTradeAction(action),
+          markerText: formatTradeMarkerText(record),
+        };
+      }
+
+      const prices = dayRecords
+        .map((record) => Number(record.price))
+        .filter((price) => Number.isFinite(price));
+      const actions = dayRecords.map((record) => record.action || "buy");
+      const allDown = actions.every(isDownTradeAction);
+      const allUp = actions.every((action) => !isDownTradeAction(action));
+      return {
+        date,
+        price: prices.reduce((sum, price) => sum + price, 0) / prices.length,
+        action: actions[0] || "buy",
+        color: allUp ? getTradeMarkerColor(actions[0]) : allDown ? getTradeMarkerColor(actions[0]) : "#334155",
+        isDownAction: allDown,
+        markerText: dayRecords.map(formatTradeMarkerText).join(" | "),
+      };
+    });
+}
+
+function formatTradeMarkerText(record) {
+  const action = record.action || "buy";
+  const quantity = record.quantity == null
+    ? ""
+    : ` ${fmtTradeQuantity(record.quantity)}股`;
+  return `${getTradeActionLabel(action)}${quantity} @ ${fmtPrice(record.price)}`;
+}
+
+function isDownTradeAction(action) {
+  return action === "sell" || action === "short" || action === "add_short";
+}
+
+function getTradeMarkerColor(action) {
+  if (action === "sell") {
+    return "#b42318";
+  }
+  if (action === "short" || action === "add_short") {
+    return "#9f1239";
+  }
+  if (action === "add" || action === "cover") {
+    return "#0e7490";
+  }
+  return "#166534";
+}
+
+function fitCanvasText(context, text, maxWidth) {
+  const value = String(text || "");
+  if (context.measureText(value).width <= maxWidth) {
+    return value;
+  }
+  const suffix = "...";
+  let candidate = value;
+  while (candidate.length > 8 && context.measureText(`${candidate}${suffix}`).width > maxWidth) {
+    candidate = candidate.slice(0, -1).trimEnd();
+  }
+  return `${candidate}${suffix}`;
 }
 
 function renderChartUnavailable(message) {
