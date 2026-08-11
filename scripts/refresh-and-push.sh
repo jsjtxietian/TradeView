@@ -19,6 +19,20 @@ if [ "$OLD_HEAD" != "$NEW_HEAD" ]; then
 fi
 
 . .venv/bin/activate
+python - <<'PY'
+import time
+from urllib.request import urlopen
+
+for attempt in range(30):
+    try:
+        with urlopen("http://127.0.0.1:8000/api/config", timeout=2):
+            break
+    except Exception:
+        if attempt == 29:
+            raise
+        time.sleep(1)
+PY
+
 python scripts/refresh-cache.py
 
 git add .cache
