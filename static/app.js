@@ -1638,7 +1638,7 @@ function renderAlerts() {
         <strong>${escapeHtml(group.symbol)}</strong>
         <span class="alert-item-time">${escapeHtml(group.latestTimeLabel)}</span>
       </div>
-      <p class="alert-message-inline">${group.alerts.map((alert) => escapeHtml(alert.message)).join(" | ")}</p>
+      <p class="alert-message-inline">${group.alerts.map((alert) => escapeHtml(trimAlertMessage(alert.message))).join(" | ")}</p>
     `;
     elements.alertsList.appendChild(node);
   }
@@ -1662,6 +1662,10 @@ function groupAlertsBySymbolAndDay(alerts) {
     bySymbolAndDay.get(key).alerts.push(alert);
   }
   return groups;
+}
+
+function trimAlertMessage(message) {
+  return String(message || "").trim().replace(/[。.!！]+$/u, "");
 }
 
 function getAlertDayKey(alert) {
@@ -3869,6 +3873,7 @@ async function updateAlertsFromSummary(items) {
       latestDate: data.latestDate,
       dailyChangePct: data.dailyChangePct,
       fiveDayChangePct: data.fiveDayChangePct,
+      latestVolumeRatioMA50: data.latestVolumeRatioMA50,
       trendPassCount: data.trendPassCount,
       trendTotal: data.trendTotal,
       isSixMonthHigh: !!data.isSixMonthHigh,
@@ -3917,6 +3922,18 @@ async function updateAlertsFromSummary(items) {
       const direction = current.fiveDayChangePct > 0 ? "上涨" : "下跌";
       freshAlerts.push(createAlert(symbol, `近 5 个交易日累计${direction} ${fmtPct(current.fiveDayChangePct)}。`));
     }
+
+    if (
+      current.latestDate
+      && current.latestDate !== previous.latestDate
+      && typeof current.latestVolumeRatioMA50 === "number"
+    ) {
+      if (current.latestVolumeRatioMA50 >= 1.5) {
+        freshAlerts.push(createAlert(symbol, `当日成交量放大至 50 日均量的 ${fmtVolumeRatioPct(current.latestVolumeRatioMA50)}。`));
+      } else if (current.latestVolumeRatioMA50 <= 0.5) {
+        freshAlerts.push(createAlert(symbol, `当日成交量缩至 50 日均量的 ${fmtVolumeRatioPct(current.latestVolumeRatioMA50)}。`));
+      }
+    }
   }
 
   state.alertsSnapshot = nextSnapshot;
@@ -3954,6 +3971,13 @@ function fmtPct(value) {
   }
   const sign = value > 0 ? "+" : "";
   return `${sign}${(value * 100).toFixed(1)}%`;
+}
+
+function fmtVolumeRatioPct(value) {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return "-";
+  }
+  return `${(value * 100).toFixed(0)}%`;
 }
 
 function showToast(message, isError = false, durationMs = 2200) {
