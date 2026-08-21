@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import json
 import os
 from pathlib import Path
@@ -27,6 +27,7 @@ LEDGER_FILE = TRADE_DIR / "ledger.json"
 WATCHLIST_FILE = TRADE_DIR / "watchlist.json"
 NOTES_FILE = TRADE_DIR / "notes.json"
 ALERTS_FILE = TRADE_DIR / "alerts.json"
+ALERTS_SNAPSHOT_FILE = CACHE_DIR / "alerts_snapshot.json"
 STATIC_DIR = Path("static")
 PROMPT_TEMPLATE_PATH = Path("prompt_template.md")
 DEFAULT_HISTORY_PERIOD = "3y"
@@ -45,6 +46,7 @@ PRICE_MODE_COLUMN = "PriceMode"
 PREFERRED_PRICE_MODE = "adjusted"
 LEGACY_PRICE_MODE = "raw"
 TIINGO_REFRESH_BATCH_SIZE = 50
+ALERT_TIMEZONE = timezone(timedelta(hours=8))
 
 
 @dataclass
@@ -415,8 +417,8 @@ def normalize_alert_item(payload: Any) -> dict[str, Any] | None:
     try:
         parsed_at = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
     except ValueError:
-        parsed_at = datetime.utcnow()
-        created_at = parsed_at.isoformat(timespec="seconds") + "Z"
+        parsed_at = datetime.now(timezone.utc)
+        created_at = parsed_at.isoformat(timespec="seconds").replace("+00:00", "Z")
     time_label = str(payload.get("timeLabel", "")).strip()
     if not time_label:
         time_label = parsed_at.strftime("%m/%d %H:%M")
@@ -451,16 +453,28 @@ def write_alert_log(alerts: list[dict[str, Any]]) -> None:
     temp_path.replace(ALERTS_FILE)
 
 
+def alert_dedupe_key(alert: dict[str, Any]) -> tuple[str, str, str]:
+    created_at = str(alert.get("createdAt", ""))
+    try:
+        parsed_at = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+        if parsed_at.tzinfo is None:
+            parsed_at = parsed_at.replace(tzinfo=timezone.utc)
+        day = parsed_at.astimezone(ALERT_TIMEZONE).date().isoformat()
+    except ValueError:
+        day = created_at[:10]
+    return str(alert.get("symbol", "")), str(alert.get("message", "")), day
+
+
 def append_alert_log(payload: Any) -> list[dict[str, Any]]:
     raw_alerts = payload if isinstance(payload, list) else []
     incoming = [alert for item in raw_alerts if (alert := normalize_alert_item(item))]
     if not incoming:
         return []
     alerts = load_alert_log()
-    seen = {(item["symbol"], item["message"], item["createdAt"]) for item in alerts}
+    seen = {alert_dedupe_key(item) for item in alerts}
     appended = []
     for alert in incoming:
-        key = (alert["symbol"], alert["message"], alert["createdAt"])
+        key = alert_dedupe_key(alert)
         if key in seen:
             continue
         seen.add(key)
@@ -468,6 +482,167 @@ def append_alert_log(payload: Any) -> list[dict[str, Any]]:
         appended.append(alert)
     if appended:
         write_alert_log(sorted(alerts, key=lambda item: str(item["createdAt"])))
+    return appended
+
+
+def load_alert_snapshot() -> dict[str, dict[str, Any]]:
+    if not ALERTS_SNAPSHOT_FILE.exists():
+        return {}
+    try:
+        payload = json.loads(ALERTS_SNAPSHOT_FILE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"提醒快照读取失败: {exc}") from exc
+    raw_symbols = payload.get("symbols", {}) if isinstance(payload, dict) else {}
+    if not isinstance(raw_symbols, dict):
+        raise ValueError("提醒快照格式无效。")
+    return {
+        symbol: item
+        for raw_symbol, item in raw_symbols.items()
+        if (symbol := normalize_symbol(str(raw_symbol))) and isinstance(item, dict)
+    }
+
+
+def write_alert_snapshot(snapshot: dict[str, dict[str, Any]]) -> None:
+    CACHE_DIR.mkdir(exist_ok=True)
+    temp_path = ALERTS_SNAPSHOT_FILE.with_suffix(".json.tmp")
+    temp_path.write_text(
+        json.dumps({"version": 1, "symbols": snapshot}, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    temp_path.replace(ALERTS_SNAPSHOT_FILE)
+
+
+def prune_alert_snapshot(symbols: list[str]) -> None:
+    if not ALERTS_SNAPSHOT_FILE.exists():
+        return
+    allowed = set(normalize_symbol_list(symbols))
+    snapshot = load_alert_snapshot()
+    pruned = {symbol: item for symbol, item in snapshot.items() if symbol in allowed}
+    if pruned != snapshot:
+        write_alert_snapshot(pruned)
+
+
+def is_finite_number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and np.isfinite(value)
+
+
+def build_alert_snapshot_item(data: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "latestDate": str(data.get("latestDate", "")),
+        "latestClose": data.get("latestClose"),
+        "dailyChangePct": data.get("dailyChangePct"),
+        "fiveDayChangePct": data.get("fiveDayChangePct"),
+        "latestVolumeRatioMA50": data.get("latestVolumeRatioMA50"),
+        "trendPassCount": data.get("trendPassCount"),
+        "trendTotal": data.get("trendTotal"),
+        "isSixMonthHigh": bool(data.get("isSixMonthHigh")),
+        "isSixMonthLow": bool(data.get("isSixMonthLow")),
+        "sixMonthHighText": str(data.get("sixMonthHighText") or "-"),
+        "sixMonthLowText": str(data.get("sixMonthLowText") or "-"),
+        "crossedAboveMA50": bool(data.get("crossedAboveMA50")),
+        "crossedBelowMA50": bool(data.get("crossedBelowMA50")),
+        "latestMA50Text": str(data.get("latestMA50Text") or "-"),
+    }
+
+
+def create_server_alert(symbol: str, message: str) -> dict[str, Any]:
+    created_at = datetime.now(timezone.utc)
+    return {
+        "symbol": symbol,
+        "message": message,
+        "createdAt": created_at.isoformat(timespec="seconds").replace("+00:00", "Z"),
+        "timeLabel": created_at.astimezone(ALERT_TIMEZONE).strftime("%m/%d %H:%M"),
+    }
+
+
+def evaluate_watchlist_alerts(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    snapshot = load_alert_snapshot()
+    next_snapshot = dict(snapshot)
+    fresh_alerts: list[dict[str, Any]] = []
+
+    for item in items:
+        data = item.get("data") if isinstance(item, dict) else None
+        if not isinstance(data, dict):
+            continue
+        symbol = normalize_symbol(str(data.get("symbol") or item.get("symbol") or ""))
+        if not symbol:
+            continue
+        current = build_alert_snapshot_item(data)
+        previous = snapshot.get(symbol)
+        next_snapshot[symbol] = current
+        if not previous:
+            continue
+
+        current_date = str(current.get("latestDate", ""))
+        is_new_session = bool(current_date and current_date != str(previous.get("latestDate", "")))
+        was_template = (
+            previous.get("trendTotal", 0) > 0
+            and previous.get("trendPassCount") == previous.get("trendTotal")
+        )
+        is_template = (
+            current.get("trendTotal", 0) > 0
+            and current.get("trendPassCount") == current.get("trendTotal")
+        )
+        if not was_template and is_template:
+            fresh_alerts.append(create_server_alert(symbol, "刚刚满足趋势模板。"))
+        elif was_template and not is_template:
+            fresh_alerts.append(create_server_alert(symbol, "已不再满足趋势模板。"))
+
+        if not previous.get("isSixMonthHigh") and current.get("isSixMonthHigh"):
+            fresh_alerts.append(
+                create_server_alert(symbol, f"创近 6 个月新高（{current['sixMonthHighText']}）。")
+            )
+        if not previous.get("isSixMonthLow") and current.get("isSixMonthLow"):
+            fresh_alerts.append(
+                create_server_alert(symbol, f"创近 6 个月新低（{current['sixMonthLowText']}）。")
+            )
+
+        if is_new_session:
+            daily_change = current.get("dailyChangePct")
+            if is_finite_number(daily_change) and abs(daily_change) >= 0.05:
+                direction = "上涨" if daily_change > 0 else "下跌"
+                fresh_alerts.append(
+                    create_server_alert(symbol, f"较前一交易日{direction} {fmt_signed_pct(daily_change)}。")
+                )
+
+            five_day_change = current.get("fiveDayChangePct")
+            if is_finite_number(five_day_change) and abs(five_day_change) >= 0.08:
+                direction = "上涨" if five_day_change > 0 else "下跌"
+                fresh_alerts.append(
+                    create_server_alert(
+                        symbol,
+                        f"近 5 个交易日累计{direction} {fmt_signed_pct(five_day_change)}。",
+                    )
+                )
+
+            volume_ratio = current.get("latestVolumeRatioMA50")
+            if is_finite_number(volume_ratio):
+                if volume_ratio >= 1.5:
+                    fresh_alerts.append(
+                        create_server_alert(
+                            symbol,
+                            f"当日成交量放大至 50 日均量的 {volume_ratio * 100:.0f}%。",
+                        )
+                    )
+                elif volume_ratio <= 0.5:
+                    fresh_alerts.append(
+                        create_server_alert(
+                            symbol,
+                            f"当日成交量缩至 50 日均量的 {volume_ratio * 100:.0f}%。",
+                        )
+                    )
+
+            if current.get("crossedAboveMA50"):
+                fresh_alerts.append(
+                    create_server_alert(symbol, f"收盘价上穿 50 日均线（MA50 {current['latestMA50Text']}）。")
+                )
+            elif current.get("crossedBelowMA50"):
+                fresh_alerts.append(
+                    create_server_alert(symbol, f"收盘价下穿 50 日均线（MA50 {current['latestMA50Text']}）。")
+                )
+
+    appended = append_alert_log(fresh_alerts)
+    write_alert_snapshot(next_snapshot)
     return appended
 
 
@@ -2322,6 +2497,26 @@ def build_summary_fields(
     daily_change_pct = None
     if require_values(latest["Close"], prev_close) and prev_close != 0:
         daily_change_pct = float(latest["Close"] / prev_close - 1)
+    five_day_change_pct = None
+    if len(history) >= 6:
+        five_day_base_close = history["Close"].iloc[-6]
+        if require_values(latest["Close"], five_day_base_close) and five_day_base_close != 0:
+            five_day_change_pct = float(latest["Close"] / five_day_base_close - 1)
+    latest_ma50 = latest.get("MA50", np.nan)
+    previous = history.iloc[-2] if len(history) >= 2 else None
+    previous_ma50 = previous.get("MA50", np.nan) if previous is not None else np.nan
+    crossed_above_ma50 = bool(
+        previous is not None
+        and require_values(previous["Close"], previous_ma50, latest["Close"], latest_ma50)
+        and previous["Close"] <= previous_ma50
+        and latest["Close"] > latest_ma50
+    )
+    crossed_below_ma50 = bool(
+        previous is not None
+        and require_values(previous["Close"], previous_ma50, latest["Close"], latest_ma50)
+        and previous["Close"] >= previous_ma50
+        and latest["Close"] < latest_ma50
+    )
     trend_sparkline = build_trend_sparkline(history)
     recent_window = history.tail(min(126, len(history)))
     six_month_high = recent_window["Close"].max() if not recent_window.empty else np.nan
@@ -2365,6 +2560,12 @@ def build_summary_fields(
         "latestDate": history["Date"].iloc[-1].strftime("%Y-%m-%d"),
         "dailyChangePct": None if daily_change_pct is None else round(daily_change_pct, 4),
         "dailyChangePctText": fmt_signed_pct(daily_change_pct),
+        "fiveDayChangePct": None if five_day_change_pct is None else round(five_day_change_pct, 4),
+        "fiveDayChangePctText": fmt_signed_pct(five_day_change_pct),
+        "latestMA50": None if pd.isna(latest_ma50) else float(latest_ma50),
+        "latestMA50Text": fmt_price(latest_ma50),
+        "crossedAboveMA50": crossed_above_ma50,
+        "crossedBelowMA50": crossed_below_ma50,
         "trendSparklineDirection": trend_sparkline["direction"],
         "trendSparklineValues": trend_sparkline["values"],
         "sixMonthHigh": None if pd.isna(six_month_high) else float(six_month_high),
@@ -2470,13 +2671,6 @@ def analyze_symbol(
     }
     sell_indicator_groups = sell_indicator_groups_by_window["10"]
     pattern_risk_checks = flatten_buy_indicator_groups(sell_indicator_groups)
-    recent_five_window = history["Close"].tail(5)
-    five_day_change_pct = None
-    if len(recent_five_window) >= 5:
-        base_close = recent_five_window.iloc[0]
-        latest_close = recent_five_window.iloc[-1]
-        if require_values(base_close, latest_close) and base_close != 0:
-            five_day_change_pct = float(latest_close / base_close - 1)
     advanced_trend_pass_count, advanced_trend_total, advanced_trend_status = summarize_check_group(
         [
             CheckResult(item["name"], item["passed"], item["detail"])
@@ -2485,8 +2679,6 @@ def analyze_symbol(
     )
     result = {
         **summary_fields,
-        "fiveDayChangePct": None if five_day_change_pct is None else round(five_day_change_pct, 4),
-        "fiveDayChangePctText": fmt_signed_pct(five_day_change_pct),
         "advancedTrendPassCount": advanced_trend_pass_count,
         "advancedTrendTotal": advanced_trend_total,
         "advancedTrendStatus": advanced_trend_status,
@@ -2643,7 +2835,8 @@ def build_watchlist_summary(symbols: list[str] | str, refresh: bool = False) -> 
             results[symbol] = future.result()
 
     items = [results[symbol] for symbol in normalized_symbols]
-    return {"items": items}
+    appended_alerts = evaluate_watchlist_alerts(items) if refresh else []
+    return {"items": items, "appendedAlerts": appended_alerts}
 
 
 app = FastAPI(title="Trend Deck")
@@ -2686,6 +2879,7 @@ def get_watchlist_state() -> dict[str, Any]:
 def put_watchlist_state(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
     try:
         state = save_watchlist_state(payload)
+        prune_alert_snapshot(state["watchlist"])
         return {"configured": True, **state}
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

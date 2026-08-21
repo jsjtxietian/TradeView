@@ -8,7 +8,6 @@ const RANGE_BELOW_MA50_FILTER_STORAGE_KEY = "trenddeck_watchlist_filter_range_be
 const HOLDING_FILTER_STORAGE_KEY = "trenddeck_watchlist_filter_holding";
 const VOLUME_BELOW_MA50_FILTER_STORAGE_KEY = "trenddeck_watchlist_filter_volume_below_ma50";
 const ALERTS_STORAGE_KEY = "trenddeck_watchlist_alerts";
-const ALERTS_SNAPSHOT_STORAGE_KEY = "trenddeck_watchlist_alerts_snapshot";
 const DEFAULT_VISIBLE_BARS = 126;
 const DEFAULT_ALERT_LIMIT = 50;
 const WATCHLIST_COLUMN_MIN_WIDTH = 280;
@@ -46,7 +45,6 @@ const state = {
   watchlistGroups: [],
   notes: {},
   alerts: [],
-  alertsSnapshot: {},
   alertHistoryAll: false,
   alertHistorySymbol: "",
   filterTrendTemplateOnly: false,
@@ -208,7 +206,6 @@ async function init() {
   } else {
     state.alerts = [];
   }
-  state.alertsSnapshot = loadStoredAlertsSnapshot();
   state.filterTrendTemplateOnly = loadStoredTrendFilter();
   state.filterTrendTemplateVariantOnly = loadStoredTrendVariantFilter();
   state.filterRangeBelowMA50Only = loadStoredRangeBelowMA50Filter();
@@ -593,7 +590,9 @@ async function refreshSummaries(forceRefresh = false) {
   try {
     const query = encodeURIComponent(state.watchlist.join(","));
     const payload = await fetchJson(`/api/watchlist/summary?symbols=${query}&refresh=${forceRefresh ? "1" : "0"}`);
-    await updateAlertsFromSummary(payload.items || []);
+    if (forceRefresh) {
+      await syncRecentAlertsAfterRefresh();
+    }
     state.summaries.clear();
     for (const item of payload.items || []) {
       state.summaries.set(item.symbol, item);
@@ -635,7 +634,9 @@ async function refreshSingleSymbol(symbol, forceRefresh = false) {
     const summaryItem = summaryPayload.items?.[0] || null;
     if (summaryItem) {
       state.summaries.set(symbol, summaryItem);
-      await updateAlertsFromSummary([summaryItem]);
+      if (forceRefresh) {
+        await syncRecentAlertsAfterRefresh();
+      }
     }
 
     if (summaryItem?.data) {
@@ -1617,6 +1618,20 @@ async function refreshAlertHistory() {
   state.alerts = normalizeAlerts(payload.alerts || []);
   elements.showAllAlertsButton.textContent = state.alertHistoryAll ? "最近" : "全部";
   renderAlerts();
+}
+
+async function loadRecentAlerts() {
+  const payload = await fetchJson(`/api/alerts?limit=${DEFAULT_ALERT_LIMIT}`);
+  state.alerts = normalizeAlerts(payload.alerts || []);
+  renderAlerts();
+}
+
+async function syncRecentAlertsAfterRefresh() {
+  try {
+    await loadRecentAlerts();
+  } catch (error) {
+    console.warn("行情已更新，但提醒列表同步失败。", error);
+  }
 }
 
 function renderAlerts() {
@@ -2892,10 +2907,6 @@ function persistVolumeBelowMA50Filter() {
   );
 }
 
-function persistAlertsSnapshot() {
-  localStorage.setItem(ALERTS_SNAPSHOT_STORAGE_KEY, JSON.stringify(state.alertsSnapshot));
-}
-
 function persistChartPrefs() {
   localStorage.setItem(
     CHART_PREFS_KEY,
@@ -3099,27 +3110,16 @@ function normalizeAlerts(payload) {
       if (!symbol || !message) {
         return null;
       }
+      const parsedDate = new Date(createdAt || Date.now());
+      const safeDate = Number.isFinite(parsedDate.getTime()) ? parsedDate : new Date();
       return {
         symbol,
         message,
-        createdAt: createdAt || new Date().toISOString(),
-        timeLabel: String(item?.timeLabel || "").trim() || formatAlertTime(new Date(createdAt || Date.now())),
+        createdAt: Number.isFinite(parsedDate.getTime()) ? createdAt : safeDate.toISOString(),
+        timeLabel: formatAlertTime(safeDate),
       };
     })
     .filter(Boolean);
-}
-
-function loadStoredAlertsSnapshot() {
-  try {
-    const raw = localStorage.getItem(ALERTS_SNAPSHOT_STORAGE_KEY);
-    if (!raw) {
-      return {};
-    }
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
-  } catch {
-    return {};
-  }
 }
 
 function escapeHtml(value) {
@@ -3692,7 +3692,6 @@ async function deleteActiveSymbol() {
   const symbol = normalizeSymbol(state.activeNoteSymbol);
   state.watchlist = state.watchlist.filter((item) => item !== symbol);
   delete state.notes[symbol];
-  delete state.alertsSnapshot[symbol];
   removeSymbolFromGroups(symbol);
   state.summaries.delete(symbol);
   deleteDetailCacheForSymbol(symbol);
@@ -3702,7 +3701,6 @@ async function deleteActiveSymbol() {
   persistWatchlist();
   persistWatchlistGroups();
   await persistNotes();
-  persistAlertsSnapshot();
   elements.noteDialog.close();
   renderAlerts();
   renderWatchlist();
@@ -3860,107 +3858,6 @@ function getWatchlistEmptyMessage() {
   return "当前没有自选股，请先添加股票。";
 }
 
-async function updateAlertsFromSummary(items) {
-  const nextSnapshot = {};
-  const freshAlerts = [];
-
-  for (const item of items) {
-    if (!item?.data) {
-      continue;
-    }
-    const data = item.data;
-    const symbol = normalizeSymbol(data.symbol || item.symbol || "");
-    if (!symbol) {
-      continue;
-    }
-
-    const current = {
-      latestClose: data.latestClose,
-      latestDate: data.latestDate,
-      dailyChangePct: data.dailyChangePct,
-      fiveDayChangePct: data.fiveDayChangePct,
-      latestVolumeRatioMA50: data.latestVolumeRatioMA50,
-      trendPassCount: data.trendPassCount,
-      trendTotal: data.trendTotal,
-      isSixMonthHigh: !!data.isSixMonthHigh,
-      isSixMonthLow: !!data.isSixMonthLow,
-      sixMonthHighText: data.sixMonthHighText || "-",
-      sixMonthLowText: data.sixMonthLowText || "-",
-    };
-    nextSnapshot[symbol] = current;
-
-    const previous = state.alertsSnapshot[symbol];
-    if (!previous) {
-      continue;
-    }
-
-    const wasTemplate = previous.trendTotal > 0 && previous.trendPassCount === previous.trendTotal;
-    const isTemplate = current.trendTotal > 0 && current.trendPassCount === current.trendTotal;
-    if (!wasTemplate && isTemplate) {
-      freshAlerts.push(createAlert(symbol, "刚刚满足趋势模板。"));
-    } else if (wasTemplate && !isTemplate) {
-      freshAlerts.push(createAlert(symbol, "已不再满足趋势模板。"));
-    }
-
-    if (!previous.isSixMonthHigh && current.isSixMonthHigh) {
-      freshAlerts.push(createAlert(symbol, `创近 6 个月新高（${current.sixMonthHighText}）。`));
-    }
-    if (!previous.isSixMonthLow && current.isSixMonthLow) {
-      freshAlerts.push(createAlert(symbol, `创近 6 个月新低（${current.sixMonthLowText}）。`));
-    }
-
-    if (
-      current.latestDate
-      && current.latestDate !== previous.latestDate
-      && typeof current.dailyChangePct === "number"
-      && Math.abs(current.dailyChangePct) >= 0.05
-    ) {
-      const direction = current.dailyChangePct > 0 ? "上涨" : "下跌";
-      freshAlerts.push(createAlert(symbol, `较前一交易日${direction} ${fmtPct(current.dailyChangePct)}。`));
-    }
-
-    if (
-      current.latestDate
-      && current.latestDate !== previous.latestDate
-      && typeof current.fiveDayChangePct === "number"
-      && Math.abs(current.fiveDayChangePct) >= 0.08
-    ) {
-      const direction = current.fiveDayChangePct > 0 ? "上涨" : "下跌";
-      freshAlerts.push(createAlert(symbol, `近 5 个交易日累计${direction} ${fmtPct(current.fiveDayChangePct)}。`));
-    }
-
-    if (
-      current.latestDate
-      && current.latestDate !== previous.latestDate
-      && typeof current.latestVolumeRatioMA50 === "number"
-    ) {
-      if (current.latestVolumeRatioMA50 >= 1.5) {
-        freshAlerts.push(createAlert(symbol, `当日成交量放大至 50 日均量的 ${fmtVolumeRatioPct(current.latestVolumeRatioMA50)}。`));
-      } else if (current.latestVolumeRatioMA50 <= 0.5) {
-        freshAlerts.push(createAlert(symbol, `当日成交量缩至 50 日均量的 ${fmtVolumeRatioPct(current.latestVolumeRatioMA50)}。`));
-      }
-    }
-  }
-
-  state.alertsSnapshot = nextSnapshot;
-  persistAlertsSnapshot();
-  if (!freshAlerts.length) {
-    return;
-  }
-  await appendAlertsToServer(freshAlerts);
-  renderAlerts();
-}
-
-function createAlert(symbol, message) {
-  const createdAt = new Date().toISOString();
-  return {
-    symbol,
-    message,
-    createdAt,
-    timeLabel: formatAlertTime(new Date(createdAt)),
-  };
-}
-
 function formatAlertTime(date) {
   return new Intl.DateTimeFormat("zh-CN", {
     month: "2-digit",
@@ -3977,13 +3874,6 @@ function fmtPct(value) {
   }
   const sign = value > 0 ? "+" : "";
   return `${sign}${(value * 100).toFixed(1)}%`;
-}
-
-function fmtVolumeRatioPct(value) {
-  if (typeof value !== "number" || Number.isNaN(value)) {
-    return "-";
-  }
-  return `${(value * 100).toFixed(0)}%`;
 }
 
 function showToast(message, isError = false, durationMs = 2200) {

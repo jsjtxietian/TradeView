@@ -95,13 +95,12 @@ Keys:
 - `trenddeck_watchlist_filter_holding`
   whether watchlist is filtered to locally marked holdings
 - `trenddeck_watchlist_alerts`
-  recent alert list shown in alerts modal
-- `trenddeck_watchlist_alerts_snapshot`
-  last seen summary snapshot used to detect changes
+  legacy browser-local alerts migrated to the server on first load
 
 Important design choice:
 
-- notes, filters, alerts and grouping are purely local user state
+- notes, filters and grouping are browser-local user state
+- alerts and their comparison snapshot are persisted by the server
 - price history and analysis results come from cached market data
 
 ## Watchlist Rendering
@@ -142,8 +141,9 @@ Deleting a symbol removes:
 - watchlist membership
 - group membership
 - local note
-- local alert snapshot for that symbol
-- stored alerts mentioning that symbol
+- server alert snapshot for that symbol after watchlist state is persisted
+
+Historical alerts remain in the shared server log.
 
 Reason:
 
@@ -230,25 +230,30 @@ Reason:
 
 ## Alerts Logic
 
-Alerts are frontend-local and summary-based.
+Alerts are server-generated and summary-based.
 
 Important rule:
 
-- alerts are recalculated whenever summaries are refreshed into the page
-- comparison uses `trenddeck_watchlist_alerts_snapshot`
+- alerts are recalculated after a forced watchlist refresh, including the daily server timer
+- comparison uses the server snapshot in `.cache/alerts_snapshot.json`
+- the first server refresh establishes a baseline without emitting historical alerts
 
 Alert types:
 
 - newly satisfied full trend template
 - no longer satisfies full trend template
-- latest close changed more than `+/-5%` versus previous snapshot
+- latest daily close changed at least `+/-5%`
+- latest five-session close return reached at least `+/-8%`
+- latest close crossed above or below its `50` day moving average
+- latest volume reached at least `150%` or at most `50%` of its `50` day average
 - latest close reaches recent `6` month closing high
 - latest close reaches recent `6` month closing low
 
 Storage behavior:
 
-- fresh alerts are prepended
-- alert list is capped to the latest `20`
+- alerts are appended to `.trade/alerts.json`
+- same-symbol, same-message alerts are deduplicated within a calendar day
+- the UI shows the latest `50` by default and can query the full history
 
 UI behavior:
 
@@ -267,7 +272,7 @@ Design choice:
 Reason:
 
 - alerts should be visible but not occupy permanent page space
-- local snapshot comparison is enough for this product stage
+- server-side comparison keeps scheduled refreshes and all browsers consistent
 
 ## Notes UX
 
@@ -354,7 +359,7 @@ Reason:
 Known intentional simplifications:
 
 - company full names come from a local map, not a dedicated metadata API
-- alerts are local and user-specific, not server-synced
+- alert history is shared by the server rather than generated independently by each browser
 - watchlist trend mini-chart is a shape-preserving price-structure proxy, not a formal technical score
 - default historical horizon is fixed and cache-centered rather than user-configurable everywhere
 
@@ -432,7 +437,7 @@ Runtime layout:
 Data layout:
 
 - `.cache/` is committed to Git and is automatically updated by the scheduled refresh job.
-- `.trade/` stays local to the server and is ignored by Git.
+- `.trade/alerts.json` is committed by the scheduled refresh job; other `.trade/` state is not automatically staged.
 - `.streamlit/` stays local and contains secrets such as market-data keys.
 - `.venv/` is generated on each machine and is ignored by Git.
 
@@ -458,8 +463,8 @@ The refresh script:
 - reinstalls dependencies first if `requirements.txt` changed
 - calls `scripts/refresh-cache.py`
 - refreshes through `POST /api/watchlist/refresh`, which shares the same backend refresh path as the UI refresh button
-- stages only `.cache`
-- commits changed cache files as `Update market data YYYY-MM-DD`
+- stages `.cache` and `.trade/alerts.json`
+- commits changed market-data, alert snapshot and alert-history files as `Update market data YYYY-MM-DD`
 - pushes back to GitHub
 
 Manual refresh:

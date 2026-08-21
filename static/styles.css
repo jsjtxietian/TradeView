@@ -380,10 +380,15 @@ button:disabled {
 .alerts-list {
   display: grid;
   gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .alerts-dialog-shell {
-  min-width: min(760px, calc(100vw - 24px));
+  width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .alerts-history-controls {
@@ -407,6 +412,8 @@ button:disabled {
 
 .alert-item,
 .alerts-empty {
+  min-width: 0;
+  max-width: 100%;
   border-radius: 10px;
   padding: 10px 12px;
   background: rgba(15, 23, 42, 0.04);
@@ -440,10 +447,14 @@ button:disabled {
 
 .alert-message-inline {
   color: var(--text);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .group-editor-dialog {
   width: min(760px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  overflow-x: hidden;
   border: 0;
   padding: 0;
   background: transparent;
@@ -2123,6 +2134,11 @@ button:disabled {
     bottom: 12px;
     left: 10px;
     width: auto;
+  }
+
+  .alerts-dialog-shell .panel-header,
+  .alerts-history-controls {
+    flex-wrap: wrap;
   }
 
   .note-metrics-grid {
