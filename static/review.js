@@ -275,7 +275,7 @@ function renderSummary(results) {
     ["最大比例盈利 / 亏损", `${fmtPct(largestPctWin?.returnPct)} / ${fmtPct(largestPctLoss?.returnPct)}`, `${largestPctWin?.symbol || "-"} / ${largestPctLoss?.symbol || "-"}`],
     ["盈利单持有", fmtDays(average(wins.map((result) => result.holdDays))), "盈利交易平均持有天数"],
     ["亏损单持有", fmtDays(average(losses.map((result) => result.holdDays))), "亏损交易平均持有天数"],
-    ["已实现盈亏", primary ? `${primary.currency} ${fmtSignedMoney(primary.pnl)}` : "-", otherCurrencies || "所选区间完整交易", primary?.pnl >= 0 ? "positive" : "negative"],
+    ["平仓价差盈亏", primary ? `${primary.currency} ${fmtSignedMoney(primary.pnl)}` : "-", otherCurrencies || "不含股息、佣金及利息", primary?.pnl >= 0 ? "positive" : "negative"],
     ["Profit Factor", primary ? fmtRatio(primary.profitFactor) : "-", primary ? `${primary.currency} 总盈利 / 总亏损` : "总盈利 / 总亏损", primary?.profitFactor >= 1 ? "positive" : "negative"],
     ["最大金额盈利 / 亏损", primary ? `${fmtSignedMoney(largestMoneyWin?.pnl)} / ${fmtSignedMoney(largestMoneyLoss?.pnl)}` : "-", primary ? `${primary.currency} · ${largestMoneyWin?.symbol || "-"} / ${largestMoneyLoss?.symbol || "-"}` : "按交易金额比较"],
   ];
