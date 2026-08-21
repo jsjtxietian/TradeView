@@ -233,6 +233,7 @@ async function init() {
   renderAlerts();
 
   state.selectedSymbol = state.watchlist[0] || null;
+  renderWatchlist();
   await refreshSummaries();
 }
 
@@ -262,6 +263,7 @@ function bindEvents() {
   elements.refreshButton.addEventListener("click", async () => {
     state.summaries.clear();
     state.details.clear();
+    renderWatchlist();
     await refreshSummaries(true);
   });
 
@@ -1462,7 +1464,7 @@ function renderWatchlistItem(symbol, sectionId) {
     <div class="watchlist-item-line">
       <div class="watchlist-trend-block">
         <strong class="watchlist-symbol">${symbol}</strong>
-        <span class="watchlist-inline-metric error">${item?.error || "加载失败"}</span>
+        <span class="watchlist-inline-metric${item?.error ? " error" : ""}">${item?.error || "加载中…"}</span>
       </div>
       ${renderNoteButton(symbol)}
     </div>
@@ -3750,7 +3752,11 @@ function buildPromptHoldingPayload(symbol) {
 
 function filterWatchlistSymbols(symbols) {
   return symbols.filter((symbol) => {
-    const data = state.summaries.get(symbol)?.data;
+    const item = state.summaries.get(symbol);
+    if (!item) {
+      return true;
+    }
+    const data = item.data;
     if (state.filterTrendTemplateOnly && !isTrendTemplateMatch(data)) {
       return false;
     }
