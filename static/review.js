@@ -2,6 +2,9 @@ const elements = {
   range: document.getElementById("reviewRange"),
   coverage: document.getElementById("reviewCoverage"),
   summary: document.getElementById("reviewSummary"),
+  timeline: document.getElementById("reviewTimeline"),
+  timelineMeta: document.getElementById("reviewTimelineMeta"),
+  timelineFocus: document.getElementById("reviewTimelineFocus"),
   distribution: document.getElementById("reviewDistribution"),
   largestWins: document.getElementById("reviewLargestWins"),
   largestLosses: document.getElementById("reviewLargestLosses"),
@@ -62,6 +65,8 @@ function calculateTradeResult(trade) {
   }
   const openingAmount = sumAmounts(opening);
   const closingAmount = sumAmounts(closing);
+  const openingQuantity = sumQuantities(opening);
+  const closingQuantity = sumQuantities(closing);
   if (!(openingAmount > 0)) {
     return null;
   }
@@ -79,6 +84,9 @@ function calculateTradeResult(trade) {
     exitDate,
     holdDays: Math.max(0, Math.round((parseIsoDate(exitDate) - parseIsoDate(entryDate)) / 86_400_000)),
     basis: openingAmount,
+    quantity: Math.min(openingQuantity, closingQuantity),
+    averageEntryPrice: openingQuantity > 0 ? openingAmount / openingQuantity : null,
+    averageExitPrice: closingQuantity > 0 ? closingAmount / closingQuantity : null,
     pnl,
     returnPct: pnl / openingAmount,
   };
@@ -87,6 +95,13 @@ function calculateTradeResult(trade) {
 function sumAmounts(transactions) {
   return transactions.reduce(
     (total, item) => total + Number(item.quantity || 0) * Number(item.price || 0),
+    0,
+  );
+}
+
+function sumQuantities(transactions) {
+  return transactions.reduce(
+    (total, item) => total + Number(item.quantity || 0),
     0,
   );
 }
@@ -131,6 +146,7 @@ function render() {
     : "所选区间没有完整平仓交易";
   renderSummary(results);
   renderLedger(startDate, boxxResults);
+  renderTimeline(results);
   renderDistribution(results);
   renderExtremeList(elements.largestWins, results, "win", extremeMode);
   renderExtremeList(elements.largestLosses, results, "loss", extremeMode);
@@ -358,6 +374,114 @@ function getPrimaryCurrency(results) {
     .sort((left, right) => right[1] - left[1])[0]?.[0] || null;
 }
 
+function renderTimeline(results) {
+  if (!results.length) {
+    elements.timelineMeta.textContent = "按平仓日期查看每笔交易的盈亏节奏";
+    elements.timelineFocus.innerHTML = "";
+    elements.timeline.innerHTML = '<div class="review-empty">所选区间暂无交易</div>';
+    return;
+  }
+  const currency = getPrimaryCurrency(results);
+  const timelineResults = results
+    .filter((result) => result.currency === currency)
+    .sort((left, right) => left.exitDate.localeCompare(right.exitDate) || left.id - right.id);
+  const excluded = results.length - timelineResults.length;
+  elements.timelineMeta.textContent = excluded
+    ? `${currency} · ${timelineResults.length} 笔交易 · 另有 ${excluded} 笔其他币种未混合展示`
+    : `${currency} · ${timelineResults.length} 笔交易 · 盈利向上，亏损向下`;
+
+  const width = 1120;
+  const height = 330;
+  const margin = { top: 28, right: 24, bottom: 46, left: 72 };
+  const plotWidth = width - margin.left - margin.right;
+  const zeroY = 150;
+  const maxStem = 108;
+  const dates = timelineResults.map((result) => parseIsoDate(result.exitDate).getTime());
+  const minDate = Math.min(...dates);
+  const maxDate = Math.max(...dates);
+  const dateSpan = Math.max(1, maxDate - minDate);
+  const maxAbsPnl = Math.max(...timelineResults.map((result) => Math.abs(result.pnl)), 1);
+  const sameDateCounts = {};
+  const sameDateIndexes = {};
+  for (const result of timelineResults) {
+    sameDateCounts[result.exitDate] = (sameDateCounts[result.exitDate] || 0) + 1;
+  }
+
+  const eventMarkup = timelineResults.map((result, index) => {
+    const count = sameDateCounts[result.exitDate];
+    const dateIndex = sameDateIndexes[result.exitDate] || 0;
+    sameDateIndexes[result.exitDate] = dateIndex + 1;
+    const baseX = minDate === maxDate
+      ? margin.left + plotWidth / 2
+      : margin.left + (dates[index] - minDate) / dateSpan * plotWidth;
+    const spread = count > 1 ? Math.min(9, 24 / count) : 0;
+    const x = Math.max(
+      margin.left,
+      Math.min(width - margin.right, baseX + (dateIndex - (count - 1) / 2) * spread),
+    );
+    const direction = result.pnl >= 0 ? -1 : 1;
+    const magnitude = Math.sqrt(Math.abs(result.pnl) / maxAbsPnl);
+    const stem = 18 + magnitude * (maxStem - 18);
+    const y = zeroY + direction * stem;
+    const tone = result.pnl >= 0 ? "win" : "loss";
+    const title = `${result.exitDate} ${result.symbol}；${fmtTradeQuantity(result.quantity)} 股；均价 ${fmtTradePrice(result.averageEntryPrice)} → ${fmtTradePrice(result.averageExitPrice)}；${currency} ${fmtSignedMoney(result.pnl)}；收益率 ${fmtPct(result.returnPct)}；持有 ${result.holdDays} 天`;
+    return `
+      <g class="timeline-event ${tone}" data-timeline-index="${index}" tabindex="0" role="button" aria-label="${escapeHtml(title)}">
+        <line x1="${x}" y1="${zeroY}" x2="${x}" y2="${y}" />
+        <circle cx="${x}" cy="${y}" r="5"><title>${escapeHtml(title)}</title></circle>
+      </g>
+    `;
+  }).join("");
+
+  const tickCount = Math.min(6, Math.max(2, timelineResults.length));
+  const ticks = Array.from({ length: tickCount }, (_, index) => {
+    const ratio = tickCount === 1 ? 0 : index / (tickCount - 1);
+    const timestamp = minDate + dateSpan * ratio;
+    const x = margin.left + plotWidth * ratio;
+    const label = formatTimelineDate(new Date(timestamp));
+    return `
+      <line class="timeline-tick" x1="${x}" y1="${zeroY - 4}" x2="${x}" y2="${zeroY + 4}" />
+      <text x="${x}" y="${height - 16}" text-anchor="middle">${label}</text>
+    `;
+  }).join("");
+  const topResult = maxBy(timelineResults, (result) => result.pnl);
+  const bottomResult = minBy(timelineResults, (result) => result.pnl);
+  elements.timeline.innerHTML = `
+    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="按日期排列的平仓交易盈亏时间轴">
+      <line class="timeline-guide" x1="${margin.left}" y1="${zeroY - maxStem}" x2="${width - margin.right}" y2="${zeroY - maxStem}" />
+      <line class="timeline-axis" x1="${margin.left}" y1="${zeroY}" x2="${width - margin.right}" y2="${zeroY}" />
+      <line class="timeline-guide" x1="${margin.left}" y1="${zeroY + maxStem}" x2="${width - margin.right}" y2="${zeroY + maxStem}" />
+      <text class="timeline-scale-label win" x="${margin.left - 10}" y="${zeroY - maxStem + 4}" text-anchor="end">${escapeHtml(fmtSignedMoney(Math.max(0, topResult?.pnl || 0)))}</text>
+      <text class="timeline-zero-label" x="${margin.left - 10}" y="${zeroY + 4}" text-anchor="end">0</text>
+      <text class="timeline-scale-label loss" x="${margin.left - 10}" y="${zeroY + maxStem + 4}" text-anchor="end">${escapeHtml(fmtSignedMoney(Math.min(0, bottomResult?.pnl || 0)))}</text>
+      ${ticks}
+      ${eventMarkup}
+    </svg>
+  `;
+
+  const focus = elements.timelineFocus;
+  const showResult = (result) => {
+    const tone = result.pnl >= 0 ? "positive" : "negative";
+    focus.innerHTML = `
+      <span>${escapeHtml(formatTimelineDate(parseIsoDate(result.exitDate)))}</span>
+      <b>${escapeHtml(result.symbol)}</b>
+      <strong class="${tone}">${escapeHtml(currency)} ${escapeHtml(fmtSignedMoney(result.pnl))}</strong>
+      <small>${escapeHtml(fmtTradeQuantity(result.quantity))} 股 · ${escapeHtml(fmtTradePrice(result.averageEntryPrice))} → ${escapeHtml(fmtTradePrice(result.averageExitPrice))} · ${escapeHtml(fmtPct(result.returnPct))} · 持有 ${result.holdDays} 天</small>
+    `;
+  };
+  showResult(timelineResults.at(-1));
+  for (const marker of elements.timeline.querySelectorAll("[data-timeline-index]")) {
+    const showMarker = () => showResult(timelineResults[Number(marker.dataset.timelineIndex)]);
+    marker.addEventListener("mouseenter", showMarker);
+    marker.addEventListener("focus", showMarker);
+    marker.addEventListener("click", showMarker);
+  }
+}
+
+function formatTimelineDate(date) {
+  return new Intl.DateTimeFormat("zh-CN", { month: "2-digit", day: "2-digit" }).format(date);
+}
+
 function renderDistribution(results) {
   if (!results.length) {
     elements.distribution.innerHTML = '<div class="review-empty">所选区间暂无交易</div>';
@@ -509,6 +633,16 @@ function fmtDays(value) {
 function fmtSignedMoney(value) {
   if (!Number.isFinite(value)) return "-";
   return `${value > 0 ? "+" : ""}${value.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function fmtTradeQuantity(value) {
+  if (!Number.isFinite(value)) return "-";
+  return value.toLocaleString("zh-CN", { maximumFractionDigits: 4 });
+}
+
+function fmtTradePrice(value) {
+  if (!Number.isFinite(value)) return "-";
+  return value.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 4 });
 }
 
 function fmtMoney(value, currency) {

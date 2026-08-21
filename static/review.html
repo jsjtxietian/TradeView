@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>交易数据统计</title>
   <link rel="stylesheet" href="/static/styles.css?v=20260614-32" />
-  <link rel="stylesheet" href="/static/review.css?v=20260614-5" />
+  <link rel="stylesheet" href="/static/review.css?v=20260821-timeline-3" />
 </head>
 <body>
   <main class="review-page">
@@ -29,6 +29,17 @@
     </header>
 
     <section id="reviewSummary" class="review-summary" aria-label="交易核心统计"></section>
+
+    <section class="review-chart-section review-timeline-section">
+      <div class="review-section-head">
+        <div>
+          <h2>平仓时间轴</h2>
+          <p id="reviewTimelineMeta">按平仓日期查看每笔交易的盈亏节奏</p>
+        </div>
+        <div id="reviewTimelineFocus" class="review-timeline-focus" aria-live="polite"></div>
+      </div>
+      <div id="reviewTimeline" class="review-timeline"></div>
+    </section>
 
     <section class="review-chart-section">
       <div class="review-section-head">
@@ -92,6 +103,6 @@
     </section>
   </main>
 
-  <script src="/static/review.js?v=20260821-1" type="module"></script>
+  <script src="/static/review.js?v=20260821-timeline-2" type="module"></script>
 </body>
 </html>

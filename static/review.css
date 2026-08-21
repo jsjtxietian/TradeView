@@ -230,6 +230,123 @@
   min-height: 320px;
 }
 
+.review-timeline {
+  min-width: 0;
+  min-height: 360px;
+  overflow-x: hidden;
+}
+
+.review-timeline svg {
+  display: block;
+  width: 100%;
+  height: 330px;
+}
+
+.review-timeline text {
+  fill: var(--muted);
+  font-size: 10px;
+}
+
+.review-timeline .timeline-axis {
+  stroke: rgba(71, 85, 105, 0.45);
+  stroke-width: 1.5;
+}
+
+.review-timeline .timeline-guide {
+  stroke: rgba(100, 116, 139, 0.13);
+  stroke-dasharray: 4 5;
+}
+
+.review-timeline .timeline-tick {
+  stroke: rgba(71, 85, 105, 0.4);
+}
+
+.review-timeline .timeline-event {
+  cursor: pointer;
+  outline: none;
+}
+
+.review-timeline .timeline-event line {
+  stroke-width: 2;
+  opacity: 0.7;
+}
+
+.review-timeline .timeline-event circle {
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 2;
+  transition: r 120ms ease, opacity 120ms ease;
+}
+
+.review-timeline .timeline-event:hover circle,
+.review-timeline .timeline-event:focus circle {
+  r: 7px;
+}
+
+.review-timeline .timeline-event.win line {
+  stroke: rgba(22, 101, 52, 0.62);
+}
+
+.review-timeline .timeline-event.win circle {
+  fill: var(--success);
+}
+
+.review-timeline .timeline-event.loss line {
+  stroke: rgba(180, 35, 24, 0.58);
+}
+
+.review-timeline .timeline-event.loss circle {
+  fill: var(--danger);
+}
+
+.review-timeline .timeline-scale-label.win {
+  fill: var(--success);
+}
+
+.review-timeline .timeline-scale-label.loss {
+  fill: var(--danger);
+}
+
+.review-timeline-focus {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  gap: 5px 12px;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid rgba(83, 129, 158, 0.14);
+  border-radius: 7px;
+  background: rgba(248, 250, 252, 0.72);
+  font-size: 0.86rem;
+}
+
+.review-timeline-focus span,
+.review-timeline-focus small {
+  color: var(--muted);
+}
+
+.review-timeline-focus small {
+  grid-column: 1 / -1;
+  max-width: min(560px, calc(100vw - 72px));
+  overflow-wrap: anywhere;
+  text-align: right;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.review-timeline-focus strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.review-timeline-focus strong.positive {
+  color: var(--success);
+}
+
+.review-timeline-focus strong.negative {
+  color: var(--danger);
+}
+
 .review-distribution svg {
   display: block;
   width: 100%;
@@ -413,5 +530,27 @@
   .review-cash-summary,
   .review-detail-grid {
     grid-template-columns: 1fr;
+  }
+
+  .review-timeline {
+    min-height: 385px;
+  }
+
+  .review-timeline-section .review-section-head {
+    display: grid;
+  }
+
+  .review-timeline-focus {
+    grid-template-columns: auto minmax(0, 1fr);
+    width: 100%;
+  }
+
+  .review-timeline-focus strong {
+    grid-column: 2;
+  }
+
+  .review-timeline-focus small {
+    grid-column: 1 / -1;
+    max-width: none;
   }
 }
