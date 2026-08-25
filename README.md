@@ -463,8 +463,8 @@ The refresh script:
 - reinstalls dependencies first if `requirements.txt` changed
 - calls `scripts/refresh-cache.py`
 - refreshes through `POST /api/watchlist/refresh`, which shares the same backend refresh path as the UI refresh button
-- stages `.cache` and `.trade/alerts.json`
-- commits changed market-data, alert snapshot and alert-history files as `Update market data YYYY-MM-DD`
+- stages `.cache`, `.trade/alerts.json`, `.trade/watchlist.json`, and `.trade/notes.json`
+- commits changed market-data, alert snapshot, alert-history, server watchlist, and symbol-note files as `Update market data YYYY-MM-DD`
 - pushes back to GitHub
 
 Manual refresh:

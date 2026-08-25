@@ -35,10 +35,10 @@ PY
 
 python scripts/refresh-cache.py
 
-git add .cache .trade/alerts.json
+git add .cache .trade/alerts.json .trade/watchlist.json .trade/notes.json
 
 if git diff --cached --quiet; then
-    echo "No market-data or alert changes to commit."
+    echo "No market-data, alert, watchlist, or note changes to commit."
     exit 0
 fi
 
