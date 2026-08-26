@@ -51,6 +51,7 @@
     "BRK-B",
     "IAU",
     "SLV",
+    "COPX",
     "TLT",
     "FFTY",
     "EWY",
@@ -78,6 +79,8 @@
     "VALE",
     "XLF",
     "KBWB",
+    "IBB",
+    "WAGN",
     "SPHR"
   ],
   "groups": [
@@ -159,6 +162,7 @@
         "BRK-B",
         "IAU",
         "SLV",
+        "COPX",
         "TLT",
         "FFTY"
       ]
@@ -234,6 +238,8 @@
       "id": "GROUP_1777996255127_M9QE19",
       "name": "其他",
       "symbols": [
+        "IBB",
+        "WAGN",
         "SPHR"
       ]
     }
