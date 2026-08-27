@@ -2404,5 +2404,203 @@
     "message": "近 5 个交易日累计上涨 +9.1%。",
     "createdAt": "2026-08-26T23:07:37Z",
     "timeLabel": "08/27 07:07"
+  },
+  {
+    "symbol": "QQQ",
+    "message": "收盘价上穿 50 日均线（MA50 712.19）。",
+    "createdAt": "2026-08-27T23:08:10Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "DELL",
+    "message": "近 5 个交易日累计上涨 +8.6%。",
+    "createdAt": "2026-08-27T23:08:10Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "NET",
+    "message": "较前一交易日上涨 +8.2%。",
+    "createdAt": "2026-08-27T23:08:10Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "NET",
+    "message": "近 5 个交易日累计上涨 +10.5%。",
+    "createdAt": "2026-08-27T23:08:10Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "FTNT",
+    "message": "创近 6 个月新高（172.78）。",
+    "createdAt": "2026-08-27T23:08:10Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "FTNT",
+    "message": "较前一交易日上涨 +9.7%。",
+    "createdAt": "2026-08-27T23:08:10Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "FTNT",
+    "message": "近 5 个交易日累计上涨 +14.6%。",
+    "createdAt": "2026-08-27T23:08:10Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "FSLY",
+    "message": "较前一交易日上涨 +5.8%。",
+    "createdAt": "2026-08-27T23:08:10Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "FSLY",
+    "message": "近 5 个交易日累计上涨 +8.5%。",
+    "createdAt": "2026-08-27T23:08:10Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "ADBE",
+    "message": "创近 6 个月新高（289.15）。",
+    "createdAt": "2026-08-27T23:08:10Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "ADBE",
+    "message": "较前一交易日上涨 +5.7%。",
+    "createdAt": "2026-08-27T23:08:10Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "NVDA",
+    "message": "较前一交易日上涨 +8.7%。",
+    "createdAt": "2026-08-27T23:08:10Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "NVDA",
+    "message": "当日成交量放大至 50 日均量的 223%。",
+    "createdAt": "2026-08-27T23:08:10Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "TSM",
+    "message": "刚刚满足趋势模板。",
+    "createdAt": "2026-08-27T23:08:10Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "TSM",
+    "message": "收盘价上穿 50 日均线（MA50 423.73）。",
+    "createdAt": "2026-08-27T23:08:10Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "TOELY",
+    "message": "当日成交量缩至 50 日均量的 20%。",
+    "createdAt": "2026-08-27T23:08:21Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "CBRS",
+    "message": "近 5 个交易日累计下跌 -11.1%。",
+    "createdAt": "2026-08-27T23:08:21Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "SMTC",
+    "message": "近 5 个交易日累计上涨 +14.1%。",
+    "createdAt": "2026-08-27T23:08:21Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "LITE",
+    "message": "近 5 个交易日累计上涨 +8.7%。",
+    "createdAt": "2026-08-27T23:08:21Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "AEHR",
+    "message": "近 5 个交易日累计下跌 -14.6%。",
+    "createdAt": "2026-08-27T23:08:21Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "COPX",
+    "message": "创近 6 个月新高（96.45）。",
+    "createdAt": "2026-08-27T23:08:32Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "FFTY",
+    "message": "当日成交量缩至 50 日均量的 29%。",
+    "createdAt": "2026-08-27T23:08:32Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "EWY",
+    "message": "当日成交量缩至 50 日均量的 46%。",
+    "createdAt": "2026-08-27T23:08:32Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "SPCX",
+    "message": "收盘价上穿 50 日均线（MA50 138.57）。",
+    "createdAt": "2026-08-27T23:08:32Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "PKW",
+    "message": "创近 6 个月新高（152.28）。",
+    "createdAt": "2026-08-27T23:08:32Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "WMT",
+    "message": "创近 6 个月新低（102.63）。",
+    "createdAt": "2026-08-27T23:08:32Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "LLY",
+    "message": "已不再满足趋势模板。",
+    "createdAt": "2026-08-27T23:08:32Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "LLY",
+    "message": "收盘价下穿 50 日均线（MA50 1,185.59）。",
+    "createdAt": "2026-08-27T23:08:32Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "KBWB",
+    "message": "收盘价下穿 50 日均线（MA50 96.24）。",
+    "createdAt": "2026-08-27T23:08:37Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "WAGN",
+    "message": "创近 6 个月新高（16.04）。",
+    "createdAt": "2026-08-27T23:08:37Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "SPHR",
+    "message": "已不再满足趋势模板。",
+    "createdAt": "2026-08-27T23:08:37Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "SPHR",
+    "message": "较前一交易日下跌 -6.4%。",
+    "createdAt": "2026-08-27T23:08:37Z",
+    "timeLabel": "08/28 07:08"
+  },
+  {
+    "symbol": "SPHR",
+    "message": "收盘价下穿 50 日均线（MA50 154.26）。",
+    "createdAt": "2026-08-27T23:08:37Z",
+    "timeLabel": "08/28 07:08"
   }
 ]
