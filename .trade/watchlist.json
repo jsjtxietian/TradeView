@@ -24,6 +24,7 @@
     "AMD",
     "ARM",
     "QCOM",
+    "CBRS",
     "DRAM",
     "MU",
     "SNDK",
@@ -37,7 +38,6 @@
     "TOELY",
     "KLAC",
     "NBIS",
-    "CBRS",
     "COHR",
     "SMTC",
     "LITE",
@@ -79,6 +79,7 @@
     "VALE",
     "XLF",
     "KBWB",
+    "V",
     "IBB",
     "WAGN",
     "SPHR"
@@ -116,7 +117,8 @@
         "AVGO",
         "AMD",
         "ARM",
-        "QCOM"
+        "QCOM",
+        "CBRS"
       ]
     },
     {
@@ -142,7 +144,6 @@
         "TOELY",
         "KLAC",
         "NBIS",
-        "CBRS",
         "COHR",
         "SMTC",
         "LITE",
@@ -231,7 +232,8 @@
       "name": "金融",
       "symbols": [
         "XLF",
-        "KBWB"
+        "KBWB",
+        "V"
       ]
     },
     {

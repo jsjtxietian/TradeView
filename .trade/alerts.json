@@ -2788,5 +2788,167 @@
     "message": "近 5 个交易日累计下跌 -10.5%。",
     "createdAt": "2026-08-28T23:02:51Z",
     "timeLabel": "08/29 07:02"
+  },
+  {
+    "symbol": "MAGS",
+    "message": "当日成交量缩至 50 日均量的 46%。",
+    "createdAt": "2026-08-31T23:10:15Z",
+    "timeLabel": "09/01 07:10"
+  },
+  {
+    "symbol": "TSLA",
+    "message": "较前一交易日上涨 +5.5%。",
+    "createdAt": "2026-08-31T23:10:15Z",
+    "timeLabel": "09/01 07:10"
+  },
+  {
+    "symbol": "TSLA",
+    "message": "当日成交量放大至 50 日均量的 155%。",
+    "createdAt": "2026-08-31T23:10:15Z",
+    "timeLabel": "09/01 07:10"
+  },
+  {
+    "symbol": "TSLA",
+    "message": "收盘价上穿 50 日均线（MA50 359.82）。",
+    "createdAt": "2026-08-31T23:10:15Z",
+    "timeLabel": "09/01 07:10"
+  },
+  {
+    "symbol": "NET",
+    "message": "近 5 个交易日累计上涨 +8.8%。",
+    "createdAt": "2026-08-31T23:10:15Z",
+    "timeLabel": "09/01 07:10"
+  },
+  {
+    "symbol": "FTNT",
+    "message": "近 5 个交易日累计上涨 +12.5%。",
+    "createdAt": "2026-08-31T23:10:15Z",
+    "timeLabel": "09/01 07:10"
+  },
+  {
+    "symbol": "CRWV",
+    "message": "当日成交量缩至 50 日均量的 48%。",
+    "createdAt": "2026-08-31T23:10:15Z",
+    "timeLabel": "09/01 07:10"
+  },
+  {
+    "symbol": "TSM",
+    "message": "当日成交量缩至 50 日均量的 50%。",
+    "createdAt": "2026-08-31T23:10:15Z",
+    "timeLabel": "09/01 07:10"
+  },
+  {
+    "symbol": "AMD",
+    "message": "当日成交量缩至 50 日均量的 47%。",
+    "createdAt": "2026-08-31T23:10:15Z",
+    "timeLabel": "09/01 07:10"
+  },
+  {
+    "symbol": "ARM",
+    "message": "当日成交量缩至 50 日均量的 38%。",
+    "createdAt": "2026-08-31T23:10:15Z",
+    "timeLabel": "09/01 07:10"
+  },
+  {
+    "symbol": "DRAM",
+    "message": "当日成交量缩至 50 日均量的 30%。",
+    "createdAt": "2026-08-31T23:10:15Z",
+    "timeLabel": "09/01 07:10"
+  },
+  {
+    "symbol": "MU",
+    "message": "刚刚满足趋势模板。",
+    "createdAt": "2026-08-31T23:10:26Z",
+    "timeLabel": "09/01 07:10"
+  },
+  {
+    "symbol": "MU",
+    "message": "收盘价上穿 50 日均线（MA50 951.50）。",
+    "createdAt": "2026-08-31T23:10:26Z",
+    "timeLabel": "09/01 07:10"
+  },
+  {
+    "symbol": "SNDK",
+    "message": "较前一交易日上涨 +5.5%。",
+    "createdAt": "2026-08-31T23:10:26Z",
+    "timeLabel": "09/01 07:10"
+  },
+  {
+    "symbol": "SNDK",
+    "message": "当日成交量放大至 50 日均量的 156%。",
+    "createdAt": "2026-08-31T23:10:26Z",
+    "timeLabel": "09/01 07:10"
+  },
+  {
+    "symbol": "SMH",
+    "message": "当日成交量缩至 50 日均量的 40%。",
+    "createdAt": "2026-08-31T23:10:26Z",
+    "timeLabel": "09/01 07:10"
+  },
+  {
+    "symbol": "TOELY",
+    "message": "当日成交量缩至 50 日均量的 46%。",
+    "createdAt": "2026-08-31T23:10:26Z",
+    "timeLabel": "09/01 07:10"
+  },
+  {
+    "symbol": "NBIS",
+    "message": "当日成交量缩至 50 日均量的 48%。",
+    "createdAt": "2026-08-31T23:10:26Z",
+    "timeLabel": "09/01 07:10"
+  },
+  {
+    "symbol": "SMTC",
+    "message": "近 5 个交易日累计上涨 +10.0%。",
+    "createdAt": "2026-08-31T23:10:26Z",
+    "timeLabel": "09/01 07:10"
+  },
+  {
+    "symbol": "LITE",
+    "message": "近 5 个交易日累计上涨 +10.2%。",
+    "createdAt": "2026-08-31T23:10:26Z",
+    "timeLabel": "09/01 07:10"
+  },
+  {
+    "symbol": "AEHR",
+    "message": "近 5 个交易日累计下跌 -17.8%。",
+    "createdAt": "2026-08-31T23:10:26Z",
+    "timeLabel": "09/01 07:10"
+  },
+  {
+    "symbol": "MTRN",
+    "message": "当日成交量缩至 50 日均量的 49%。",
+    "createdAt": "2026-08-31T23:10:26Z",
+    "timeLabel": "09/01 07:10"
+  },
+  {
+    "symbol": "EWY",
+    "message": "当日成交量缩至 50 日均量的 46%。",
+    "createdAt": "2026-08-31T23:10:38Z",
+    "timeLabel": "09/01 07:10"
+  },
+  {
+    "symbol": "DXJ",
+    "message": "当日成交量缩至 50 日均量的 47%。",
+    "createdAt": "2026-08-31T23:10:38Z",
+    "timeLabel": "09/01 07:10"
+  },
+  {
+    "symbol": "PKW",
+    "message": "当日成交量缩至 50 日均量的 37%。",
+    "createdAt": "2026-08-31T23:10:38Z",
+    "timeLabel": "09/01 07:10"
+  },
+  {
+    "symbol": "KBWB",
+    "message": "当日成交量缩至 50 日均量的 50%。",
+    "createdAt": "2026-08-31T23:10:43Z",
+    "timeLabel": "09/01 07:10"
+  },
+  {
+    "symbol": "SPHR",
+    "message": "近 5 个交易日累计下跌 -13.4%。",
+    "createdAt": "2026-08-31T23:10:43Z",
+    "timeLabel": "09/01 07:10"
   }
 ]
