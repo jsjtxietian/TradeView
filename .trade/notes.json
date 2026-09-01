@@ -17,6 +17,12 @@
     "costBasis": null,
     "shares": null
   },
+  "IBB": {
+    "text": "生物科技",
+    "isHolding": false,
+    "costBasis": null,
+    "shares": null
+  },
   "IWM": {
     "text": "罗素2000，小盘",
     "isHolding": false,
