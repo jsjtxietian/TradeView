@@ -14,7 +14,7 @@ Data layout:
 
 - `data/stock/` is committed to Git and is automatically updated by the scheduled refresh job.
 - `data/trade/alerts.json`, `data/trade/alerts_snapshot.json`, `data/trade/watchlist.json`, and `data/trade/notes.json` are staged by the scheduled refresh job.
-- MCP uses the fixed project token in `trenddeck/config.py`; no `.env` is required. Optional `.env` overrides stay local; see `.env.example`.
+- MCP credentials live only in the Git-ignored local `.env` (mode 600 on Linux). Installation creates a random token when missing and preserves it on subsequent updates; see `.env.example`.
 - `.streamlit/` stays local and contains secrets such as market-data keys.
 - `.venv/` is generated on each machine and is ignored by Git.
 

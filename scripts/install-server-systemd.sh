@@ -12,6 +12,7 @@ fi
 
 . .venv/bin/activate
 pip install -r requirements/runtime.txt
+python scripts/configure-mcp.py
 
 # Stop readers/writers before relocating any local-only legacy files.
 WAS_ACTIVE=false
@@ -83,5 +84,4 @@ sudo systemctl restart trenddeck.service
 systemctl is-active trenddeck.service
 systemctl list-timers trenddeck-refresh.timer --no-pager
 
-echo "Hermes MCP configuration:"
-python -m trenddeck.mcp_server
+echo "Show Hermes MCP configuration: .venv/bin/python -m trenddeck.mcp_server"

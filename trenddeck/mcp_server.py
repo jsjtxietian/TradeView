@@ -17,7 +17,6 @@ from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from trenddeck import queries
-from trenddeck.config import MCP_BEARER_TOKEN
 
 
 def env_list(name: str) -> list[str]:
@@ -25,8 +24,8 @@ def env_list(name: str) -> list[str]:
 
 
 def get_mcp_token() -> str:
-    """Use the fixed project token unless this deployment overrides it."""
-    return os.environ.get("TRENDDECK_MCP_TOKEN", "").strip() or MCP_BEARER_TOKEN
+    """Read private configuration loaded from .env or the process environment."""
+    return os.environ.get("TRENDDECK_MCP_TOKEN", "").strip()
 
 
 def create_mcp_server() -> FastMCP:
@@ -112,7 +111,7 @@ def create_mcp_server() -> FastMCP:
 class MCPAccessGuard:
     """Static bearer authentication for explicitly configured private MCP clients.
 
-    The project ships a fixed token; an environment override is optional.
+    No token means MCP is disabled; there is no built-in credential fallback.
     Host/Origin validation is additionally enforced by the MCP SDK.
     """
 
@@ -122,6 +121,13 @@ class MCPAccessGuard:
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "http" and scope["path"].rstrip("/") == "/mcp":
             token = get_mcp_token()
+            if not token:
+                await JSONResponse(
+                    {"error": "MCP is disabled. Configure TRENDDECK_MCP_TOKEN in the server's local .env."},
+                    status_code=503,
+                    headers={"Cache-Control": "no-store"},
+                )(scope, receive, send)
+                return
             scheme, _, supplied = Headers(scope=scope).get("authorization", "").partition(" ")
             if scheme.lower() != "bearer" or not hmac.compare_digest(supplied.encode(), token.encode()):
                 await JSONResponse(
@@ -150,5 +156,7 @@ if __name__ == "__main__":
     from trenddeck.config import PROJECT_ROOT
 
     load_dotenv(PROJECT_ROOT / ".env", override=True)
+    if not get_mcp_token():
+        raise SystemExit("MCP token is not configured. Run: python scripts/configure-mcp.py")
     print('mcp_servers:\n  trenddeck:\n    url: "http://127.0.0.1:8000/mcp"\n    headers:')
     print("      Authorization: " + json.dumps("Bearer " + get_mcp_token()))

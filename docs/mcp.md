@@ -6,8 +6,8 @@ Hermes 和其他支持 Streamable HTTP、可配置 Bearer header 的 agent 可�
 
 ## 启用
 
-Python 3.11+。项目已在 `trenddeck/config.py` 中生成并保存了一个固定随机 Bearer token，
-本机和服务器共用，重启、更新或重新安装都不会重新生成。无需创建 `.env` 或设置环境变量。
+Python 3.11+。token 只保存在项目根目录的本地 `.env` 中，该文件被 Git 忽略，
+仓库只提供不含真实凭据的 `.env.example`。源码不内置任何默认 token。
 
 服务器沿用原来的部署命令：
 
@@ -16,21 +16,24 @@ cd /home/ubuntu/trenddeck
 bash scripts/update-server.sh
 ```
 
-安装完成后会直接输出可复制的 Hermes MCP 配置，其中包含固定 token。
+安装脚本自动生成缺失的 token，后续部署保留现有值，不会每次换 token。
+Linux 上配置文件权限为 600。安装日志不输出 token。
 
-本机开发直接运行：
+本机首次使用先初始化配置，再启动服务：
 
 ```powershell
 cd D:\Repos\TradeView
+.\.venv\Scripts\python scripts/configure-mcp.py
 .\.venv\Scripts\python -m uvicorn app:app --host 127.0.0.1 --port 8000
 ```
 
-未携带或携带错误 token 时，`/mcp` 返回 **401**。网页及原有 API 按原来的方式运行。
-如果以前设置过 `TRENDDECK_MCP_TOKEN`，它仍会覆盖固定 token；不需要覆盖时删除该环境变量即可。
+`TRENDDECK_MCP_TOKEN` 未配置或为空时，MCP 返回 503，网页继续正常运行。
+已配置时，未携带或携带错误 token 的请求返回 401。进程环境变量仍优先于 `.env`；
+如果终端以前设置过测试 token，请先清除该变量再启动，以免覆盖本地配置。
 
 ## Hermes 配置
 
-在服务器项目目录执行以下命令，可以随时再次显示完整配置：
+在服务器项目目录执行以下命令，可按需显示包含实际 token 的完整配置：
 
 ```bash
 .venv/bin/python -m trenddeck.mcp_server
@@ -43,21 +46,31 @@ Windows 对应命令：
 ```
 
 将输出合并到运行 Hermes 的用户的 `~/.hermes/config.yaml` 中，保留已有服务器条目。
-输出格式如下，命令会将占位文字替换成实际 token：
+配置示例只使用占位符：
 
 ```yaml
 mcp_servers:
   trenddeck:
     url: "http://127.0.0.1:8000/mcp"
     headers:
-      Authorization: "Bearer <项目固定 token>"
+      Authorization: "Bearer <本地配置中的 token>"
 ```
 
-无需再创建 Hermes 的 `.env`。重新启动/加载 Hermes 的 MCP 配置后，
+客户端配置也应保留在本机，不提交真实 token。重新加载 Hermes 的 MCP 配置后，
 让它调用 `get_daily_changes` 验证连接。
 
-如需单独覆盖某台服务器的 token，可以在其 `.env` 中设置 `TRENDDECK_MCP_TOKEN` 后重启服务；
-这是可选设置。查看配置命令会读取项目 `.env`，与 systemd 使用的配置一致。
+## 更换 token
+
+在服务器运行：
+
+```bash
+.venv/bin/python scripts/configure-mcp.py --rotate
+sudo systemctl restart trenddeck.service
+```
+
+这只更新 `.env` 中的 token，保留 Host、数据路径等其他设置。
+服务重启后旧 token 失效，客户端需要换成新值。查看命令同上，不需要将 token 写入源码。
+历史提交里出现过的旧凭据无需继续使用；轮换后它们不再能访问服务。
 
 其他 agent 使用相同 URL 和 `Authorization: Bearer <token>` header，
 具体配置键名取决于客户端，不需要修改服务端工具。
@@ -70,6 +83,7 @@ mcp_servers:
 
 ```nginx
 location = /mcp {
+    auth_basic off; # MCP 使用自己的 Bearer 验证，网页仍可保留 Basic auth
     proxy_pass http://127.0.0.1:8000;
     proxy_http_version 1.1;
     proxy_set_header Host $host;

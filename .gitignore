@@ -4,6 +4,7 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .env
+1.txt
 data/imports/
 todo.md
 U*.TRANSACTIONS.*.csv

@@ -36,24 +36,29 @@ def server_url():
 
 
 def test_authentication_and_host_origin_validation(server_url, monkeypatch):
-    from trenddeck.config import MCP_BEARER_TOKEN
-
     monkeypatch.delenv("TRENDDECK_MCP_TOKEN", raising=False)
-    assert httpx.post(server_url + "/mcp", json={}).status_code == 401
+    assert httpx.post(server_url + "/mcp", json={}).status_code == 503
     request = {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}
-    fixed_headers = {
-        "Authorization": "Bearer " + MCP_BEARER_TOKEN,
+    old_headers = {
+        "Authorization": "Bearer previous-test-token",
         "Accept": "application/json, text/event-stream",
     }
-    response = httpx.post(server_url + "/mcp", json=request, headers=fixed_headers)
+    monkeypatch.setenv("TRENDDECK_MCP_TOKEN", "previous-test-token")
+    response = httpx.post(server_url + "/mcp", json=request, headers=old_headers)
     assert response.status_code == 200 and len(response.json()["result"]["tools"]) == 3
     monkeypatch.setenv("TRENDDECK_MCP_TOKEN", "")
-    assert httpx.post(server_url + "/mcp", json=request, headers=fixed_headers).status_code == 200
+    assert httpx.post(server_url + "/mcp", json=request, headers=old_headers).status_code == 503
+    assert (
+        httpx.post(
+            server_url + "/mcp", json=request, headers={**old_headers, "Authorization": "Bearer"}
+        ).status_code
+        == 503
+    )
     assert httpx.get(server_url + "/").status_code == 200
     assert httpx.get(server_url + "/api/config").status_code == 200
     assert httpx.get(server_url + "/static/vendor/lightweight-charts-5.0.0.js").status_code == 200
     monkeypatch.setenv("TRENDDECK_MCP_TOKEN", "test-token")
-    assert httpx.post(server_url + "/mcp", json=request, headers=fixed_headers).status_code == 401
+    assert httpx.post(server_url + "/mcp", json=request, headers=old_headers).status_code == 401
     for auth in (None, "Bearer wrong"):
         headers = {} if auth is None else {"Authorization": auth}
         response = httpx.post(server_url + "/mcp", json={}, headers=headers)

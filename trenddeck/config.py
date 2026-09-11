@@ -40,7 +40,3 @@ PREFERRED_PRICE_MODE = "adjusted"
 LEGACY_PRICE_MODE = "raw"
 TIINGO_REFRESH_BATCH_SIZE = 50
 ALERT_TIMEZONE = timezone(timedelta(hours=8))
-
-# Fixed project token; reused across restarts and deployments.
-# TRENDDECK_MCP_TOKEN can optionally override it for a particular deployment.
-MCP_BEARER_TOKEN = '8pfM3_IKCwtdKJGz-s19PbgNJ5Qk19OvEF9yQwsjWVQ'

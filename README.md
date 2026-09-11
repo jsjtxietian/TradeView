@@ -14,7 +14,9 @@ python -m venv .venv
 
 已有 `.venv` 时不用重复创建。网页地址：http://127.0.0.1:8000
 
-MCP 地址为 `http://127.0.0.1:8000/mcp`，使用项目固定的 Bearer token。显示可复制的 agent 配置：
+MCP 地址为 `http://127.0.0.1:8000/mcp`，token 仅存放在 Git 忽略的本地 `.env`。
+首次本机使用先运行 `.\.venv\Scripts\python scripts/configure-mcp.py`，再启动服务。
+服务器安装脚本会自动生成配置，后续部署保留原 token。显示可复制的 agent 配置：
 
 ```powershell
 .\.venv\Scripts\python -m trenddeck.mcp_server
