@@ -33,7 +33,7 @@ def load_trade_store() -> list[dict[str, Any]]:
 
 
 def save_trade_store(payload: list[dict[str, Any]]) -> None:
-    TRADE_DIR.mkdir(exist_ok=True)
+    TRADE_DIR.mkdir(parents=True, exist_ok=True)
     temp_path = TRADE_FILE.with_suffix(".json.tmp")
     temp_path.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
@@ -251,7 +251,7 @@ def load_watchlist_state() -> dict[str, Any] | None:
 
 def save_watchlist_state(payload: dict[str, Any]) -> dict[str, Any]:
     normalized = normalize_watchlist_state(payload)
-    TRADE_DIR.mkdir(exist_ok=True)
+    TRADE_DIR.mkdir(parents=True, exist_ok=True)
     temp_path = WATCHLIST_FILE.with_suffix(".json.tmp")
     temp_path.write_text(
         json.dumps(normalized, ensure_ascii=False, indent=2) + "\n",
@@ -312,7 +312,7 @@ def load_symbol_notes() -> dict[str, dict[str, Any]] | None:
 
 def save_symbol_notes(payload: Any) -> dict[str, dict[str, Any]]:
     normalized = normalize_symbol_notes(payload)
-    TRADE_DIR.mkdir(exist_ok=True)
+    TRADE_DIR.mkdir(parents=True, exist_ok=True)
     temp_path = NOTES_FILE.with_suffix(".json.tmp")
     temp_path.write_text(
         json.dumps(normalized, ensure_ascii=False, indent=2) + "\n",

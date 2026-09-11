@@ -11,7 +11,20 @@ if [ ! -d ".venv" ]; then
 fi
 
 . .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements/runtime.txt
+
+# Stop readers/writers before relocating any local-only legacy files.
+WAS_ACTIVE=false
+if systemctl is-active --quiet trenddeck.service; then
+    WAS_ACTIVE=true
+    sudo systemctl stop trenddeck.service
+fi
+if ! python scripts/migrate-data.py; then
+    if [ "$WAS_ACTIVE" = true ]; then
+        sudo systemctl start trenddeck.service
+    fi
+    exit 1
+fi
 
 sudo tee /etc/systemd/system/trenddeck.service >/dev/null <<SERVICE
 [Unit]
@@ -45,6 +58,7 @@ Type=oneshot
 User=$USER_NAME
 Group=$USER_NAME
 WorkingDirectory=$APP_DIR
+EnvironmentFile=-$APP_DIR/.env
 ExecStart=/usr/bin/bash scripts/refresh-and-push.sh
 SERVICE
 

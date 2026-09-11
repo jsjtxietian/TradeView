@@ -11,11 +11,11 @@ from trenddeck import market, storage
 
 @pytest.fixture
 def cached_data(tmp_path, monkeypatch):
-    cache = tmp_path / ".cache"
-    trade = tmp_path / ".trade"
-    cache.mkdir()
-    trade.mkdir()
-    monkeypatch.setattr(market, "CACHE_DIR", cache)
+    cache = tmp_path / "data" / "stock"
+    trade = tmp_path / "data" / "trade"
+    cache.mkdir(parents=True)
+    trade.mkdir(parents=True)
+    monkeypatch.setattr(market, "STOCK_DIR", cache)
     monkeypatch.setattr(storage, "WATCHLIST_FILE", trade / "watchlist.json")
     monkeypatch.setattr(storage, "NOTES_FILE", trade / "notes.json")
     market._memory_cache.clear()

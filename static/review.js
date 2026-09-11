@@ -154,7 +154,7 @@ function render() {
 
 function renderLedger(startDate, boxxResults) {
   if (!ledger?.available) {
-    elements.ledgerCoverage.textContent = "未找到 .trade/ledger.json，请先导入 IBKR 账务数据";
+    elements.ledgerCoverage.textContent = "未找到 data/trade/ledger.json，请先导入 IBKR 账务数据";
     for (const container of [elements.cashSummary, elements.dividends, elements.interest, elements.misc]) {
       container.innerHTML = '<div class="review-empty compact">暂无账单数据</div>';
     }

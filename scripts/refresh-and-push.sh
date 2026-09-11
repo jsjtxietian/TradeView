@@ -8,11 +8,16 @@ git pull --ff-only
 NEW_HEAD="$(git rev-parse HEAD)"
 
 if [ "$OLD_HEAD" != "$NEW_HEAD" ]; then
-    if git diff --name-only "$OLD_HEAD" "$NEW_HEAD" | grep -qv '^\.cache/'; then
-        if git diff --name-only "$OLD_HEAD" "$NEW_HEAD" | grep -q '^requirements\.txt$'; then
+    if git diff --name-only "$OLD_HEAD" "$NEW_HEAD" | grep -qv '^data/'; then
+        if git diff --name-only "$OLD_HEAD" "$NEW_HEAD" | grep -Eq '^(requirements/|requirements(-dev)?\.txt$)'; then
             . .venv/bin/activate
-            pip install -r requirements.txt
+            pip install -r requirements/runtime.txt
             deactivate
+        fi
+        sudo systemctl stop trenddeck.service
+        if ! .venv/bin/python scripts/migrate-data.py; then
+            sudo systemctl start trenddeck.service
+            exit 1
         fi
         sudo systemctl restart trenddeck.service
     fi
@@ -35,7 +40,7 @@ PY
 
 python scripts/refresh-cache.py
 
-git add .cache .trade/alerts.json .trade/watchlist.json .trade/notes.json
+git add -- data/stock data/trade/alerts.json data/trade/alerts_snapshot.json data/trade/watchlist.json data/trade/notes.json
 
 if git diff --cached --quiet; then
     echo "No market-data, alert, watchlist, or note changes to commit."

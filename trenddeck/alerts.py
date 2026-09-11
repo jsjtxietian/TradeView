@@ -10,7 +10,6 @@ from trenddeck.config import (
     ALERT_TIMEZONE,
     ALERTS_FILE,
     ALERTS_SNAPSHOT_FILE,
-    CACHE_DIR,
     TRADE_DIR,
 )
 from trenddeck.utils import (
@@ -58,7 +57,7 @@ def load_alert_log() -> list[dict[str, Any]]:
 
 
 def write_alert_log(alerts: list[dict[str, Any]]) -> None:
-    TRADE_DIR.mkdir(exist_ok=True)
+    TRADE_DIR.mkdir(parents=True, exist_ok=True)
     temp_path = ALERTS_FILE.with_suffix(".json.tmp")
     temp_path.write_text(
         json.dumps(alerts, ensure_ascii=False, indent=2) + "\n",
@@ -117,7 +116,7 @@ def load_alert_snapshot() -> dict[str, dict[str, Any]]:
 
 
 def write_alert_snapshot(snapshot: dict[str, dict[str, Any]]) -> None:
-    CACHE_DIR.mkdir(exist_ok=True)
+    TRADE_DIR.mkdir(parents=True, exist_ok=True)
     temp_path = ALERTS_SNAPSHOT_FILE.with_suffix(".json.tmp")
     temp_path.write_text(
         json.dumps({"version": 1, "symbols": snapshot}, ensure_ascii=False, indent=2) + "\n",

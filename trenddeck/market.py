@@ -10,7 +10,6 @@ import pandas as pd
 from curl_cffi import requests as curl_requests
 
 from trenddeck.config import (
-    CACHE_DIR,
     DEFAULT_HISTORY_PERIOD,
     LEGACY_PRICE_MODE,
     MEMORY_CACHE_TTL,
@@ -19,6 +18,7 @@ from trenddeck.config import (
     PRICE_MODE_COLUMN,
     PROJECT_ROOT,
     REFRESH_COOLDOWN_SECONDS,
+    STOCK_DIR,
     TIINGO_REFRESH_BATCH_SIZE,
 )
 
@@ -113,7 +113,7 @@ def period_start(period: str) -> str:
 
 def history_cache_path(symbol: str, period: str) -> Path:
     safe_symbol = symbol.replace("/", "_").replace("\\", "_")
-    return CACHE_DIR / f"{safe_symbol}_{period}_history.csv"
+    return STOCK_DIR / f"{safe_symbol}_{period}_history.csv"
 
 
 def annotate_history_price_mode(frame: pd.DataFrame, price_mode: str) -> pd.DataFrame:

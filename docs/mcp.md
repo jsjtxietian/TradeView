@@ -169,7 +169,7 @@ Host 不匹配返回 421。普通服务端 agent 不发送 Origin；若客户端
 安装开发依赖后执行：
 
 ```bash
-python -m pip install -r requirements-dev.txt
+python -m pip install -r requirements/dev.txt
 python -m pytest -q
 python -m ruff check app.py trenddeck tests
 ```

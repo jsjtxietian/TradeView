@@ -3,11 +3,16 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import sys
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from trenddeck.config import DATA_DIR, LEDGER_FILE, TRADE_FILE  # noqa: E402
 
 TRADE_SECTION = "Transaction History"
 BUY_TYPES = {"买", "Buy"}
@@ -35,8 +40,8 @@ def parse_args() -> argparse.Namespace:
     convert.add_argument(
         "--output",
         type=Path,
-        default=Path("ibkr-trades.json"),
-        help="Standalone JSON output (default: ibkr-trades.json)",
+        default=DATA_DIR / "imports" / "ibkr-trades.json",
+        help="Standalone JSON output (default: data/imports/ibkr-trades.json)",
     )
     convert.add_argument(
         "--start-date",
@@ -49,8 +54,8 @@ def parse_args() -> argparse.Namespace:
     append.add_argument(
         "--output",
         type=Path,
-        default=Path(".trade/trades.json"),
-        help="Trade store to update (default: .trade/trades.json)",
+        default=TRADE_FILE,
+        help="Trade store to update (default: data/trade/trades.json)",
     )
 
     ledger = commands.add_parser(
@@ -61,8 +66,8 @@ def parse_args() -> argparse.Namespace:
     ledger.add_argument(
         "--output",
         type=Path,
-        default=Path(".trade/ledger.json"),
-        help="Ledger JSON output (default: .trade/ledger.json)",
+        default=LEDGER_FILE,
+        help="Ledger JSON output (default: data/trade/ledger.json)",
     )
     return parser.parse_args()
 
