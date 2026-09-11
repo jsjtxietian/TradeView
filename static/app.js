@@ -2205,7 +2205,7 @@ function createMainChart() {
     layout: {
       background: { color: "rgba(255,255,255,0)" },
       textColor: "#102033",
-      attributionLogo: false,
+      attributionLogo: true,
     },
     rightPriceScale: {
       borderColor: "rgba(15, 23, 42, 0.12)",

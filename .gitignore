@@ -1,6 +1,8 @@
 .streamlit/
 __pycache__/
 .venv/
+.pytest_cache/
+.env
 todo.md
 U*.TRANSACTIONS.*.csv
 U*.TRADES.json

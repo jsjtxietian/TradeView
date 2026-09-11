@@ -25,6 +25,7 @@ User=$USER_NAME
 Group=$USER_NAME
 WorkingDirectory=$APP_DIR
 Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=-$APP_DIR/.env
 ExecStart=$APP_DIR/.venv/bin/uvicorn app:app --host 127.0.0.1 --port 8000
 Restart=always
 RestartSec=5
@@ -67,3 +68,6 @@ sudo systemctl restart trenddeck.service
 
 systemctl is-active trenddeck.service
 systemctl list-timers trenddeck-refresh.timer --no-pager
+
+echo "Hermes MCP configuration:"
+python -m trenddeck.mcp_server

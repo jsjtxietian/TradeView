@@ -16,7 +16,8 @@ Current runtime shape:
 - backend: `FastAPI`
 - frontend: static `HTML + JS + CSS`
 - market data: `Tiingo + local CSV cache`
-- charting: `lightweight-charts`
+- charting: vendored `lightweight-charts` 5.0.0 (no CDN needed)
+- agent access: read-only Streamable HTTP MCP at `/mcp`; see [MCP setup and Hermes configuration](docs/mcp.md)
 
 ## Data Source Strategy
 
@@ -38,7 +39,7 @@ Why:
 
 ### Incremental Refresh
 
-Incremental update logic lives in `app.py`.
+Incremental update logic lives in `trenddeck/market.py`.
 
 Rules:
 
@@ -74,7 +75,7 @@ Reason:
 
 ## Local Storage Model
 
-Frontend keeps user-specific state in `localStorage`.
+The server stores watchlists/groups in `.trade/watchlist.json` and notes/holding fields in `.trade/notes.json`. The browser mirrors watchlists/groups in `localStorage` and keeps display preferences locally.
 
 Keys:
 
@@ -85,7 +86,7 @@ Keys:
 - `trenddeck_chart_prefs`
   chart mode and MA visibility
 - `trenddeck_symbol_notes`
-  per-symbol notes and holding flag
+  legacy notes/holding data migrated to the server and removed from localStorage
 - `trenddeck_watchlist_filter_template`
   whether watchlist is filtered to full trend-template matches
 - `trenddeck_watchlist_filter_template_variant`
@@ -99,7 +100,8 @@ Keys:
 
 Important design choice:
 
-- notes, filters and grouping are browser-local user state
+- notes, holding fields, watchlists and grouping are persisted by the server
+- filters and chart preferences remain browser-local
 - alerts and their comparison snapshot are persisted by the server
 - price history and analysis results come from cached market data
 
@@ -162,7 +164,7 @@ It is meant to answer one question quickly:
 
 ### Current Algorithm
 
-Implementation lives in `build_trend_sparkline()` in `app.py`.
+Implementation lives in `build_trend_sparkline()` in `trenddeck/indicators.py`.
 
 Steps:
 
@@ -282,7 +284,7 @@ Behavior:
 
 - click opens modal only
 - no hover preview card
-- note modal stores both free-form text and a local `isHolding` flag
+- note modal stores free-form text, `isHolding`, cost basis and share count on the server
 - holding symbols get a highlighted card background in the watchlist
 - watchlist cards show only floating P/L for holdings; cost basis stays inside the note modal and detail area
 - button `title` text shows:
@@ -437,7 +439,8 @@ Runtime layout:
 Data layout:
 
 - `.cache/` is committed to Git and is automatically updated by the scheduled refresh job.
-- `.trade/alerts.json` is committed by the scheduled refresh job; other `.trade/` state is not automatically staged.
+- `.trade/alerts.json`, `.trade/watchlist.json`, and `.trade/notes.json` are staged by the scheduled refresh job.
+- MCP uses the fixed project token in `trenddeck/config.py`; no `.env` is required. Optional `.env` overrides stay local; see `.env.example`.
 - `.streamlit/` stays local and contains secrets such as market-data keys.
 - `.venv/` is generated on each machine and is ignored by Git.
 
@@ -489,3 +492,19 @@ GitHub write access is provided by a server-side SSH deploy key with write acces
 git remote get-url origin
 ssh -T git@github.com
 ```
+
+
+## Shared backend modules
+
+- `app.py`: existing web routes and HTTP MCP lifecycle/mount.
+- `trenddeck/config.py`: paths/defaults; paths are rooted at the project, independent of the launch directory. Optional `TRENDDECK_DATA_DIR` redirects `.cache` and `.trade` for isolated deployments.
+- `trenddeck/market.py`: price cache, provider access and memory cache.
+- `trenddeck/indicators.py`: common indicator and trend-check calculations.
+- `trenddeck/analysis.py`: common analysis/summary assembly for web and MCP.
+- `trenddeck/storage.py`, `trenddeck/alerts.py`: existing user-state and alert persistence.
+- `trenddeck/prompts.py`, `trenddeck/utils.py`: prompt export and formatting.
+- `trenddeck/queries.py`: bounded, cache-only agent queries and daily changes.
+- `trenddeck/mcp_server.py`: three read-only MCP tools, Streamable HTTP and bearer authentication.
+
+This extraction preserves existing indicator formulas and web API behavior. Trade-review
+statistics still live in the frontend and are outside this MCP implementation.
