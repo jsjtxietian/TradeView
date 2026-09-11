@@ -12,7 +12,7 @@ import pandas as pd
 
 from trenddeck import market, storage
 from trenddeck.analysis import analyze_frames, build_summary_fields, serialize_history
-from trenddeck.config import DEFAULT_BENCHMARK
+from trenddeck.config import DEFAULT_BENCHMARK, DEFAULT_HISTORY_PERIOD
 from trenddeck.indicators import (
     BASE_TREND_SPECS,
     AnalysisContext,
@@ -307,10 +307,22 @@ def get_symbol_data(
     as_of: str | None = None,
     history_limit: int = 60,
 ) -> dict[str, Any]:
-    """Return analysis and a bounded price-history window for any cached symbol."""
+    """Return analysis and history, fetching the symbol when its cache is absent."""
     symbol = valid_symbol(symbol)
     if not 1 <= history_limit <= 500:
         raise ValueError("history_limit must be 1..500.")
+    cached_frame = market.load_history_cache(symbol, DEFAULT_HISTORY_PERIOD)
+    cache_status = "fetched" if cached_frame.empty else "refreshed"
+    if not cached_frame.empty and market.is_refresh_cooldown_active(symbol, DEFAULT_HISTORY_PERIOD):
+        cache_status = "cooldown"
+    market.load_history(
+        symbol,
+        DEFAULT_HISTORY_PERIOD,
+        force_refresh=True,
+        allow_network=True,
+        tiingo_api_key=market.get_tiingo_api_key(),
+        require_refresh_success=True,
+    )
     analysis_payload = get_symbol_analysis(symbol, as_of)
     history_payload = get_price_history(
         symbol,
@@ -319,6 +331,11 @@ def get_symbol_data(
     )
     return {
         **analysis_payload,
+        "read_only": False,
+        "cache": {
+            "status": cache_status,
+            "fetch_policy": "Refresh and save three-year daily history unless a recent refresh is still within the cooldown; never change the watchlist.",
+        },
         "history": {
             "rows": history_payload["rows"],
             "order": history_payload["order"],

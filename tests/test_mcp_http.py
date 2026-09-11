@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import socket
 import threading
 import time
@@ -10,6 +11,8 @@ import pytest
 import uvicorn
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
+
+from trenddeck import market
 
 
 @pytest.fixture(scope="module")
@@ -79,6 +82,11 @@ def test_authentication_and_host_origin_validation(server_url, monkeypatch):
 def test_real_mcp_clients_discover_and_call_tools(server_url, cached_data, monkeypatch):
     monkeypatch.setenv("TRENDDECK_MCP_TOKEN", "test-token")
 
+    def fake_refresh(symbol, period="3y", **kwargs):
+        return market.load_history_cache(symbol, period)
+
+    monkeypatch.setattr(market, "load_history", fake_refresh)
+
     async def run_client():
         async with httpx.AsyncClient(headers={"Authorization": "Bearer test-token"}) as http:
             async with streamable_http_client(server_url + "/mcp", http_client=http) as (read, write, _):
@@ -91,8 +99,13 @@ def test_real_mcp_clients_discover_and_call_tools(server_url, cached_data, monke
                         "get_symbol_analysis",
                         "get_price_history",
                     }
+                    tools_by_name = {tool.name: tool for tool in tools}
+                    assert not tools_by_name["get_symbol_data"].annotations.readOnlyHint
+                    assert tools_by_name["get_symbol_data"].annotations.openWorldHint
                     assert all(
-                        tool.annotations.readOnlyHint and not tool.annotations.openWorldHint for tool in tools
+                        tool.annotations.readOnlyHint and not tool.annotations.openWorldHint
+                        for tool in tools
+                        if tool.name != "get_symbol_data"
                     )
                     daily = await session.call_tool("get_daily_changes", {"symbols": ["NVDA"]})
                     assert not daily.isError
@@ -101,6 +114,7 @@ def test_real_mcp_clients_discover_and_call_tools(server_url, cached_data, monke
                         "get_symbol_data", {"symbol": "NVDA", "history_limit": 20}
                     )
                     assert not symbol_data.isError
+                    assert symbol_data.structuredContent["cache"]["status"] == "cooldown"
                     assert symbol_data.structuredContent["analysis"]["symbol"] == "NVDA"
                     assert len(symbol_data.structuredContent["history"]["rows"]) == 20
                     detail = await session.call_tool("get_symbol_analysis", {"symbol": "NVDA"})
@@ -126,3 +140,30 @@ def test_real_mcp_clients_discover_and_call_tools(server_url, cached_data, monke
         await asyncio.gather(run_client(), run_client())
 
     asyncio.run(concurrent_clients())
+
+
+def test_symbol_data_returns_upstream_rate_limit_as_mcp_error(server_url, cached_data, monkeypatch):
+    monkeypatch.setenv("TRENDDECK_MCP_TOKEN", "test-token")
+    os.utime(cached_data["cache"] / "NVDA_3y_history.csv", (0, 0))
+    monkeypatch.setattr(market, "get_tiingo_api_key_candidates", lambda preferred=None: ["test-key"])
+
+    def rate_limited(*args, **kwargs):
+        raise market.MarketDataRateLimitError("Tiingo API 限流: HTTP 429，Retry-After: 60。")
+
+    monkeypatch.setattr(market, "fetch_history_from_tiingo", rate_limited)
+
+    async def run_client():
+        async with httpx.AsyncClient(
+            headers={"Authorization": "Bearer test-token"}, trust_env=False
+        ) as http:
+            async with streamable_http_client(server_url + "/mcp", http_client=http) as (read, write, _):
+                async with ClientSession(read, write) as session:
+                    await session.initialize()
+                    result = await session.call_tool("get_symbol_data", {"symbol": "NVDA"})
+                    message = " ".join(
+                        item.text for item in result.content if hasattr(item, "text")
+                    )
+                    assert result.isError
+                    assert "HTTP 429" in message and "Retry-After: 60" in message
+
+    asyncio.run(run_client())

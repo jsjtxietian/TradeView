@@ -32,9 +32,11 @@ def create_mcp_server() -> FastMCP:
     server = FastMCP(
         "TrendDeck",
         instructions=(
-            "Read-only US-stock daily cache and technical analysis. Start with get_daily_changes "
+            "US-stock daily cache and technical analysis. Start with get_daily_changes "
             "after the scheduled market refresh. Use get_symbol_data to retrieve analysis and "
-            "a recent price window for any cached symbol, whether or not it is in the watchlist. "
+            "a recent price window for any symbol, whether or not it is in the watchlist; it refreshes "
+            "and saves three-year daily history unless the recent-refresh cooldown applies, and never "
+            "changes the watchlist. "
             "Use get_symbol_analysis for compact follow-ups and "
             "get_price_history for additional OHLCV evidence. Always state as_of_session and check "
             "coverage and benchmark_session; a readable cache does not prove a successful refresh. "
@@ -59,6 +61,9 @@ def create_mcp_server() -> FastMCP:
     read_only = ToolAnnotations(
         readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False
     )
+    cache_on_miss = ToolAnnotations(
+        readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True
+    )
 
     @server.tool(annotations=read_only)
     async def get_daily_changes(
@@ -79,17 +84,20 @@ def create_mcp_server() -> FastMCP:
             partial(queries.get_daily_changes, session_date, symbols, include_unchanged, limit, offset)
         )
 
-    @server.tool(annotations=read_only)
+    @server.tool(annotations=cache_on_miss)
     async def get_symbol_data(
         symbol: str,
         as_of: str | None = None,
         history_limit: Annotated[int, Field(ge=1, le=500)] = 60,
     ) -> dict[str, Any]:
-        """Analysis plus recent cached OHLCV and MA20/50/150/200 for one symbol,
-        whether or not it is in the current watchlist. as_of is an optional inclusive
-        YYYY-MM-DD analysis cutoff. history_limit controls the returned newest bars
-        (1-500, default 60); use next_before with get_price_history for older pages.
-        The tool never refreshes or downloads missing data.
+        """Refresh and save three-year daily history, subject to the short recent-refresh
+        cooldown, then return analysis plus recent OHLCV and MA20/50/150/200 for one
+        symbol, whether or not it is in the current watchlist. This never adds the symbol
+        to the watchlist. as_of is an optional
+        inclusive YYYY-MM-DD analysis cutoff. history_limit controls the returned
+        newest bars (1-500, default 60); use next_before with get_price_history for
+        older pages. Upstream authentication, rate-limit and other refresh failures are
+        returned as tool errors instead of silently returning stale cached data.
         """
         return await anyio.to_thread.run_sync(
             partial(queries.get_symbol_data, symbol, as_of, history_limit)

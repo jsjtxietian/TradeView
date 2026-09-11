@@ -25,6 +25,10 @@ from trenddeck.config import (
 _memory_cache: dict[tuple[Any, ...], tuple[float, Any]] = {}
 
 
+class MarketDataRateLimitError(ValueError):
+    """The upstream market-data provider rejected the request due to rate limits."""
+
+
 def get_cached(key: tuple[Any, ...]) -> Any | None:
     cached = _memory_cache.get(key)
     if not cached:
@@ -202,6 +206,10 @@ def fetch_history_from_tiingo(
     )
     if response.status_code in (401, 403):
         raise ValueError("Tiingo API key 无效或当前账户无权限访问该接口。")
+    if response.status_code == 429:
+        retry_after = str(response.headers.get("Retry-After", "")).strip()
+        retry_hint = f"，Retry-After: {retry_after}" if retry_after else ""
+        raise MarketDataRateLimitError(f"Tiingo API 限流: HTTP 429{retry_hint}。")
     if response.status_code == 404:
         return pd.DataFrame()
     if response.status_code >= 400:
@@ -248,6 +256,7 @@ def load_history(
     force_refresh: bool = False,
     allow_network: bool = True,
     tiingo_api_key: str | None = None,
+    require_refresh_success: bool = False,
 ) -> pd.DataFrame:
     cache_key = ("history", symbol, period)
     cached = get_cached(cache_key)
@@ -260,7 +269,12 @@ def load_history(
         return set_cached(cache_key, disk_cached.copy()).copy()
     if not allow_network:
         return pd.DataFrame()
-    if force_refresh and not disk_cached.empty and not legacy_cache_needs_rebuild and is_refresh_cooldown_active(symbol, period):
+    if (
+        force_refresh
+        and not disk_cached.empty
+        and not legacy_cache_needs_rebuild
+        and is_refresh_cooldown_active(symbol, period)
+    ):
         disk_cached.attrs["source_note"] = f"{symbol} 刚刚已拉新过，短时间内直接复用本地缓存。"
         return set_cached(cache_key, disk_cached.copy()).copy()
 
@@ -270,7 +284,10 @@ def load_history(
         incremental_start = (disk_cached["Date"].max() + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
 
     tiingo_error: Exception | None = None
+    tiingo_errors: list[Exception] = []
     api_keys = get_tiingo_api_key_candidates(tiingo_api_key)
+    if require_refresh_success and not api_keys:
+        raise ValueError(f"{symbol} 无法刷新：服务器未配置 Tiingo API key。")
     if api_keys:
         for api_key in api_keys:
             try:
@@ -294,6 +311,17 @@ def load_history(
                 break
             except Exception as exc:
                 tiingo_error = exc
+                tiingo_errors.append(exc)
+
+    if require_refresh_success:
+        if tiingo_errors:
+            details = "; ".join(str(error) for error in tiingo_errors)
+            raise ValueError(
+                f"{symbol} Tiingo 刷新失败（已尝试 {len(tiingo_errors)} 个 API key）：{details}"
+            )
+        if tiingo_had_no_data:
+            raise ValueError(f"{symbol} 在 Tiingo 中没有返回可用行情，代码可能无效。")
+        raise ValueError(f"{symbol} 行情刷新未成功，旧缓存未作为最新数据返回。")
 
     if not disk_cached.empty:
         if legacy_cache_needs_rebuild:

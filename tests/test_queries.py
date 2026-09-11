@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import json
+import os
 
 import pandas as pd
 import pytest
 
-from trenddeck import analysis, queries, storage
+from trenddeck import analysis, market, queries, storage
 
 
 def test_daily_changes_reports_coverage_and_never_writes(cached_data):
@@ -34,15 +35,79 @@ def test_daily_historical_cutoff_has_no_future_bars(cached_data):
     assert not any(e["type"] == "large_daily_move" for e in result["items"][0]["changes"])
 
 
-def test_symbol_data_combines_analysis_and_history_without_watchlist_membership(cached_data):
+def test_symbol_data_refreshes_after_cooldown_without_watchlist_membership(
+    cached_data, monkeypatch
+):
     storage.WATCHLIST_FILE.write_text(
         json.dumps({"watchlist": [], "groups": []}), encoding="utf-8"
     )
+    source = pd.read_csv(cached_data["cache"] / "NVDA_3y_history.csv")
+    source["Date"] = pd.to_datetime(source["Date"])
+    calls = []
+
+    def fake_fetch(symbol, period, start_date=None, end_date=None, api_key=None):
+        calls.append((symbol, period, start_date))
+        return source.copy()
+
+    def save_cache(symbol, period, frame):
+        frame.to_csv(cached_data["cache"] / f"{symbol}_{period}_history.csv", index=False)
+
+    monkeypatch.setattr(market, "fetch_history_from_tiingo", fake_fetch)
+    monkeypatch.setattr(market, "save_history_cache", save_cache)
+    monkeypatch.setattr(market, "get_tiingo_api_key_candidates", lambda preferred=None: ["test-key"])
+    os.utime(cached_data["cache"] / "NVDA_3y_history.csv", (0, 0))
+
     result = queries.get_symbol_data("nvda", history_limit=20)
+    assert result["cache"]["status"] == "refreshed"
+    assert result["read_only"] is False
     assert result["analysis"]["symbol"] == "NVDA"
     assert len(result["history"]["rows"]) == 20
     assert result["history"]["rows"][-1]["Date"] == cached_data["date"]
     assert result["history"]["next_before"] == result["history"]["rows"][0]["Date"]
+    next_date = (pd.Timestamp(cached_data["date"]) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+    assert calls == [("NVDA", "3y", next_date)]
+
+    fetched = queries.get_symbol_data("OUTSIDE", history_limit=5)
+    assert fetched["cache"]["status"] == "fetched"
+    assert fetched["analysis"]["symbol"] == "OUTSIDE"
+    assert len(fetched["history"]["rows"]) == 5
+    assert calls[-1] == ("OUTSIDE", "3y", None)
+
+    cooldown = queries.get_symbol_data("OUTSIDE", history_limit=5)
+    assert cooldown["cache"]["status"] == "cooldown"
+    assert len(calls) == 2
+
+
+def test_symbol_data_uses_recent_cache_during_cooldown(cached_data):
+    result = queries.get_symbol_data("NVDA", history_limit=5)
+    assert result["cache"]["status"] == "cooldown"
+    assert result["analysis"]["symbol"] == "NVDA"
+
+
+def test_symbol_data_surfaces_rate_limit_instead_of_using_stale_cache(cached_data, monkeypatch):
+    monkeypatch.setattr(market, "get_tiingo_api_key_candidates", lambda preferred=None: ["test-key"])
+    os.utime(cached_data["cache"] / "NVDA_3y_history.csv", (0, 0))
+
+    def rate_limited(*args, **kwargs):
+        raise market.MarketDataRateLimitError("Tiingo API 限流: HTTP 429，Retry-After: 60。")
+
+    monkeypatch.setattr(market, "fetch_history_from_tiingo", rate_limited)
+    with pytest.raises(ValueError, match="HTTP 429.*Retry-After: 60"):
+        queries.get_symbol_data("NVDA")
+
+
+def test_tiingo_429_reports_retry_after(monkeypatch):
+    class Response:
+        status_code = 429
+        headers = {"Retry-After": "120"}
+
+    class Session:
+        def get(self, *args, **kwargs):
+            return Response()
+
+    monkeypatch.setattr(market, "get_session", lambda: Session())
+    with pytest.raises(market.MarketDataRateLimitError, match="HTTP 429.*Retry-After: 120"):
+        market.fetch_history_from_tiingo("NVDA", "3y", api_key="test-key")
 
 
 def test_symbol_analysis_matches_web_calculations(cached_data):
