@@ -45,7 +45,7 @@ def test_authentication_and_host_origin_validation(server_url, monkeypatch):
     }
     monkeypatch.setenv("TRENDDECK_MCP_TOKEN", "previous-test-token")
     response = httpx.post(server_url + "/mcp", json=request, headers=old_headers)
-    assert response.status_code == 200 and len(response.json()["result"]["tools"]) == 3
+    assert response.status_code == 200 and len(response.json()["result"]["tools"]) == 4
     monkeypatch.setenv("TRENDDECK_MCP_TOKEN", "")
     assert httpx.post(server_url + "/mcp", json=request, headers=old_headers).status_code == 503
     assert (
@@ -87,6 +87,7 @@ def test_real_mcp_clients_discover_and_call_tools(server_url, cached_data, monke
                     tools = (await session.list_tools()).tools
                     assert {tool.name for tool in tools} == {
                         "get_daily_changes",
+                        "get_symbol_data",
                         "get_symbol_analysis",
                         "get_price_history",
                     }
@@ -96,6 +97,12 @@ def test_real_mcp_clients_discover_and_call_tools(server_url, cached_data, monke
                     daily = await session.call_tool("get_daily_changes", {"symbols": ["NVDA"]})
                     assert not daily.isError
                     assert daily.structuredContent["as_of_session"] == cached_data["date"]
+                    symbol_data = await session.call_tool(
+                        "get_symbol_data", {"symbol": "NVDA", "history_limit": 20}
+                    )
+                    assert not symbol_data.isError
+                    assert symbol_data.structuredContent["analysis"]["symbol"] == "NVDA"
+                    assert len(symbol_data.structuredContent["history"]["rows"]) == 20
                     detail = await session.call_tool("get_symbol_analysis", {"symbol": "NVDA"})
                     assert not detail.isError and detail.structuredContent["analysis"]["symbol"] == "NVDA"
                     page = await session.call_tool("get_price_history", {"symbol": "NVDA", "limit": 2})

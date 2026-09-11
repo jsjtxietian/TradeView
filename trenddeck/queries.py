@@ -302,6 +302,34 @@ def get_symbol_analysis(symbol: str, as_of: str | None = None) -> dict[str, Any]
     }
 
 
+def get_symbol_data(
+    symbol: str,
+    as_of: str | None = None,
+    history_limit: int = 60,
+) -> dict[str, Any]:
+    """Return analysis and a bounded price-history window for any cached symbol."""
+    symbol = valid_symbol(symbol)
+    if not 1 <= history_limit <= 500:
+        raise ValueError("history_limit must be 1..500.")
+    analysis_payload = get_symbol_analysis(symbol, as_of)
+    history_payload = get_price_history(
+        symbol,
+        end_date=analysis_payload["as_of_session"],
+        limit=history_limit,
+    )
+    return {
+        **analysis_payload,
+        "history": {
+            "rows": history_payload["rows"],
+            "order": history_payload["order"],
+            "cached_range": history_payload["cached_range"],
+            "has_more": history_payload["has_more"],
+            "next_before": history_payload["next_before"],
+            "range_note": history_payload["range_note"],
+        },
+    }
+
+
 def get_price_history(
     symbol: str,
     start_date: str | None = None,

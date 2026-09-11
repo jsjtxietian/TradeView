@@ -34,6 +34,17 @@ def test_daily_historical_cutoff_has_no_future_bars(cached_data):
     assert not any(e["type"] == "large_daily_move" for e in result["items"][0]["changes"])
 
 
+def test_symbol_data_combines_analysis_and_history_without_watchlist_membership(cached_data):
+    storage.WATCHLIST_FILE.write_text(
+        json.dumps({"watchlist": [], "groups": []}), encoding="utf-8"
+    )
+    result = queries.get_symbol_data("nvda", history_limit=20)
+    assert result["analysis"]["symbol"] == "NVDA"
+    assert len(result["history"]["rows"]) == 20
+    assert result["history"]["rows"][-1]["Date"] == cached_data["date"]
+    assert result["history"]["next_before"] == result["history"]["rows"][0]["Date"]
+
+
 def test_symbol_analysis_matches_web_calculations(cached_data):
     web = analysis.analyze_symbol("NVDA", allow_network=False)
     mcp = queries.get_symbol_analysis("nvda")

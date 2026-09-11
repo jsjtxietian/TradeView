@@ -33,7 +33,9 @@ def create_mcp_server() -> FastMCP:
         "TrendDeck",
         instructions=(
             "Read-only US-stock daily cache and technical analysis. Start with get_daily_changes "
-            "after the scheduled market refresh, then use get_symbol_analysis for follow-ups and "
+            "after the scheduled market refresh. Use get_symbol_data to retrieve analysis and "
+            "a recent price window for any cached symbol, whether or not it is in the watchlist. "
+            "Use get_symbol_analysis for compact follow-ups and "
             "get_price_history for additional OHLCV evidence. Always state as_of_session and check "
             "coverage and benchmark_session; a readable cache does not prove a successful refresh. "
             "Daily changes are computed from bars, not alert timestamps. Historical queries use "
@@ -75,6 +77,22 @@ def create_mcp_server() -> FastMCP:
         """
         return await anyio.to_thread.run_sync(
             partial(queries.get_daily_changes, session_date, symbols, include_unchanged, limit, offset)
+        )
+
+    @server.tool(annotations=read_only)
+    async def get_symbol_data(
+        symbol: str,
+        as_of: str | None = None,
+        history_limit: Annotated[int, Field(ge=1, le=500)] = 60,
+    ) -> dict[str, Any]:
+        """Analysis plus recent cached OHLCV and MA20/50/150/200 for one symbol,
+        whether or not it is in the current watchlist. as_of is an optional inclusive
+        YYYY-MM-DD analysis cutoff. history_limit controls the returned newest bars
+        (1-500, default 60); use next_before with get_price_history for older pages.
+        The tool never refreshes or downloads missing data.
+        """
+        return await anyio.to_thread.run_sync(
+            partial(queries.get_symbol_data, symbol, as_of, history_limit)
         )
 
     @server.tool(annotations=read_only)
