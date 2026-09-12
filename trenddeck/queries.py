@@ -1,4 +1,4 @@
-"""Read-only, bounded queries for agents. Market providers are never called here."""
+"""Bounded agent queries; only an explicitly refreshed report calls the provider."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ from typing import Any
 import pandas as pd
 
 from trenddeck import market, storage
+from trenddeck.alerts import load_alert_log
 from trenddeck.analysis import analyze_frames, build_summary_fields, serialize_history
 from trenddeck.config import DEFAULT_BENCHMARK, DEFAULT_HISTORY_PERIOD
 from trenddeck.indicators import (
@@ -143,7 +144,7 @@ def session_changes(current: dict[str, Any], previous: dict[str, Any] | None) ->
 
 def metadata() -> dict[str, Any]:
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "source": "local Tiingo daily cache",
         "read_only": True,
@@ -160,10 +161,27 @@ def metadata() -> dict[str, Any]:
     }
 
 
+def latest_alerts_by_symbol() -> dict[str, list[dict[str, Any]]]:
+    """Keep all messages in each symbol's latest batch, comparing actual instants."""
+    result: dict[str, list[dict[str, Any]]] = {}
+    timestamps: dict[str, datetime] = {}
+    for alert in load_alert_log():
+        symbol = alert["symbol"]
+        timestamp = datetime.fromisoformat(alert["createdAt"].replace("Z", "+00:00"))
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
+        if symbol not in timestamps or timestamp > timestamps[symbol]:
+            timestamps[symbol] = timestamp
+            result[symbol] = [alert]
+        elif timestamp == timestamps[symbol]:
+            result[symbol].append(alert)
+    return result
+
+
 def get_daily_changes(
     session_date: str | None = None,
     symbols: list[str] | None = None,
-    include_unchanged: bool = False,
+    include_unchanged: bool = True,
     limit: int = 30,
     offset: int = 0,
 ) -> dict[str, Any]:
@@ -187,24 +205,36 @@ def get_daily_changes(
     configured = (
         watchlist["watchlist"] if watchlist is not None else storage.load_configured_watchlist_symbols()
     )
-    requested = (
-        symbols
-        if symbols is not None
-        else [*configured, *(s for s, note in notes.items() if note.get("isHolding"))]
-    )
+    configured = list(dict.fromkeys(valid_symbol(symbol) for symbol in configured))
+    requested = symbols or configured
     if len(requested) > 200:
         raise ValueError("Query at most 200 symbols per call.")
     universe = list(dict.fromkeys(valid_symbol(symbol) for symbol in requested))
+    if any(symbol not in configured for symbol in universe):
+        raise ValueError("symbols must be in the current watchlist; use get_symbol_report for other stocks.")
+    latest_alerts = latest_alerts_by_symbol()
     items, errors, behind_reference, session_gaps = [], [], [], []
     available = 0
     for symbol in universe:
         try:
             frame = benchmark if symbol == DEFAULT_BENCHMARK else read_history(symbol, session_date)
             if frame.empty:
-                errors.append({"symbol": symbol, "error": "no_cached_history_on_or_before_session"})
+                errors.append(
+                    {
+                        "symbol": symbol,
+                        "error": "no_cached_history_on_or_before_session",
+                        "latestAlerts": latest_alerts.get(symbol, []),
+                    }
+                )
                 continue
             if latest_date(frame) != session_date:
-                behind_reference.append({"symbol": symbol, "latest_session": latest_date(frame)})
+                behind_reference.append(
+                    {
+                        "symbol": symbol,
+                        "latest_session": latest_date(frame),
+                        "latestAlerts": latest_alerts.get(symbol, []),
+                    }
+                )
                 continue
             current = compact_summary(symbol, frame, benchmark)
             previous_frame = frame.iloc[:-1]
@@ -226,10 +256,13 @@ def get_daily_changes(
                         "previousSession": latest_date(previous_frame),
                         "priceMode": market.get_history_price_mode(frame),
                         "changes": events,
+                        "latestAlerts": latest_alerts.get(symbol, []),
                     }
                 )
         except (ValueError, KeyError, TypeError) as exc:
-            errors.append({"symbol": symbol, "error": str(exc)})
+            errors.append(
+                {"symbol": symbol, "error": str(exc), "latestAlerts": latest_alerts.get(symbol, [])}
+            )
     items.sort(
         key=lambda item: (
             not item["isHolding"],
@@ -267,6 +300,7 @@ def get_daily_changes(
         "items": items[offset : offset + limit],
         "next_offset": offset + limit if offset + limit < len(items) else None,
         "comparison": "Changes are recalculated from cached daily bars, not alert creation timestamps. Historical queries use today's watchlist and manually maintained holding flags.",
+        "alerts_note": "latestAlerts contains all messages at each symbol's latest saved alert timestamp (or []). These are current saved alerts, even for historical queries; createdAt is not a trading-session date.",
     }
 
 
@@ -274,18 +308,18 @@ def get_symbol_analysis(symbol: str, as_of: str | None = None) -> dict[str, Any]
     symbol, as_of = valid_symbol(symbol), valid_date(as_of)
     frame = read_history(symbol, as_of)
     if frame.empty:
-        raise ValueError(f"No local history for {symbol} on or before the requested date.")
+        raise ValueError(
+            f"No local history for {symbol} on or before the requested date. Use refresh=true to fetch missing data."
+        )
     session = latest_date(frame)
     benchmark = read_history(DEFAULT_BENCHMARK, session)
     data = analyze_frames(symbol, frame, benchmark)
-    # Full histories and duplicate indicator windows are available separately;
-    # the default answer stays small enough for follow-up conversations.
+    # The report adds paginated OHLCV separately; retain all indicator windows
+    # but omit duplicate chart payloads from the analysis section.
     for key in (
         "history",
         "benchmarkHistory",
         "trendSparklineValues",
-        "buyIndicatorGroupsByWindow",
-        "sellIndicatorGroupsByWindow",
         "sourceNotes",
     ):
         data.pop(key, None)
@@ -302,39 +336,47 @@ def get_symbol_analysis(symbol: str, as_of: str | None = None) -> dict[str, Any]
     }
 
 
-def get_symbol_data(
+def get_symbol_report(
     symbol: str,
+    refresh: bool = False,
     as_of: str | None = None,
     history_limit: int = 60,
+    before: str | None = None,
 ) -> dict[str, Any]:
-    """Return analysis and history, fetching the symbol when its cache is absent."""
-    symbol = valid_symbol(symbol)
+    """Full technical evidence with opt-in refresh and paginated daily history."""
+    symbol, as_of, before = valid_symbol(symbol), valid_date(as_of), valid_date(before)
     if not 1 <= history_limit <= 500:
         raise ValueError("history_limit must be 1..500.")
-    cached_frame = market.load_history_cache(symbol, DEFAULT_HISTORY_PERIOD)
-    cache_status = "fetched" if cached_frame.empty else "refreshed"
-    if not cached_frame.empty and market.is_refresh_cooldown_active(symbol, DEFAULT_HISTORY_PERIOD):
-        cache_status = "cooldown"
-    market.load_history(
-        symbol,
-        DEFAULT_HISTORY_PERIOD,
-        force_refresh=True,
-        allow_network=True,
-        tiingo_api_key=market.get_tiingo_api_key(),
-        require_refresh_success=True,
-    )
+    cache_status = "cached"
+    if refresh:
+        cached_frame = market.load_history_cache(symbol, DEFAULT_HISTORY_PERIOD)
+        cache_status = "fetched" if cached_frame.empty else "refreshed"
+        market.load_history(
+            symbol,
+            DEFAULT_HISTORY_PERIOD,
+            force_refresh=True,
+            allow_network=True,
+            tiingo_api_key=market.get_tiingo_api_key(),
+            require_refresh_success=True,
+            respect_refresh_cooldown=False,
+        )
+        market.clear_symbol_memory_cache(symbol)
     analysis_payload = get_symbol_analysis(symbol, as_of)
     history_payload = get_price_history(
         symbol,
         end_date=analysis_payload["as_of_session"],
+        before=before,
         limit=history_limit,
     )
     return {
         **analysis_payload,
-        "read_only": False,
+        "read_only": not refresh,
+        "refresh_status": "succeeded" if refresh else "not_requested",
+        "latestAlerts": latest_alerts_by_symbol().get(symbol, []),
+        "alerts_note": "Current saved alerts, not restricted by as_of or regenerated by refresh.",
         "cache": {
             "status": cache_status,
-            "fetch_policy": "Refresh and save three-year daily history unless a recent refresh is still within the cooldown; never change the watchlist.",
+            "fetch_policy": "Only refresh=true requests and saves this symbol's daily data, bypassing cooldown. SPY uses its existing cache; watchlist, notes and alerts are not changed. Daily data is not a live quote.",
         },
         "history": {
             "rows": history_payload["rows"],
@@ -362,7 +404,9 @@ def get_price_history(
         raise ValueError("start_date must be on or before end_date.")
     frame = read_history(symbol)
     if frame.empty:
-        raise ValueError(f"{symbol} has no local history. MCP never downloads missing data.")
+        raise ValueError(
+            f"{symbol} has no local history. Use get_symbol_report with refresh=true to fetch it."
+        )
     cached_start, cached_end = frame["Date"].iloc[0].strftime("%Y-%m-%d"), latest_date(frame)
     mode = market.get_history_price_mode(frame)
     history = add_indicators(frame)

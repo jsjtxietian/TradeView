@@ -107,75 +107,73 @@ Host 不匹配返回 421。普通服务端 agent 不发送 Origin；若客户端
 
 ## 工具与对话方式
 
+MCP 只暴露两个工具：`get_daily_changes` 和 `get_symbol_report`。
+原来的 `get_symbol_data`、`get_symbol_analysis`、`get_price_history` 已移除；
+升级后重新加载 agent 的 MCP 工具列表，并更新已有定时任务中的工具名。
+
 ### `get_daily_changes`
 
-默认使用 **SPY 缓存中的最近交易日**，比较当前自选股和标记持仓的前后状态。
-不读取浏览器 localStorage，不刷新行情，也不修改提醒日志。
+默认使用 **SPY 缓存中的最近交易日**，返回当前 watchlist 内股票的当日变化和最新提醒。
+只读缓存，不刷新行情、不修改提醒日志。watchlist 外的手工持仓不自动加入日报。
 
 ```json
-{"session_date": "2026-09-10", "limit": 30, "offset": 0}
+{"limit": 30, "offset": 0}
 ```
 
-- `session_date` 可省略；指定时必须存在对应的 SPY 日线。
-- `symbols` 可选，最多 200 个；省略时读取当前服务器自选股及标记持仓。
-- 默认仅返回触发变化/观察条件的标的，持仓优先排列。`include_unchanged: true` 可查看全部。
-- `limit` 为 1–100，默认 30；使用 `next_offset` 继续读取。
-- 变化包含趋势模板进出、各基础检查状态变化、MA50 穿越、六个月收盘高低点、
-  单日 ±5%、五交易日 ±8%、成交量高于均量 1.5 倍或低于 0.5 倍。
-- `coverage` 列出缺失、落后于参考交易日以及中间缺少交易日的标的。
-- `snapshot_id` 是结果内容指纹，同一份数据重复查询可以去重；不是服务器持久化的历史快照。
+- `session_date` 可省略；指定 YYYY-MM-DD 时必须存在对应的 SPY 日线。
+- `symbols` 可选，省略、`null` 或 `[]` 均表示整个 watchlist；非空列表按股票代码筛选当前 watchlist，最多 200 个。
+- 默认包含没有触发特殊变化的股票，持仓优先排列；`include_unchanged: false` 仅返回触发条件的股票。
+- `limit` 为 1–100，默认 30；使用 `next_offset` 继续读取，直到其为 null。
+- 每项包含涨跌幅、量比、趋势状态和 `changes`：趋势模板进出、基础检查变化、MA50 穿越、
+  六个月收盘高低点、单日 ±5%、五交易日 ±8%、成交量高于均量 1.5 倍或低于 0.5 倍。
+- `latestAlerts` 返回该股票**最近一次提醒时间下的全部消息**，包括 `message`、`createdAt`、
+  `timeLabel`；没有提醒时为 `[]`。它可能是以前的提醒，不代表本交易日新触发。
+- `coverage` 列出缺失、落后于参考交易日以及中间缺少交易日的股票；缺失/落后的条目也附带
+  `latestAlerts`，不把旧行情当成当日变化。
+- `snapshot_id` 是结果内容指纹，可以去重；不是服务器持久化的历史快照。
 
-变化直接从缓存日线计算，不用提醒日志的生成时间冒充交易日期。
-“六个月新高”“放量”等观察条件可以连续多天出现。
-历史查询仍使用**当前**自选股与持仓标记；前复权历史也可能随以后刷新而变化。
+变化从缓存日线重新计算，不用提醒生成时间冒充交易日期。观察条件可以连续多天出现。
+历史查询仍使用**当前** watchlist、持仓标记和最新提醒；提醒不按 `session_date` 截断。
 
-### `get_symbol_data`
-
-```json
-{"symbol": "NVDA", "history_limit": 60}
-```
-
-输入任意股票代码，先通过服务器配置的 Tiingo API 刷新并保存三年日线，再返回与网页
-同源的技术分析以及最近一段历史价格。不要求该股票位于当前自选股或被标记为持仓，刷新
-也不会把它加入自选股。同一股票刚刷新过时沿用项目的短时间冷却策略，直接复用这份新缓存，
-避免连续调用消耗行情 API 配额。
-历史记录包含 OHLCV 和
-MA20/50/150/200，`history_limit` 为 1–500，默认 60 根；如需继续向前读取，将
-`history.next_before` 传给 `get_price_history` 的 `before`。
-
-可通过 `as_of: "2026-09-10"` 同时限制分析和返回历史的截止日期；响应中的
-`as_of_session` 是实际可用交易日。`cache.status` 为 `fetched`、`refreshed` 或 `cooldown`，
-用于区分首次落盘、更新已有缓存和冷却期内复用。服务器未配置 API key、Tiingo 鉴权失败、HTTP 429 限流或其他
-上游错误都会作为 MCP Tool 错误返回，不会把旧缓存伪装成本次已刷新数据。429 错误会在
-可用时包含 Tiingo 的 `Retry-After` 提示。
-
-### `get_symbol_analysis`
+### `get_symbol_report`
 
 ```json
 {"symbol": "NVDA"}
 ```
 
-返回与网页同源的趋势检查、买入/卖出观察指标、相对 SPY 表现分、当前保存的笔记和持仓信息。
-`as_of: "2026-09-10"` 可限制价格数据截至某一天；返回 `as_of_session` 是实际可用交易日。
-默认省略完整历史 K 线及重复的指标窗口，方便“这只怎么样”的追问。
-持仓是手工维护的信息，不是券商实时仓位，也不是指定历史日期的持仓。
+返回与网页同源的完整技术分析证据：趋势检查、各观察周期的买入/卖出指标、相对 SPY 表现分、
+当前笔记和手工持仓、最新提醒，以及 OHLCV 和 MA20/50/150/200。
+这是结构化技术报告，由 agent 据此解读；服务端不调用大模型生成投资结论。
 
-### `get_price_history`
+- `refresh` 默认 **false**：仅读磁盘缓存，即使没有缓存也不自动联网，而是提示显式刷新。
+- `refresh: true`：实际请求 Tiingo，更新并保存该股票的三年日线缓存，跳过短时间冷却。
+  可查询 watchlist 外的股票，不会把它加入自选股，也不改笔记、持仓或 alert。
+  SPY 基准仍使用已有缓存，注意检查 `benchmark_session`。
+- `as_of` 可指定包含当天的分析截止日期；`as_of_session` 是实际使用的交易日。
+  历史截止日期只影响报告，不限制主动刷新到磁盘的数据。
+- `history_limit` 指定返回的日线数量，为 1–500，默认 60 根；返回页内按日期正序。
+- 将 `history.next_before` 传为 `before`，继续读取更早日线。`before` 不包含当天，
+  只影响历史分页，不改变分析截止日。分页时固定 `as_of` 并使用 `refresh: false`。
+
+主动拉新：
 
 ```json
-{"symbol": "NVDA", "limit": 60}
+{"symbol": "NVDA", "refresh": true}
 ```
 
-返回最近 60 根缓存日线及 MA20/50/150/200，每页 1–500 根，页内按日期正序。
-需要更多时，将返回的 `next_before` 传为 `before`；配合原有日期范围继续请求。
+读取更早历史（日期替换为上一页返回的值）：
 
 ```json
-{"symbol": "NVDA", "before": "2026-06-18", "limit": 120}
+{"symbol": "NVDA", "as_of": "2026-09-10", "before": "2025-09-11", "history_limit": 252}
 ```
 
-`start_date`、`end_date` 为包含边界的日期范围；`before` 不包含当天。
-`cached_range` 表示本机全部可用日期，`price_mode` 表示价格口径。
-超出缓存范围返回可用部分或空列表，不会自动联网补数据。
+`cache.status` 为 `cached`、`fetched` 或 `refreshed`；`refresh_status` 为 `not_requested`
+或 `succeeded`。刷新成功只表示本次行情请求成功，不保证已包含预期的最新交易日，仍需检查日期。
+无 API key、鉴权失败、HTTP 429 或其他刷新错误都会返回 MCP Tool 错误，不会静默返回旧缓存。
+429 错误在可用时包含 Tiingo 的 `Retry-After`。返回的是日线数据，不是实时行情。
+
+笔记、持仓和 `latestAlerts` 始终是当前保存的信息；不是历史仓位，也不随本次刷新重新生成提醒。
+MCP 将此工具标注为可能写缓存和访问外部行情源，因为 `refresh=true` 会执行这些操作。
 
 ## 每日报告
 
@@ -187,13 +185,14 @@ MA20/50/150/200，`history_limit` 为 1–500，默认 60 根；如需继续向�
 
 > 读取 TrendDeck 的每日变化并生成中文日报。先写清数据对应的交易日，检查 coverage。
 > 优先整理持仓风险、趋势模板变化和需要进一步关注的标的；如有 next_offset，继续读取。
-> 对最值得关注的少量标的调用 get_symbol_analysis，需要量价证据时取日线。
+> 对最值得关注的少量标的调用 get_symbol_report，默认只读缓存；需要更多日线时使用 before 翻页。
+> 结合 latestAlerts 的原始时间解读，不把旧提醒说成今日新变化。
 > 涨跌幅 0.05 表示 5%；本地 RS 不是官方 IBD 排名。
 > 保存上次报告的交易日和 snapshot_id，避免同一份数据重复报告。
 > 如果数据没有更新或缺失，直接说明，不把旧行情描述为今日行情。
-> 我随后追问某只股票时，继续调用单股分析和日线工具回答。
+> 我随后追问某只股票时，调用 get_symbol_report；明确需要拉新时才设 refresh=true。
 
-当前刷新流程没有可靠的持久化成功状态，因此工具明确返回 `refresh_status: not_tracked`，
+当前每日刷新流程没有可靠的持久化成功状态，因此 get_daily_changes 返回 `refresh_status: not_tracked`，
 日期仅说明读到了哪一天的缓存。未引入交易所日历，不把周末/节假日粗暴标记为刷新失败。
 查询期间应避免同时刷新文件；每次查询直接读磁盘，下一次查询无需等待网页内存缓存过期。
 基本面、新闻、自动交易和复盘收益统计不属于这次 MCP 范围。
@@ -209,4 +208,4 @@ python -m ruff check app.py trenddeck tests
 ```
 
 测试使用临时行情文件，并通过真实 HTTP MCP 客户端验证初始化、工具发现、并发查询、
-鉴权、Host/Origin 限制、历史截止日期与分页；不联网拉行情、不修改真实账户文件。
+鉴权、Host/Origin 限制、历史截止日期与分页、最新提醒和显式刷新行为；不联网拉行情、不修改真实账户文件。

@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from trenddeck import market, storage
+from trenddeck import alerts, market, storage
 
 
 @pytest.fixture
@@ -18,6 +18,7 @@ def cached_data(tmp_path, monkeypatch):
     monkeypatch.setattr(market, "STOCK_DIR", cache)
     monkeypatch.setattr(storage, "WATCHLIST_FILE", trade / "watchlist.json")
     monkeypatch.setattr(storage, "NOTES_FILE", trade / "notes.json")
+    monkeypatch.setattr(alerts, "ALERTS_FILE", trade / "alerts.json")
     market._memory_cache.clear()
 
     def forbidden(*args, **kwargs):

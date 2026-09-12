@@ -257,6 +257,7 @@ def load_history(
     allow_network: bool = True,
     tiingo_api_key: str | None = None,
     require_refresh_success: bool = False,
+    respect_refresh_cooldown: bool = True,
 ) -> pd.DataFrame:
     cache_key = ("history", symbol, period)
     cached = get_cached(cache_key)
@@ -271,6 +272,7 @@ def load_history(
         return pd.DataFrame()
     if (
         force_refresh
+        and respect_refresh_cooldown
         and not disk_cached.empty
         and not legacy_cache_needs_rebuild
         and is_refresh_cooldown_active(symbol, period)

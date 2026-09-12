@@ -7,6 +7,7 @@ import threading
 import time
 
 import httpx
+import pandas as pd
 import pytest
 import uvicorn
 from mcp import ClientSession
@@ -48,7 +49,7 @@ def test_authentication_and_host_origin_validation(server_url, monkeypatch):
     }
     monkeypatch.setenv("TRENDDECK_MCP_TOKEN", "previous-test-token")
     response = httpx.post(server_url + "/mcp", json=request, headers=old_headers)
-    assert response.status_code == 200 and len(response.json()["result"]["tools"]) == 4
+    assert response.status_code == 200 and len(response.json()["result"]["tools"]) == 2
     monkeypatch.setenv("TRENDDECK_MCP_TOKEN", "")
     assert httpx.post(server_url + "/mcp", json=request, headers=old_headers).status_code == 503
     assert (
@@ -82,59 +83,61 @@ def test_authentication_and_host_origin_validation(server_url, monkeypatch):
 def test_real_mcp_clients_discover_and_call_tools(server_url, cached_data, monkeypatch):
     monkeypatch.setenv("TRENDDECK_MCP_TOKEN", "test-token")
 
-    def fake_refresh(symbol, period="3y", **kwargs):
-        return market.load_history_cache(symbol, period)
-
-    monkeypatch.setattr(market, "load_history", fake_refresh)
-
     async def run_client():
         async with httpx.AsyncClient(headers={"Authorization": "Bearer test-token"}) as http:
             async with streamable_http_client(server_url + "/mcp", http_client=http) as (read, write, _):
                 async with ClientSession(read, write) as session:
                     await session.initialize()
                     tools = (await session.list_tools()).tools
-                    assert {tool.name for tool in tools} == {
-                        "get_daily_changes",
-                        "get_symbol_data",
-                        "get_symbol_analysis",
-                        "get_price_history",
-                    }
+                    assert {tool.name for tool in tools} == {"get_daily_changes", "get_symbol_report"}
                     tools_by_name = {tool.name: tool for tool in tools}
-                    assert not tools_by_name["get_symbol_data"].annotations.readOnlyHint
-                    assert tools_by_name["get_symbol_data"].annotations.openWorldHint
-                    assert all(
-                        tool.annotations.readOnlyHint and not tool.annotations.openWorldHint
-                        for tool in tools
-                        if tool.name != "get_symbol_data"
-                    )
+                    report_tool = tools_by_name["get_symbol_report"]
+                    assert not report_tool.annotations.readOnlyHint
+                    assert report_tool.annotations.openWorldHint
+                    assert report_tool.inputSchema["properties"]["refresh"]["default"] is False
+                    assert report_tool.inputSchema["properties"]["history_limit"]["default"] == 60
+                    assert tools_by_name["get_daily_changes"].annotations.readOnlyHint
                     daily = await session.call_tool("get_daily_changes", {"symbols": ["NVDA"]})
                     assert not daily.isError
                     assert daily.structuredContent["as_of_session"] == cached_data["date"]
-                    symbol_data = await session.call_tool(
-                        "get_symbol_data", {"symbol": "NVDA", "history_limit": 20}
+                    assert "latestAlerts" in daily.structuredContent["items"][0]
+                    assert daily.structuredContent["universe"] == ["NVDA"]
+                    full = await session.call_tool("get_daily_changes", {"symbols": []})
+                    assert not full.isError
+                    assert full.structuredContent["coverage"]["requested"] == 4
+                    default_report = await session.call_tool("get_symbol_report", {"symbol": "NVDA"})
+                    assert not default_report.isError
+                    assert len(default_report.structuredContent["history"]["rows"]) == 60
+                    report = await session.call_tool(
+                        "get_symbol_report", {"symbol": "NVDA", "history_limit": 20}
                     )
-                    assert not symbol_data.isError
-                    assert symbol_data.structuredContent["cache"]["status"] == "cooldown"
-                    assert symbol_data.structuredContent["analysis"]["symbol"] == "NVDA"
-                    assert len(symbol_data.structuredContent["history"]["rows"]) == 20
-                    detail = await session.call_tool("get_symbol_analysis", {"symbol": "NVDA"})
-                    assert not detail.isError and detail.structuredContent["analysis"]["symbol"] == "NVDA"
-                    page = await session.call_tool("get_price_history", {"symbol": "NVDA", "limit": 2})
-                    assert not page.isError and len(page.structuredContent["rows"]) == 2
-                    assert all("refresh" not in tool.inputSchema.get("properties", {}) for tool in tools)
+                    assert not report.isError
+                    data = report.structuredContent
+                    assert data["cache"]["status"] == "cached"
+                    assert data["analysis"]["symbol"] == "NVDA"
+                    assert len(data["history"]["rows"]) == 20
+                    page = await session.call_tool(
+                        "get_symbol_report",
+                        {
+                            "symbol": "NVDA",
+                            "history_limit": 20,
+                            "before": data["history"]["next_before"],
+                            "as_of": data["as_of_session"],
+                        },
+                    )
+                    assert not page.isError
+                    assert (
+                        page.structuredContent["history"]["rows"][-1]["Date"]
+                        < data["history"]["rows"][0]["Date"]
+                    )
                     for arguments in (
-                        {"symbol": "NVDA", "limit": 1000},
+                        {"symbol": "NVDA", "history_limit": 1000},
                         {"symbol": "MISSING"},
                         {"symbol": "../NVDA"},
                     ):
-                        invalid = await session.call_tool("get_price_history", arguments)
-                        assert invalid.isError
-                    # The SDK ignores undeclared fields. Even if an agent sends
-                    # refresh anyway, our tool still cannot call the provider.
-                    ignored = await session.call_tool(
-                        "get_price_history", {"symbol": "NVDA", "limit": 1, "refresh": True}
-                    )
-                    assert not ignored.isError and len(ignored.structuredContent["rows"]) == 1
+                        assert (await session.call_tool("get_symbol_report", arguments)).isError
+                    for name in ("get_symbol_data", "get_symbol_analysis", "get_price_history"):
+                        assert (await session.call_tool(name, {"symbol": "NVDA"})).isError
 
     async def concurrent_clients():
         await asyncio.gather(run_client(), run_client())
@@ -142,7 +145,7 @@ def test_real_mcp_clients_discover_and_call_tools(server_url, cached_data, monke
     asyncio.run(concurrent_clients())
 
 
-def test_symbol_data_returns_upstream_rate_limit_as_mcp_error(server_url, cached_data, monkeypatch):
+def test_symbol_report_returns_upstream_rate_limit_as_mcp_error(server_url, cached_data, monkeypatch):
     monkeypatch.setenv("TRENDDECK_MCP_TOKEN", "test-token")
     os.utime(cached_data["cache"] / "NVDA_3y_history.csv", (0, 0))
     monkeypatch.setattr(market, "get_tiingo_api_key_candidates", lambda preferred=None: ["test-key"])
@@ -153,17 +156,56 @@ def test_symbol_data_returns_upstream_rate_limit_as_mcp_error(server_url, cached
     monkeypatch.setattr(market, "fetch_history_from_tiingo", rate_limited)
 
     async def run_client():
-        async with httpx.AsyncClient(
-            headers={"Authorization": "Bearer test-token"}, trust_env=False
-        ) as http:
+        async with httpx.AsyncClient(headers={"Authorization": "Bearer test-token"}, trust_env=False) as http:
             async with streamable_http_client(server_url + "/mcp", http_client=http) as (read, write, _):
                 async with ClientSession(read, write) as session:
                     await session.initialize()
-                    result = await session.call_tool("get_symbol_data", {"symbol": "NVDA"})
-                    message = " ".join(
-                        item.text for item in result.content if hasattr(item, "text")
-                    )
+                    result = await session.call_tool("get_symbol_report", {"symbol": "NVDA", "refresh": True})
+                    message = " ".join(item.text for item in result.content if hasattr(item, "text"))
                     assert result.isError
                     assert "HTTP 429" in message and "Retry-After: 60" in message
 
     asyncio.run(run_client())
+
+
+def test_report_refresh_persists_new_bar_and_invalidates_web_cache(server_url, cached_data, monkeypatch):
+    from trenddeck import analysis
+
+    monkeypatch.setenv("TRENDDECK_MCP_TOKEN", "test-token")
+    old_close = analysis.analyze_symbol("NVDA", allow_network=False)["latestClose"]
+    source = pd.read_csv(cached_data["cache"] / "NVDA_3y_history.csv")
+    source["Date"] = pd.to_datetime(source["Date"])
+    new_bar = source.tail(1).copy()
+    next_date = source["Date"].iloc[-1] + pd.offsets.BDay(1)
+    new_bar["Date"] = next_date
+    new_bar["Close"] = old_close + 10
+    new_bar["High"] = old_close + 15
+    calls = []
+
+    def fetch(symbol, period, **kwargs):
+        calls.append(symbol)
+        return new_bar.copy()
+
+    def save(symbol, period, frame):
+        frame.to_csv(cached_data["cache"] / f"{symbol}_{period}_history.csv", index=False)
+
+    monkeypatch.setattr(market, "fetch_history_from_tiingo", fetch)
+    monkeypatch.setattr(market, "save_history_cache", save)
+    monkeypatch.setattr(market, "get_tiingo_api_key_candidates", lambda preferred=None: ["test-key"])
+
+    async def run_client():
+        async with httpx.AsyncClient(headers={"Authorization": "Bearer test-token"}) as http:
+            async with streamable_http_client(server_url + "/mcp", http_client=http) as (read, write, _):
+                async with ClientSession(read, write) as session:
+                    await session.initialize()
+                    result = await session.call_tool("get_symbol_report", {"symbol": "NVDA", "refresh": True})
+                    assert not result.isError
+                    report = result.structuredContent
+                    assert report["refresh_status"] == "succeeded"
+                    assert report["as_of_session"] == next_date.strftime("%Y-%m-%d")
+                    assert report["benchmark_session"] == cached_data["date"]
+                    assert report["history"]["rows"][-1]["Close"] == old_close + 10
+
+    asyncio.run(run_client())
+    assert calls == ["NVDA"]
+    assert analysis.analyze_symbol("NVDA", allow_network=False)["latestClose"] == old_close + 10
