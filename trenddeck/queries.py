@@ -1,4 +1,4 @@
-"""Bounded agent queries; only an explicitly refreshed report calls the provider."""
+"""Bounded agent queries; report refreshes and real-time quotes may call the provider."""
 
 from __future__ import annotations
 
@@ -386,6 +386,106 @@ def get_symbol_report(
             "next_before": history_payload["next_before"],
             "range_note": history_payload["range_note"],
         },
+    }
+
+
+def get_realtime_quote(symbol: str) -> dict[str, Any]:
+    """Return a consolidated reference quote with automatic IEX fallback."""
+    symbol = valid_symbol(symbol)
+    quote = market.load_realtime_quote(symbol, market.get_tiingo_api_key())
+
+    def number(name: str) -> float | None:
+        value = quote.get(name)
+        if value is None:
+            return None
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+    tiingo_last = number("tngoLast")
+    price_field = "tngoLast" if tiingo_last is not None else "last"
+    price = tiingo_last if tiingo_last is not None else number("last")
+    previous_close = number("prevClose")
+    change = price - previous_close if price is not None and previous_close is not None else None
+    change_pct = (
+        price / previous_close - 1
+        if price is not None and previous_close not in (None, 0)
+        else None
+    )
+    timestamp = str(quote.get("timestamp") or "") or None
+    quote_timestamp = str(quote.get("quoteTimestamp") or "") or None
+    last_sale_timestamp = str(quote.get("lastSaleTimestamp") or "") or None
+    age_basis_timestamp = timestamp or quote_timestamp or last_sale_timestamp
+    age_seconds = None
+    if age_basis_timestamp:
+        try:
+            parsed = datetime.fromisoformat(age_basis_timestamp.replace("Z", "+00:00"))
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            age_seconds = round((datetime.now(timezone.utc) - parsed).total_seconds(), 1)
+        except ValueError:
+            pass
+
+    feed = str(quote.get("_feed") or "iex")
+    consolidated = feed == "consolidated"
+    return {
+        "schema_version": 1,
+        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "source": "Tiingo Consolidated Equity Beta" if consolidated else "Tiingo IEX",
+        "feed": feed,
+        "read_only": True,
+        "symbol": symbol,
+        "price": price,
+        "price_field": price_field,
+        "price_type": "derived_consolidated_reference" if consolidated else "iex_reference_or_last",
+        "previous_close": previous_close,
+        "change": None if change is None else round(change, 6),
+        "change_pct": None if change_pct is None else round(change_pct, 6),
+        "open": number("open"),
+        "high": number("high"),
+        "low": number("low"),
+        "mid": number("mid") if not consolidated else None,
+        "volume": number("volume"),
+        "volume_scope": (
+            "consolidated_current_provider_session; not guaranteed full-day volume"
+            if consolidated
+            else "IEX intraday; may become official all-market volume after close"
+        ),
+        "bid_price": number("bidPrice") if not consolidated else None,
+        "bid_size": number("bidSize") if not consolidated else None,
+        "ask_price": number("askPrice") if not consolidated else None,
+        "ask_size": number("askSize") if not consolidated else None,
+        "lq_reference_price": number("lqRefPrice") if consolidated else None,
+        "lq_spread": number("lqSpread") if consolidated else None,
+        "lq_bid_price": number("lqBidPrice") if consolidated else None,
+        "lq_bid_size": number("lqBidSize") if consolidated else None,
+        "lq_ask_price": number("lqAskPrice") if consolidated else None,
+        "lq_ask_size": number("lqAskSize") if consolidated else None,
+        "timestamp": timestamp,
+        "quote_timestamp": quote_timestamp,
+        "last_sale_timestamp": last_sale_timestamp,
+        "age_basis_timestamp": age_basis_timestamp,
+        "age_seconds": age_seconds,
+        "venue": "consolidated US equity sources" if consolidated else "IEX",
+        "fallback_used": not consolidated,
+        "limitations": (
+            [
+                "Tiingo Consolidated Equity is a beta product.",
+                "tngoLast is a derived consolidated reference price, not necessarily the last trade.",
+                "lq* fields are derived liquidity estimates, not actual NBBO quotes.",
+                "Volume can reflect the current provider session and is not guaranteed to be official full-day volume.",
+                "Use cached daily closes for reports and historical conclusions; use this quote for immediate questions only.",
+            ]
+            if consolidated
+            else [
+                "The consolidated beta feed was unavailable, so this response fell back to IEX.",
+                "IEX is a single US exchange, not consolidated whole-market tape.",
+                "IEX volume is not total US-market volume during the session.",
+                "Small-cap, pre-market and after-hours prices may differ from other venues.",
+                "Use cached daily closes for reports and historical conclusions; use this quote for immediate questions only.",
+            ]
+        ),
     }
 
 

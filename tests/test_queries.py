@@ -114,6 +114,135 @@ def test_tiingo_429_reports_retry_after(monkeypatch):
         market.fetch_history_from_tiingo("NVDA", "3y", api_key="test-key")
 
 
+def test_realtime_quote_maps_iex_fields(monkeypatch):
+    monkeypatch.setattr(
+        market,
+        "load_realtime_quote",
+        lambda symbol, preferred_api_key=None: {
+            "_feed": "consolidated",
+            "ticker": symbol,
+            "tngoLast": 123.0,
+            "last": 122.5,
+            "prevClose": 120.0,
+            "open": 121.0,
+            "high": 124.0,
+            "low": 119.5,
+            "volume": 10000,
+            "lqRefPrice": 123.0,
+            "lqSpread": 0.0008,
+            "lqBidPrice": 122.9,
+            "lqBidSize": 50,
+            "lqAskPrice": 123.0,
+            "lqAskSize": 40,
+            "timestamp": "2026-10-07T14:30:00Z",
+            "quoteTimestamp": "2026-10-07T14:29:59Z",
+            "lastSaleTimestamp": "2026-10-07T14:29:58Z",
+        },
+    )
+    result = queries.get_realtime_quote("nvda")
+    assert result["symbol"] == "NVDA"
+    assert result["price"] == 123.0 and result["price_field"] == "tngoLast"
+    assert result["change"] == 3.0 and result["change_pct"] == pytest.approx(0.025)
+    assert result["feed"] == "consolidated"
+    assert result["bid_price"] is None and result["ask_price"] is None
+    assert result["lq_bid_price"] == 122.9 and result["lq_ask_price"] == 123.0
+    assert result["price_type"] == "derived_consolidated_reference"
+    assert not result["fallback_used"]
+    assert result["age_basis_timestamp"] == "2026-10-07T14:30:00Z"
+    assert result["venue"] == "consolidated US equity sources"
+
+
+def test_realtime_quote_rotates_keys_and_preserves_rate_limit_details(monkeypatch):
+    class Response:
+        def __init__(self, status_code, payload, retry_after=""):
+            self.status_code = status_code
+            self._payload = payload
+            self.headers = {"Retry-After": retry_after} if retry_after else {}
+
+        def json(self):
+            return self._payload
+
+    class Session:
+        def __init__(self, responses):
+            self.responses = list(responses)
+
+        def get(self, *args, **kwargs):
+            return self.responses.pop(0)
+
+    monkeypatch.setattr(market, "get_tiingo_api_key_candidates", lambda preferred=None: ["a", "b"])
+    session = Session(
+        [
+            Response(429, {}, "30"),
+            Response(200, [{"ticker": "NVDA", "tngoLast": 123.0}]),
+        ]
+    )
+    monkeypatch.setattr(market, "get_session", lambda: session)
+    assert market.load_realtime_quote("NVDA")["tngoLast"] == 123.0
+
+    limited = Session([Response(429, {}, "30"), Response(429, {}, "60")])
+    monkeypatch.setattr(market, "get_session", lambda: limited)
+    with pytest.raises(ValueError, match="consolidated:.*HTTP 429.*Retry-After: 60"):
+        market.load_realtime_quote("NVDA")
+
+
+def test_realtime_quote_empty_response_does_not_retry_other_keys(monkeypatch):
+    calls = []
+
+    def no_consolidated_quote(symbol, api_key):
+        calls.append(f"consolidated:{api_key}")
+        return None
+
+    def no_iex_quote(symbol, api_key):
+        calls.append(f"iex:{api_key}")
+        return None
+
+    monkeypatch.setattr(market, "get_tiingo_api_key_candidates", lambda preferred=None: ["a", "b"])
+    monkeypatch.setattr(
+        market, "fetch_consolidated_realtime_quote_from_tiingo", no_consolidated_quote
+    )
+    monkeypatch.setattr(market, "fetch_realtime_quote_from_tiingo", no_iex_quote)
+    with pytest.raises(market.MarketDataNoQuoteError, match="均不可用"):
+        market.load_realtime_quote("NOIEX")
+    assert calls == ["consolidated:a", "iex:a"]
+
+
+def test_realtime_quote_falls_back_to_iex(monkeypatch):
+    monkeypatch.setattr(market, "get_tiingo_api_key_candidates", lambda preferred=None: ["a"])
+
+    def consolidated_failure(symbol, api_key):
+        raise ValueError("beta unavailable")
+
+    monkeypatch.setattr(
+        market, "fetch_consolidated_realtime_quote_from_tiingo", consolidated_failure
+    )
+    monkeypatch.setattr(
+        market,
+        "fetch_realtime_quote_from_tiingo",
+        lambda symbol, api_key: {"ticker": symbol, "tngoLast": 123.0},
+    )
+    quote = market.load_realtime_quote("NVDA")
+    assert quote["_feed"] == "iex" and quote["tngoLast"] == 123.0
+
+
+def test_realtime_quote_network_failure_has_clean_error(monkeypatch):
+    class Session:
+        def get(self, *args, **kwargs):
+            raise TimeoutError("timed out")
+
+    monkeypatch.setattr(market, "get_session", lambda: Session())
+    with pytest.raises(ValueError, match="Tiingo IEX 网络请求失败: TimeoutError"):
+        market.fetch_realtime_quote_from_tiingo("NVDA", "test-key")
+
+
+def test_realtime_quote_validates_symbol_before_network(monkeypatch):
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Invalid symbols must not reach Tiingo IEX")
+
+    monkeypatch.setattr(market, "load_realtime_quote", forbidden)
+    with pytest.raises(ValueError):
+        queries.get_realtime_quote("../NVDA")
+
+
 def test_symbol_analysis_matches_web_calculations(cached_data):
     web = analysis.analyze_symbol("NVDA", allow_network=False)
     mcp = queries.get_symbol_report("nvda")

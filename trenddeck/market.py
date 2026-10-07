@@ -29,6 +29,10 @@ class MarketDataRateLimitError(ValueError):
     """The upstream market-data provider rejected the request due to rate limits."""
 
 
+class MarketDataNoQuoteError(ValueError):
+    """The upstream real-time endpoint has no quote for the requested symbol."""
+
+
 def get_cached(key: tuple[Any, ...]) -> Any | None:
     cached = _memory_cache.get(key)
     if not cached:
@@ -248,6 +252,108 @@ def fetch_history_from_tiingo(
             frame[field] = pd.to_numeric(frame[field], errors="coerce")
     frame = frame.dropna(subset=["Date", "Close"]).sort_values("Date").reset_index(drop=True)
     return annotate_history_price_mode(frame, price_mode)
+
+
+def _fetch_realtime_quote_from_tiingo(
+    symbol: str,
+    api_key: str,
+    url: str,
+    params: dict[str, str],
+    feed_name: str,
+) -> dict[str, Any] | None:
+    try:
+        response = get_session().get(
+            url,
+            params=params,
+            headers={"Authorization": f"Token {api_key}"},
+            timeout=30,
+        )
+    except Exception as exc:
+        raise ValueError(
+            f"Tiingo {feed_name} 网络请求失败: {type(exc).__name__}: {exc}"
+        ) from exc
+    if response.status_code in (401, 403):
+        raise ValueError(f"Tiingo API key 无效或当前账户无权限访问 {feed_name} 实时报价接口。")
+    if response.status_code == 429:
+        retry_after = str(response.headers.get("Retry-After", "")).strip()
+        retry_hint = f"，Retry-After: {retry_after}" if retry_after else ""
+        raise MarketDataRateLimitError(f"Tiingo {feed_name} API 限流: HTTP 429{retry_hint}。")
+    if response.status_code == 404:
+        return None
+    if response.status_code >= 400:
+        raise ValueError(f"Tiingo {feed_name} 请求失败: HTTP {response.status_code}")
+
+    try:
+        payload = response.json()
+    except Exception as exc:
+        raise ValueError(f"Tiingo {feed_name} 返回了无法解析的 JSON。") from exc
+    items = payload if isinstance(payload, list) else [payload] if isinstance(payload, dict) else None
+    if items is None:
+        raise ValueError(f"Tiingo {feed_name} 返回了无效的数据格式。")
+    for item in items:
+        if isinstance(item, dict) and str(item.get("ticker", "")).upper() == symbol:
+            return item
+    return None
+
+
+def fetch_consolidated_realtime_quote_from_tiingo(
+    symbol: str, api_key: str
+) -> dict[str, Any] | None:
+    """Fetch a consolidated US-equity reference quote from Tiingo's beta endpoint."""
+    return _fetch_realtime_quote_from_tiingo(
+        symbol,
+        api_key,
+        f"https://api.tiingo.com/tiingo/equity/intraday/{symbol}",
+        {},
+        "Consolidated Equity",
+    )
+
+
+def fetch_realtime_quote_from_tiingo(symbol: str, api_key: str) -> dict[str, Any] | None:
+    """Fetch one symbol from Tiingo's IEX quote endpoint with one API key."""
+    return _fetch_realtime_quote_from_tiingo(
+        symbol,
+        api_key,
+        "https://api.tiingo.com/iex/",
+        {"tickers": symbol},
+        "IEX",
+    )
+
+
+def load_realtime_quote(symbol: str, preferred_api_key: str | None = None) -> dict[str, Any]:
+    """Prefer Tiingo consolidated reference data, falling back to IEX."""
+    api_keys = get_tiingo_api_key_candidates(preferred_api_key)
+    if not api_keys:
+        raise ValueError(f"{symbol} 无法查询实时报价：服务器未配置 Tiingo API key。")
+
+    errors: list[str] = []
+    feeds = (
+        ("consolidated", fetch_consolidated_realtime_quote_from_tiingo),
+        ("iex", fetch_realtime_quote_from_tiingo),
+    )
+    for feed, fetcher in feeds:
+        feed_errors: list[Exception] = []
+        no_quote = False
+        for api_key in api_keys:
+            try:
+                quote = fetcher(symbol, api_key)
+                if quote is None:
+                    no_quote = True
+                    break
+                return {**quote, "_feed": feed}
+            except (MarketDataRateLimitError, ValueError) as exc:
+                # Authentication, quota and provider errors may be key-specific.
+                feed_errors.append(exc)
+        if no_quote:
+            errors.append(f"{feed}: no quote")
+        elif feed_errors:
+            details = "; ".join(str(error) for error in feed_errors)
+            errors.append(f"{feed}: {details}")
+
+    raise MarketDataNoQuoteError(
+        f"{symbol} Tiingo 实时报价查询失败（consolidated 与 IEX 均不可用）："
+        + "; ".join(errors)
+    )
 
 
 def load_history(

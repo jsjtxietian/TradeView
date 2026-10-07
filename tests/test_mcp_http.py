@@ -49,7 +49,7 @@ def test_authentication_and_host_origin_validation(server_url, monkeypatch):
     }
     monkeypatch.setenv("TRENDDECK_MCP_TOKEN", "previous-test-token")
     response = httpx.post(server_url + "/mcp", json=request, headers=old_headers)
-    assert response.status_code == 200 and len(response.json()["result"]["tools"]) == 2
+    assert response.status_code == 200 and len(response.json()["result"]["tools"]) == 3
     monkeypatch.setenv("TRENDDECK_MCP_TOKEN", "")
     assert httpx.post(server_url + "/mcp", json=request, headers=old_headers).status_code == 503
     assert (
@@ -82,6 +82,25 @@ def test_authentication_and_host_origin_validation(server_url, monkeypatch):
 
 def test_real_mcp_clients_discover_and_call_tools(server_url, cached_data, monkeypatch):
     monkeypatch.setenv("TRENDDECK_MCP_TOKEN", "test-token")
+    monkeypatch.setattr(
+        market,
+        "load_realtime_quote",
+        lambda symbol, preferred_api_key=None: {
+            "_feed": "consolidated",
+            "ticker": symbol,
+            "tngoLast": 218.36,
+            "prevClose": 220.0,
+            "open": 219.0,
+            "high": 221.0,
+            "low": 217.0,
+            "volume": 123456,
+            "lqRefPrice": 218.36,
+            "lqSpread": 0.0001,
+            "lqBidPrice": 218.35,
+            "lqAskPrice": 218.37,
+            "timestamp": "2026-10-07T14:30:00Z",
+        },
+    )
 
     async def run_client():
         async with httpx.AsyncClient(headers={"Authorization": "Bearer test-token"}) as http:
@@ -89,7 +108,11 @@ def test_real_mcp_clients_discover_and_call_tools(server_url, cached_data, monke
                 async with ClientSession(read, write) as session:
                     await session.initialize()
                     tools = (await session.list_tools()).tools
-                    assert {tool.name for tool in tools} == {"get_daily_changes", "get_symbol_report"}
+                    assert {tool.name for tool in tools} == {
+                        "get_daily_changes",
+                        "get_symbol_report",
+                        "get_realtime_quote",
+                    }
                     tools_by_name = {tool.name: tool for tool in tools}
                     report_tool = tools_by_name["get_symbol_report"]
                     assert not report_tool.annotations.readOnlyHint
@@ -97,6 +120,10 @@ def test_real_mcp_clients_discover_and_call_tools(server_url, cached_data, monke
                     assert report_tool.inputSchema["properties"]["refresh"]["default"] is False
                     assert report_tool.inputSchema["properties"]["history_limit"]["default"] == 60
                     assert tools_by_name["get_daily_changes"].annotations.readOnlyHint
+                    quote_tool = tools_by_name["get_realtime_quote"]
+                    assert quote_tool.annotations.readOnlyHint
+                    assert quote_tool.annotations.openWorldHint
+                    assert not quote_tool.annotations.idempotentHint
                     daily = await session.call_tool("get_daily_changes", {"symbols": ["NVDA"]})
                     assert not daily.isError
                     assert daily.structuredContent["as_of_session"] == cached_data["date"]
@@ -138,6 +165,12 @@ def test_real_mcp_clients_discover_and_call_tools(server_url, cached_data, monke
                         assert (await session.call_tool("get_symbol_report", arguments)).isError
                     for name in ("get_symbol_data", "get_symbol_analysis", "get_price_history"):
                         assert (await session.call_tool(name, {"symbol": "NVDA"})).isError
+                    quote = await session.call_tool("get_realtime_quote", {"symbol": "NVDA"})
+                    assert not quote.isError
+                    assert quote.structuredContent["price"] == 218.36
+                    assert quote.structuredContent["feed"] == "consolidated"
+                    assert quote.structuredContent["lq_bid_price"] == 218.35
+                    assert not quote.structuredContent["fallback_used"]
 
     async def concurrent_clients():
         await asyncio.gather(run_client(), run_client())
@@ -161,6 +194,30 @@ def test_symbol_report_returns_upstream_rate_limit_as_mcp_error(server_url, cach
                 async with ClientSession(read, write) as session:
                     await session.initialize()
                     result = await session.call_tool("get_symbol_report", {"symbol": "NVDA", "refresh": True})
+                    message = " ".join(item.text for item in result.content if hasattr(item, "text"))
+                    assert result.isError
+                    assert "HTTP 429" in message and "Retry-After: 60" in message
+
+    asyncio.run(run_client())
+
+
+def test_realtime_quote_returns_upstream_rate_limit_as_mcp_error(server_url, monkeypatch):
+    monkeypatch.setenv("TRENDDECK_MCP_TOKEN", "test-token")
+
+    def rate_limited(*args, **kwargs):
+        raise ValueError(
+            "NVDA Tiingo IEX 查询失败（已尝试 2 个 API key）："
+            "Tiingo IEX API 限流: HTTP 429，Retry-After: 60。"
+        )
+
+    monkeypatch.setattr(market, "load_realtime_quote", rate_limited)
+
+    async def run_client():
+        async with httpx.AsyncClient(headers={"Authorization": "Bearer test-token"}, trust_env=False) as http:
+            async with streamable_http_client(server_url + "/mcp", http_client=http) as (read, write, _):
+                async with ClientSession(read, write) as session:
+                    await session.initialize()
+                    result = await session.call_tool("get_realtime_quote", {"symbol": "NVDA"})
                     message = " ".join(item.text for item in result.content if hasattr(item, "text"))
                     assert result.isError
                     assert "HTTP 429" in message and "Retry-After: 60" in message

@@ -107,7 +107,7 @@ Host 不匹配返回 421。普通服务端 agent 不发送 Origin；若客户端
 
 ## 工具与对话方式
 
-MCP 只暴露两个工具：`get_daily_changes` 和 `get_symbol_report`。
+MCP 暴露三个工具：`get_daily_changes`、`get_symbol_report` 和 `get_realtime_quote`。
 原来的 `get_symbol_data`、`get_symbol_analysis`、`get_price_history` 已移除；
 升级后重新加载 agent 的 MCP 工具列表，并更新已有定时任务中的工具名。
 
@@ -174,6 +174,22 @@ MCP 只暴露两个工具：`get_daily_changes` 和 `get_symbol_report`。
 
 笔记、持仓和 `latestAlerts` 始终是当前保存的信息；不是历史仓位，也不随本次刷新重新生成提醒。
 MCP 将此工具标注为可能写缓存和访问外部行情源，因为 `refresh=true` 会执行这些操作。
+
+### `get_realtime_quote`
+
+```json
+{"symbol": "NVDA"}
+```
+
+优先查询 Tiingo Consolidated Equity Beta；该接口不可用或无数据时自动回退 IEX。返回参考价、
+相对昨收涨跌、日内 OHLC、服务商时段成交量、时间戳和 `age_seconds`。该工具不读写历史行情
+缓存，也不修改 watchlist、笔记、持仓或提醒；配置多个 Tiingo Key 时会按顺序尝试。
+
+Consolidated 响应中 `tngoLast` 是衍生参考价，`lq*` 是流动性买卖价估算而非真实 NBBO；
+`volume` 可能是当前服务商时段累计量，不保证为正式全日成交量。通过 `feed`、`price_type`、
+`volume_scope` 和 `fallback_used` 判断实际口径。仅用于“现在多少钱”等即时问题，日报、历史
+分析和正式结论仍以缓存日线收盘价为准。无 API key、鉴权失败、HTTP 429、两个源均无数据或
+其他上游错误都会返回 MCP Tool 错误，429 在可用时包含 `Retry-After`。
 
 ## 每日报告
 
