@@ -13,7 +13,7 @@ import uvicorn
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 
-from trenddeck import market
+from trenddeck import market, storage
 
 
 @pytest.fixture(scope="module")
@@ -49,7 +49,7 @@ def test_authentication_and_host_origin_validation(server_url, monkeypatch):
     }
     monkeypatch.setenv("TRENDDECK_MCP_TOKEN", "previous-test-token")
     response = httpx.post(server_url + "/mcp", json=request, headers=old_headers)
-    assert response.status_code == 200 and len(response.json()["result"]["tools"]) == 3
+    assert response.status_code == 200 and len(response.json()["result"]["tools"]) == 6
     monkeypatch.setenv("TRENDDECK_MCP_TOKEN", "")
     assert httpx.post(server_url + "/mcp", json=request, headers=old_headers).status_code == 503
     assert (
@@ -110,10 +110,19 @@ def test_real_mcp_clients_discover_and_call_tools(server_url, cached_data, monke
                     tools = (await session.list_tools()).tools
                     assert {tool.name for tool in tools} == {
                         "get_daily_changes",
+                        "get_watchlist",
                         "get_symbol_report",
                         "get_realtime_quote",
+                        "add_watchlist_symbol",
+                        "remove_watchlist_symbol",
                     }
                     tools_by_name = {tool.name: tool for tool in tools}
+                    watchlist_tool = tools_by_name["get_watchlist"]
+                    assert watchlist_tool.annotations.readOnlyHint
+                    assert not watchlist_tool.annotations.openWorldHint
+                    watchlist = await session.call_tool("get_watchlist", {})
+                    assert not watchlist.isError and watchlist.structuredContent["read_only"]
+                    assert watchlist.structuredContent["watchlist"] == ["NVDA", "SPY", "OLDER", "MISSING"]
                     report_tool = tools_by_name["get_symbol_report"]
                     assert not report_tool.annotations.readOnlyHint
                     assert report_tool.annotations.openWorldHint
@@ -266,3 +275,68 @@ def test_report_refresh_persists_new_bar_and_invalidates_web_cache(server_url, c
     asyncio.run(run_client())
     assert calls == ["NVDA"]
     assert analysis.analyze_symbol("NVDA", allow_network=False)["latestClose"] == old_close + 10
+
+
+def test_watchlist_tools_persist_shared_web_state_and_return_errors(server_url, cached_data, monkeypatch):
+    monkeypatch.setenv("TRENDDECK_MCP_TOKEN", "test-token")
+    state = storage.load_watchlist_state()
+    state["groups"] = [{"id": "AI", "name": "AI 区", "symbols": ["NVDA"]}]
+    storage.save_watchlist_state(state)
+
+    async def run_client():
+        async with httpx.AsyncClient(headers={"Authorization": "Bearer test-token"}, trust_env=False) as http:
+            async with streamable_http_client(server_url + "/mcp", http_client=http) as (read, write, _):
+                async with ClientSession(read, write) as session:
+                    await session.initialize()
+                    tools = {tool.name: tool for tool in (await session.list_tools()).tools}
+                    for name in ("add_watchlist_symbol", "remove_watchlist_symbol"):
+                        assert not tools[name].annotations.readOnlyHint
+                        assert tools[name].annotations.idempotentHint
+                        assert not tools[name].annotations.openWorldHint
+                    assert not tools["add_watchlist_symbol"].annotations.destructiveHint
+                    assert tools["remove_watchlist_symbol"].annotations.destructiveHint
+                    assert tools["add_watchlist_symbol"].inputSchema["properties"]["group_id"]["default"] is None
+                    listed = await session.call_tool("get_watchlist", {})
+                    assert not listed.isError
+                    assert listed.structuredContent["groups"][0]["id"] == "AI"
+                    added = await session.call_tool(
+                        "add_watchlist_symbol", {"symbol": " brk.b ", "group_id": "ai"}
+                    )
+                    assert not added.isError and added.structuredContent["changed"]
+                    assert added.structuredContent["symbol"] == "BRK-B"
+                    web = (await http.get(server_url + "/api/watchlist/state")).json()
+                    assert web["watchlist"] == added.structuredContent["watchlist"]
+                    assert web["groups"][0]["symbols"] == ["NVDA", "BRK-B"]
+                    assert not (await session.call_tool(
+                        "add_watchlist_symbol", {"symbol": "BRK-B", "group_id": "AI"}
+                    )).structuredContent["changed"]
+                    assert not (await session.call_tool(
+                        "add_watchlist_symbol", {"symbol": "BRK-B"}
+                    )).structuredContent["changed"]
+                    removed = await session.call_tool("remove_watchlist_symbol", {"symbol": "BRK-B"})
+                    assert not removed.isError and removed.structuredContent["changed"]
+                    assert storage.load_watchlist_state()["watchlist"] == removed.structuredContent["watchlist"]
+                    assert not (await session.call_tool(
+                        "remove_watchlist_symbol", {"symbol": "BRK-B"}
+                    )).structuredContent["changed"]
+                    invalid = await session.call_tool("add_watchlist_symbol", {"symbol": "../NVDA"})
+                    assert invalid.isError
+                    assert "stock symbol" in " ".join(item.text for item in invalid.content)
+                    invalid_group = await session.call_tool(
+                        "add_watchlist_symbol", {"symbol": "EXTRA", "group_id": "MISSING"}
+                    )
+                    assert invalid_group.isError
+                    assert "get_watchlist" in " ".join(item.text for item in invalid_group.content)
+                    assert "EXTRA" not in storage.load_watchlist_state()["watchlist"]
+
+                    def cannot_save(*args, **kwargs):
+                        raise OSError("watchlist disk write failed")
+
+                    with monkeypatch.context() as patch:
+                        patch.setattr(storage, "save_watchlist_state", cannot_save)
+                        failed = await session.call_tool("add_watchlist_symbol", {"symbol": "EXTRA"})
+                        assert failed.isError
+                        assert "disk write failed" in " ".join(item.text for item in failed.content)
+                    assert "EXTRA" not in storage.load_watchlist_state()["watchlist"]
+
+    asyncio.run(run_client())

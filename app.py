@@ -32,6 +32,7 @@ from trenddeck.prompts import (
     build_prompt_from_analysis,
 )
 from trenddeck.storage import (
+    WATCHLIST_LOCK,
     create_trade,
     create_transaction,
     delete_transaction,
@@ -97,8 +98,9 @@ def get_watchlist_state() -> dict[str, Any]:
 @app.put("/api/watchlist/state")
 def put_watchlist_state(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
     try:
-        state = save_watchlist_state(payload)
-        prune_alert_snapshot(state["watchlist"])
+        with WATCHLIST_LOCK:
+            state = save_watchlist_state(payload)
+            prune_alert_snapshot(state["watchlist"])
         return {"configured": True, **state}
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

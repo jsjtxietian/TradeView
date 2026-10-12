@@ -17,8 +17,11 @@ def cached_data(tmp_path, monkeypatch):
     trade.mkdir(parents=True)
     monkeypatch.setattr(market, "STOCK_DIR", cache)
     monkeypatch.setattr(storage, "WATCHLIST_FILE", trade / "watchlist.json")
+    monkeypatch.setattr(storage, "TRADE_DIR", trade)
     monkeypatch.setattr(storage, "NOTES_FILE", trade / "notes.json")
     monkeypatch.setattr(alerts, "ALERTS_FILE", trade / "alerts.json")
+    monkeypatch.setattr(alerts, "ALERTS_SNAPSHOT_FILE", trade / "alerts_snapshot.json")
+    monkeypatch.setattr(alerts, "TRADE_DIR", trade)
     market._memory_cache.clear()
 
     def forbidden(*args, **kwargs):

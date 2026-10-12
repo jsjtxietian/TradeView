@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
+from threading import RLock
 from typing import Any
 
 import numpy as np
 
 from trenddeck.config import (
     DEFAULT_WATCHLIST,
+    DEFAULT_WATCHLIST_GROUPS,
     LEDGER_FILE,
     NOTES_FILE,
     TRADE_DIR,
@@ -18,6 +20,9 @@ from trenddeck.utils import (
     normalize_symbol,
     normalize_symbol_list,
 )
+
+# Serialize MCP read-modify-write operations with web writes in this process.
+WATCHLIST_LOCK = RLock()
 
 
 def load_trade_store() -> list[dict[str, Any]]:
@@ -250,15 +255,62 @@ def load_watchlist_state() -> dict[str, Any] | None:
 
 
 def save_watchlist_state(payload: dict[str, Any]) -> dict[str, Any]:
-    normalized = normalize_watchlist_state(payload)
-    TRADE_DIR.mkdir(parents=True, exist_ok=True)
-    temp_path = WATCHLIST_FILE.with_suffix(".json.tmp")
-    temp_path.write_text(
-        json.dumps(normalized, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    temp_path.replace(WATCHLIST_FILE)
-    return normalized
+    with WATCHLIST_LOCK:
+        normalized = normalize_watchlist_state(payload)
+        TRADE_DIR.mkdir(parents=True, exist_ok=True)
+        temp_path = WATCHLIST_FILE.with_suffix(".json.tmp")
+        temp_path.write_text(
+            json.dumps(normalized, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        temp_path.replace(WATCHLIST_FILE)
+        return normalized
+
+
+def update_watchlist_symbol(
+    symbol: str, *, remove: bool = False, group_id: str | None = None
+) -> tuple[dict[str, Any], bool]:
+    """Change membership without replacing unrelated symbols, groups or notes."""
+    with WATCHLIST_LOCK:
+        state = load_watchlist_state()
+        if state is None:
+            state = normalize_watchlist_state(
+                {"watchlist": DEFAULT_WATCHLIST, "groups": DEFAULT_WATCHLIST_GROUPS}
+            )
+        target_group = None
+        if group_id is not None:
+            normalized_group_id = normalize_symbol(group_id)
+            target_group = next(
+                (group for group in state["groups"] if group["id"] == normalized_group_id), None
+            )
+            if target_group is None:
+                raise ValueError(f"自选分组不存在: {group_id!r}。请先用 get_watchlist 查询已有分组 ID。")
+        changed = False
+        if remove:
+            if symbol in state["watchlist"]:
+                state["watchlist"].remove(symbol)
+                changed = True
+            for group in state["groups"]:
+                if symbol in group["symbols"]:
+                    group["symbols"].remove(symbol)
+                    changed = True
+        elif symbol not in state["watchlist"]:
+            state["watchlist"].append(symbol)
+            for group in state["groups"]:
+                if symbol in group["symbols"]:
+                    group["symbols"].remove(symbol)
+            changed = True
+        if not remove and target_group is not None:
+            for group in state["groups"]:
+                if group is not target_group and symbol in group["symbols"]:
+                    group["symbols"].remove(symbol)
+                    changed = True
+            if symbol not in target_group["symbols"]:
+                target_group["symbols"].append(symbol)
+                changed = True
+        if changed:
+            state = save_watchlist_state(state)
+        return state, changed
 
 
 def normalize_symbol_notes(payload: Any) -> dict[str, dict[str, Any]]:
@@ -324,8 +376,6 @@ def save_symbol_notes(payload: Any) -> dict[str, dict[str, Any]]:
 
 def load_configured_watchlist_symbols() -> list[str]:
     state = load_watchlist_state()
-    if state:
-        symbols = normalize_symbol_list(state["watchlist"])
-        if symbols:
-            return symbols
+    if state is not None:
+        return normalize_symbol_list(state["watchlist"])
     return DEFAULT_WATCHLIST

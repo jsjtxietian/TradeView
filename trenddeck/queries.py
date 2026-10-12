@@ -1,4 +1,4 @@
-"""Bounded agent queries; report refreshes and real-time quotes may call the provider."""
+"""Agent services for market queries and explicit watchlist membership changes."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from typing import Any
 import pandas as pd
 
 from trenddeck import market, storage
-from trenddeck.alerts import load_alert_log
+from trenddeck.alerts import load_alert_log, prune_alert_snapshot
 from trenddeck.analysis import analyze_frames, build_summary_fields, serialize_history
 from trenddeck.config import DEFAULT_BENCHMARK, DEFAULT_HISTORY_PERIOD
 from trenddeck.indicators import (
@@ -28,6 +28,67 @@ def valid_symbol(value: str) -> str:
     if not re.fullmatch(r"[A-Z0-9^][A-Z0-9^\-]{0,31}", symbol):
         raise ValueError("Use a stock symbol such as NVDA or BRK-B (maximum 32 characters).")
     return symbol
+
+
+def get_watchlist() -> dict[str, Any]:
+    """Read membership, group IDs and manual holdings without price-cache dependencies."""
+    with storage.WATCHLIST_LOCK:
+        state = storage.load_watchlist_state()
+        configured = state is not None
+        if state is None:
+            state = storage.normalize_watchlist_state(
+                {"watchlist": storage.DEFAULT_WATCHLIST, "groups": storage.DEFAULT_WATCHLIST_GROUPS}
+            )
+        notes = storage.load_symbol_notes() or {}
+    return {
+        "schema_version": 1,
+        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "read_only": True,
+        "configured": configured,
+        "watchlist": state["watchlist"],
+        "groups": state["groups"],
+        "total_symbols": len(state["watchlist"]),
+        "items": [
+            {
+                "symbol": symbol,
+                "group_ids": [group["id"] for group in state["groups"] if symbol in group["symbols"]],
+                "isHolding": bool(notes.get(symbol, {}).get("isHolding")),
+                "costBasis": notes.get(symbol, {}).get("costBasis"),
+                "shares": notes.get(symbol, {}).get("shares"),
+            }
+            for symbol in state["watchlist"]
+        ],
+        "holding_source": "Current manually maintained notes, not live brokerage positions.",
+    }
+
+
+def _update_watchlist_symbol(symbol: str, *, remove: bool, group_id: str | None = None) -> dict[str, Any]:
+    symbol = valid_symbol(symbol)
+    with storage.WATCHLIST_LOCK:
+        state, changed = storage.update_watchlist_symbol(symbol, remove=remove, group_id=group_id)
+        if remove:
+            prune_alert_snapshot(state["watchlist"])
+    return {
+        "schema_version": 1,
+        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "read_only": False,
+        "symbol": symbol,
+        "action": "remove" if remove else "add",
+        "changed": changed,
+        "is_in_watchlist": symbol in state["watchlist"],
+        "watchlist": state["watchlist"],
+        "groups": state["groups"],
+    }
+
+
+def add_watchlist_symbol(symbol: str, group_id: str | None = None) -> dict[str, Any]:
+    """Add membership and optionally assign an existing group; no market request."""
+    return _update_watchlist_symbol(symbol, remove=False, group_id=group_id)
+
+
+def remove_watchlist_symbol(symbol: str) -> dict[str, Any]:
+    """Remove membership and group references, preserving notes and price history."""
+    return _update_watchlist_symbol(symbol, remove=True)
 
 
 def valid_date(value: str | None) -> str | None:

@@ -105,11 +105,34 @@ TRENDDECK_MCP_ALLOWED_HOSTS=stocks.example.com
 Host 不匹配返回 421。普通服务端 agent 不发送 Origin；若客户端确实发送，使用
 `TRENDDECK_MCP_ALLOWED_ORIGINS` 配置其精确 Origin，否则返回 403。
 
-## 工具与对话方式
+## 工具分类与对话方式
 
-MCP 暴露三个工具：`get_daily_changes`、`get_symbol_report` 和 `get_realtime_quote`。
+MCP 暴露六个工具，按状态影响分类：
+
+| 分类 | 工具 | 行情联网 | 写入内容 |
+| --- | --- | --- | --- |
+| 纯只读 | `get_watchlist` | 否 | 无 |
+| 纯只读 | `get_daily_changes` | 否 | 无 |
+| 纯只读 | `get_realtime_quote` | 是 | 无 |
+| 可写，默认只读 | `get_symbol_report` | 仅 `refresh=true` | 该股票的日线缓存，仅 `refresh=true` |
+| 改变状态 | `add_watchlist_symbol` | 否 | 自选列表及分组 |
+| 改变状态 | `remove_watchlist_symbol` | 否 | 自选列表、分组及提醒比较快照 |
+
+“只读”描述是否修改状态，与是否联网无关。MCP 的 `readOnlyHint` 是工具级别，
+不随参数变化；因此 `get_symbol_report` 标注为可写，响应的 `read_only` 则反映本次调用。
+纯只读工具标注 `readOnlyHint=true`；自选增删标注为写操作且幂等，删除另带 destructive 标注。
+服务端注册代码分别位于 `_register_read_tools` 和 `_register_state_tools`，保持同一个 `/mcp` 入口。
+
 原来的 `get_symbol_data`、`get_symbol_analysis`、`get_price_history` 已移除；
 升级后重新加载 agent 的 MCP 工具列表，并更新已有定时任务中的工具名。
+
+### `get_watchlist`
+
+无需参数，传 `{}` 即可。返回 `configured`、`watchlist`、`groups`、`total_symbols`
+以及 `items`（每只自选股的 `symbol`、`group_ids`、`isHolding`、`costBasis`、`shares`）。
+持仓来源为手工笔记，不是券商实时仓位；自选之外的持仓不会加入列表。
+不需要 SPY 或其他行情缓存，不联网、不写文件。未配置时返回默认自选及分组；
+已保存的空自选保持为空。分组包含 `id`、`name` 和 `symbols`，可据此指定添加股票的目标分组。
 
 ### `get_daily_changes`
 
@@ -191,6 +214,41 @@ Consolidated 响应中 `tngoLast` 是衍生参考价，`lq*` 是流动性买卖�
 分析和正式结论仍以缓存日线收盘价为准。无 API key、鉴权失败、HTTP 429、两个源均无数据或
 其他上游错误都会返回 MCP Tool 错误，429 在可用时包含 `Retry-After`。
 
+### `add_watchlist_symbol` / `remove_watchlist_symbol`
+
+仅在用户要求修改自选时调用。例如添加英伟达：
+
+```json
+{"symbol": "NVDA"}
+```
+
+同样的参数传给 `remove_watchlist_symbol` 可移出自选。代码会规范化为大写，支持 `BRK.B`
+转换为 `BRK-B`。`add_watchlist_symbol` 支持可选的 `group_id`，先调用 `get_watchlist`
+取得现有分组的 ID，再添加到该组，例如（`AI` 替换为实际 ID）：
+
+```json
+{"symbol": "NVDA", "group_id": "AI"}
+```
+
+新股票追加到列表尾部；不传 `group_id` 或传 `null` 时清除旧分组引用，归入未分组。
+对于已在自选中的股票，不传分组会保留原分组；指定分组则从其他分组移出并加入目标组，
+因此同一接口也支持调整分组。目标分组不存在或为空字符串时直接报错，不修改自选，
+不自动创建新分组。组 ID 按现有存储规则规范化，大小写不敏感。
+
+删除会移除
+列表和所有分组中的引用，并清理不再属于自选的提醒比较快照。笔记、手工持仓、历史提醒、
+交易记录和行情缓存保留。自选可以为空，不会回退到默认股票。
+
+两个工具直接落盘，与网页共用 `watchlist.json`；已打开的网页重新加载后可看到更新。
+重复添加且分组不变、删除不存在的股票均成功，返回 `changed: false`；实际变更为 `true`。
+返回包含规范化的 `symbol`、`action`、`is_in_watchlist`、更新后的 `watchlist` 和 `groups`。
+非法代码、文件损坏或写入失败会返回 MCP Tool 错误。
+
+增删操作不调用行情 API；添加后若需要立即获取数据，另调用
+`get_symbol_report` 并设置 `refresh: true`。这时行情限流按查询工具的规则返回错误，
+不会撤销已完成的自选添加。两个工具均标注为写操作且幂等，删除工具带 destructive 标注。
+当前单进程内的自选写入会串行执行，以避免并发增删丢失更新；该锁不跨多个服务进程。
+
 ## 每日报告
 
 沿用现有行情刷新任务，在刷新后让 Hermes 执行日报即可。例如当前定时器是服务器本地时间
@@ -224,4 +282,5 @@ python -m ruff check app.py trenddeck tests
 ```
 
 测试使用临时行情文件，并通过真实 HTTP MCP 客户端验证初始化、工具发现、并发查询、
-鉴权、Host/Origin 限制、历史截止日期与分页、最新提醒和显式刷新行为；不联网拉行情、不修改真实账户文件。
+鉴权、Host/Origin 限制、历史截止日期与分页、最新提醒、显式刷新和自选增删持久化行为；
+不联网拉行情、不修改真实账户文件。
