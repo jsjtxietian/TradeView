@@ -57,6 +57,7 @@
     "COPX",
     "TLT",
     "FFTY",
+    "EMXC",
     "EWY",
     "DXJ",
     "EWZ",
@@ -174,7 +175,8 @@
         "SLV",
         "COPX",
         "TLT",
-        "FFTY"
+        "FFTY",
+        "EMXC"
       ]
     },
     {
