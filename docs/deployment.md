@@ -46,6 +46,13 @@ The refresh script:
 
 Manual refresh:
 
+Price refreshes replace each symbol's complete retained history with Tiingo's
+current adjusted OHLCV series. This also updates old prices and volumes after
+splits, dividends, and provider corrections; appending only new adjusted bars
+would mix adjustment bases. Existing dates are preserved, and an incomplete,
+empty, or unadjusted response does not overwrite the cache. Each symbol still
+uses one normal history request, but downloads the full retained range.
+
 ```bash
 sudo systemctl start trenddeck-refresh.service
 journalctl -u trenddeck-refresh.service -n 120 --no-pager

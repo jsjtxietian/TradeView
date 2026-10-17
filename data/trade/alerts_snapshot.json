@@ -854,16 +854,16 @@
       "latestClose": 59.8,
       "dailyChangePct": -0.0005,
       "fiveDayChangePct": -0.015,
-      "latestVolumeRatioMA50": 1.3714,
-      "trendPassCount": 2,
+      "latestVolumeRatioMA50": 0.5503,
+      "trendPassCount": 6,
       "trendTotal": 8,
       "isSixMonthHigh": false,
-      "isSixMonthLow": true,
-      "sixMonthHighText": "183.88",
-      "sixMonthLowText": "59.80",
+      "isSixMonthLow": false,
+      "sixMonthHighText": "61.29",
+      "sixMonthLowText": "53.02",
       "crossedAboveMA50": false,
-      "crossedBelowMA50": false,
-      "latestMA50Text": "164.99"
+      "crossedBelowMA50": true,
+      "latestMA50Text": "59.80"
     },
     "EWZ": {
       "latestDate": "2026-10-16",

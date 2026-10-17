@@ -386,10 +386,15 @@ def load_history(
         disk_cached.attrs["source_note"] = f"{symbol} 刚刚已拉新过，短时间内直接复用本地缓存。"
         return set_cached(cache_key, disk_cached.copy()).copy()
 
-    incremental_start = None
+    # Adjusted bars are mutable: a split or dividend revises the entire past.
+    # Refresh the retained range in one request instead of appending bars in a
+    # new adjustment basis to old ones. Keep dates older than the period window.
+    refresh_start = None
     tiingo_had_no_data = False
-    if not disk_cached.empty and not legacy_cache_needs_rebuild:
-        incremental_start = (disk_cached["Date"].max() + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+    if not disk_cached.empty:
+        refresh_start = min(
+            disk_cached["Date"].min(), pd.Timestamp(period_start(period))
+        ).strftime("%Y-%m-%d")
 
     tiingo_error: Exception | None = None
     tiingo_errors: list[Exception] = []
@@ -399,21 +404,18 @@ def load_history(
     if api_keys:
         for api_key in api_keys:
             try:
-                frame = fetch_history_from_tiingo(symbol, period, start_date=incremental_start, api_key=api_key)
-                if legacy_cache_needs_rebuild and not frame.empty:
-                    merged = frame.copy()
-                    merged.attrs["source_note"] = f"{symbol} 行情已按前复权口径重建缓存，价格数据源: Tiingo"
-                    save_history_cache(symbol, period, merged)
-                    return set_cached(cache_key, merged.copy()).copy()
-                if not legacy_cache_needs_rebuild and (not frame.empty or not disk_cached.empty):
-                    merged = merge_history_frames(disk_cached, frame)
-                    merged.attrs["source_note"] = (
-                        f"{symbol} 前复权行情已增量更新，价格数据源: Tiingo"
-                        if not disk_cached.empty
-                        else f"{symbol} 前复权行情数据源: Tiingo"
-                    )
-                    save_history_cache(symbol, period, merged)
-                    return set_cached(cache_key, merged.copy()).copy()
+                frame = fetch_history_from_tiingo(symbol, period, start_date=refresh_start, api_key=api_key)
+                if not frame.empty:
+                    if not is_preferred_price_mode(frame):
+                        raise ValueError(f"{symbol} 未返回完整前复权字段，保留原缓存。")
+                    if not disk_cached.empty:
+                        missing_dates = pd.Index(disk_cached["Date"]).difference(frame["Date"])
+                        if not missing_dates.empty:
+                            raise ValueError(f"{symbol} 历史重建缺少 {len(missing_dates)} 个已有交易日，保留原缓存。")
+                    frame.attrs["source_note"] = f"{symbol} 行情已按前复权口径全量更新，价格数据源: Tiingo"
+                    save_history_cache(symbol, period, frame)
+                    clear_symbol_memory_cache(symbol)
+                    return set_cached(cache_key, frame.copy()).copy()
                 tiingo_had_no_data = True
                 tiingo_error = None
                 break

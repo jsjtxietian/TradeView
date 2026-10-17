@@ -250,7 +250,7 @@ def test_report_refresh_persists_new_bar_and_invalidates_web_cache(server_url, c
 
     def fetch(symbol, period, **kwargs):
         calls.append(symbol)
-        return new_bar.copy()
+        return pd.concat([source, new_bar], ignore_index=True)
 
     def save(symbol, period, frame):
         frame.to_csv(cached_data["cache"] / f"{symbol}_{period}_history.csv", index=False)

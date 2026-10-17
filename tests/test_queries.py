@@ -60,8 +60,8 @@ def test_symbol_report_explicit_refresh_without_watchlist_membership(cached_data
     assert len(result["history"]["rows"]) == 20
     assert result["history"]["rows"][-1]["Date"] == cached_data["date"]
     assert result["history"]["next_before"] == result["history"]["rows"][0]["Date"]
-    next_date = (pd.Timestamp(cached_data["date"]) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
-    assert calls == [("NVDA", "3y", next_date)]
+    start_date = min(source["Date"].min(), pd.Timestamp(market.period_start("3y"))).strftime("%Y-%m-%d")
+    assert calls == [("NVDA", "3y", start_date)]
 
     fetched = queries.get_symbol_report("OUTSIDE", refresh=True, history_limit=5)
     assert fetched["cache"]["status"] == "fetched"

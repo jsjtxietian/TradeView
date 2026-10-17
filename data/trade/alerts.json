@@ -10428,36 +10428,6 @@
     "timeLabel": "10/10 07:05"
   },
   {
-    "symbol": "DXJ",
-    "message": "创近 6 个月新低（60.71）。",
-    "createdAt": "2026-10-09T23:05:33Z",
-    "timeLabel": "10/10 07:05"
-  },
-  {
-    "symbol": "DXJ",
-    "message": "较前一交易日下跌 -66.4%。",
-    "createdAt": "2026-10-09T23:05:33Z",
-    "timeLabel": "10/10 07:05"
-  },
-  {
-    "symbol": "DXJ",
-    "message": "近 5 个交易日累计下跌 -66.6%。",
-    "createdAt": "2026-10-09T23:05:33Z",
-    "timeLabel": "10/10 07:05"
-  },
-  {
-    "symbol": "DXJ",
-    "message": "当日成交量放大至 50 日均量的 241%。",
-    "createdAt": "2026-10-09T23:05:33Z",
-    "timeLabel": "10/10 07:05"
-  },
-  {
-    "symbol": "DXJ",
-    "message": "收盘价下穿 50 日均线（MA50 176.42）。",
-    "createdAt": "2026-10-09T23:05:33Z",
-    "timeLabel": "10/10 07:05"
-  },
-  {
     "symbol": "EWZ",
     "message": "创近 6 个月新高（43.54）。",
     "createdAt": "2026-10-09T23:05:33Z",
@@ -10830,18 +10800,6 @@
     "timeLabel": "10/13 07:09"
   },
   {
-    "symbol": "DXJ",
-    "message": "近 5 个交易日累计下跌 -66.9%。",
-    "createdAt": "2026-10-12T23:09:43Z",
-    "timeLabel": "10/13 07:09"
-  },
-  {
-    "symbol": "DXJ",
-    "message": "当日成交量放大至 50 日均量的 182%。",
-    "createdAt": "2026-10-12T23:09:43Z",
-    "timeLabel": "10/13 07:09"
-  },
-  {
     "symbol": "VNM",
     "message": "当日成交量缩至 50 日均量的 33%。",
     "createdAt": "2026-10-12T23:09:43Z",
@@ -11120,18 +11078,6 @@
   {
     "symbol": "EWY",
     "message": "当日成交量放大至 50 日均量的 161%。",
-    "createdAt": "2026-10-13T23:07:40Z",
-    "timeLabel": "10/14 07:07"
-  },
-  {
-    "symbol": "DXJ",
-    "message": "近 5 个交易日累计下跌 -67.0%。",
-    "createdAt": "2026-10-13T23:07:40Z",
-    "timeLabel": "10/14 07:07"
-  },
-  {
-    "symbol": "DXJ",
-    "message": "当日成交量放大至 50 日均量的 459%。",
     "createdAt": "2026-10-13T23:07:40Z",
     "timeLabel": "10/14 07:07"
   },
@@ -11700,18 +11646,6 @@
     "timeLabel": "10/15 07:09"
   },
   {
-    "symbol": "DXJ",
-    "message": "近 5 个交易日累计下跌 -67.0%。",
-    "createdAt": "2026-10-14T23:09:39Z",
-    "timeLabel": "10/15 07:09"
-  },
-  {
-    "symbol": "DXJ",
-    "message": "当日成交量放大至 50 日均量的 177%。",
-    "createdAt": "2026-10-14T23:09:39Z",
-    "timeLabel": "10/15 07:09"
-  },
-  {
     "symbol": "EWZ",
     "message": "当日成交量放大至 50 日均量的 188%。",
     "createdAt": "2026-10-14T23:09:39Z",
@@ -12188,12 +12122,6 @@
   {
     "symbol": "EWY",
     "message": "当日成交量放大至 50 日均量的 231%。",
-    "createdAt": "2026-10-15T23:07:42Z",
-    "timeLabel": "10/16 07:07"
-  },
-  {
-    "symbol": "DXJ",
-    "message": "近 5 个交易日累计下跌 -66.9%。",
     "createdAt": "2026-10-15T23:07:42Z",
     "timeLabel": "10/16 07:07"
   },
