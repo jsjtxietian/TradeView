@@ -529,22 +529,6 @@
       "crossedBelowMA50": false,
       "latestMA50Text": "309.10"
     },
-    "TOELY": {
-      "latestDate": "2026-10-16",
-      "latestClose": 164.55,
-      "dailyChangePct": 0.0,
-      "fiveDayChangePct": 0.0,
-      "latestVolumeRatioMA50": 0.0,
-      "trendPassCount": 3,
-      "trendTotal": 8,
-      "isSixMonthHigh": false,
-      "isSixMonthLow": false,
-      "sixMonthHighText": "247.80",
-      "sixMonthLowText": "139.31",
-      "crossedAboveMA50": false,
-      "crossedBelowMA50": false,
-      "latestMA50Text": "169.46"
-    },
     "KLAC": {
       "latestDate": "2026-10-16",
       "latestClose": 165.74,

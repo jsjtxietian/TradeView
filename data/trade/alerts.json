@@ -228,12 +228,6 @@
     "timeLabel": "08/13 22:21"
   },
   {
-    "symbol": "TOELY",
-    "message": "较前一交易日上涨 +5.9%。",
-    "createdAt": "2026-08-13T14:21:33.910Z",
-    "timeLabel": "08/13 22:21"
-  },
-  {
     "symbol": "NBIS",
     "message": "刚刚满足趋势模板。",
     "createdAt": "2026-08-13T14:21:33.910Z",
@@ -452,12 +446,6 @@
   {
     "symbol": "WDC",
     "message": "较前一交易日上涨 +7.3%。",
-    "createdAt": "2026-08-14T07:07:55.287Z",
-    "timeLabel": "08/14 15:07"
-  },
-  {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 29%。",
     "createdAt": "2026-08-14T07:07:55.287Z",
     "timeLabel": "08/14 15:07"
   },
@@ -714,12 +702,6 @@
     "timeLabel": "08/15 21:38"
   },
   {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 20%。",
-    "createdAt": "2026-08-15T13:38:34.753Z",
-    "timeLabel": "08/15 21:38"
-  },
-  {
     "symbol": "NBIS",
     "message": "较前一交易日上涨 +8.9%。",
     "createdAt": "2026-08-15T13:38:34.753Z",
@@ -954,12 +936,6 @@
     "timeLabel": "08/17 16:56"
   },
   {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 20%。",
-    "createdAt": "2026-08-17T08:56:16.645Z",
-    "timeLabel": "08/17 16:56"
-  },
-  {
     "symbol": "NBIS",
     "message": "较前一交易日上涨 +8.9%。",
     "createdAt": "2026-08-17T08:56:16.645Z",
@@ -1124,12 +1100,6 @@
   {
     "symbol": "LRCX",
     "message": "刚刚满足趋势模板。",
-    "createdAt": "2026-08-18T02:40:36.148Z",
-    "timeLabel": "08/18 10:40"
-  },
-  {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 36%。",
     "createdAt": "2026-08-18T02:40:36.148Z",
     "timeLabel": "08/18 10:40"
   },
@@ -1644,18 +1614,6 @@
     "timeLabel": "08/25 07:02"
   },
   {
-    "symbol": "TOELY",
-    "message": "近 5 个交易日累计下跌 -9.0%。",
-    "createdAt": "2026-08-24T23:02:32Z",
-    "timeLabel": "08/25 07:02"
-  },
-  {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 26%。",
-    "createdAt": "2026-08-24T23:02:32Z",
-    "timeLabel": "08/25 07:02"
-  },
-  {
     "symbol": "KLAC",
     "message": "近 5 个交易日累计下跌 -11.8%。",
     "createdAt": "2026-08-24T23:02:32Z",
@@ -1934,12 +1892,6 @@
   {
     "symbol": "LRCX",
     "message": "当日成交量缩至 50 日均量的 43%。",
-    "createdAt": "2026-08-25T23:05:37Z",
-    "timeLabel": "08/26 07:05"
-  },
-  {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 24%。",
     "createdAt": "2026-08-25T23:05:37Z",
     "timeLabel": "08/26 07:05"
   },
@@ -2238,12 +2190,6 @@
     "timeLabel": "08/27 07:07"
   },
   {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 16%。",
-    "createdAt": "2026-08-26T23:07:21Z",
-    "timeLabel": "08/27 07:07"
-  },
-  {
     "symbol": "KLAC",
     "message": "当日成交量缩至 50 日均量的 46%。",
     "createdAt": "2026-08-26T23:07:21Z",
@@ -2493,12 +2439,6 @@
     "symbol": "TSM",
     "message": "收盘价上穿 50 日均线（MA50 423.73）。",
     "createdAt": "2026-08-27T23:08:10Z",
-    "timeLabel": "08/28 07:08"
-  },
-  {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 20%。",
-    "createdAt": "2026-08-27T23:08:21Z",
     "timeLabel": "08/28 07:08"
   },
   {
@@ -2886,12 +2826,6 @@
     "timeLabel": "09/01 07:10"
   },
   {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 46%。",
-    "createdAt": "2026-08-31T23:10:26Z",
-    "timeLabel": "09/01 07:10"
-  },
-  {
     "symbol": "NBIS",
     "message": "当日成交量缩至 50 日均量的 48%。",
     "createdAt": "2026-08-31T23:10:26Z",
@@ -3050,18 +2984,6 @@
   {
     "symbol": "STX",
     "message": "当日成交量缩至 50 日均量的 48%。",
-    "createdAt": "2026-09-01T23:04:21Z",
-    "timeLabel": "09/02 07:04"
-  },
-  {
-    "symbol": "TOELY",
-    "message": "较前一交易日下跌 -5.4%。",
-    "createdAt": "2026-09-01T23:04:21Z",
-    "timeLabel": "09/02 07:04"
-  },
-  {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 29%。",
     "createdAt": "2026-09-01T23:04:21Z",
     "timeLabel": "09/02 07:04"
   },
@@ -3812,12 +3734,6 @@
   {
     "symbol": "LRCX",
     "message": "较前一交易日上涨 +5.1%。",
-    "createdAt": "2026-09-04T23:07:19Z",
-    "timeLabel": "09/05 07:07"
-  },
-  {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 35%。",
     "createdAt": "2026-09-04T23:07:19Z",
     "timeLabel": "09/05 07:07"
   },
@@ -4752,12 +4668,6 @@
     "timeLabel": "09/11 07:03"
   },
   {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 29%。",
-    "createdAt": "2026-09-10T23:03:35Z",
-    "timeLabel": "09/11 07:03"
-  },
-  {
     "symbol": "NBIS",
     "message": "较前一交易日下跌 -5.1%。",
     "createdAt": "2026-09-10T23:03:35Z",
@@ -5436,24 +5346,6 @@
     "timeLabel": "09/15 07:05"
   },
   {
-    "symbol": "TOELY",
-    "message": "较前一交易日下跌 -5.1%。",
-    "createdAt": "2026-09-14T23:05:19Z",
-    "timeLabel": "09/15 07:05"
-  },
-  {
-    "symbol": "TOELY",
-    "message": "近 5 个交易日累计下跌 -8.8%。",
-    "createdAt": "2026-09-14T23:05:19Z",
-    "timeLabel": "09/15 07:05"
-  },
-  {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 46%。",
-    "createdAt": "2026-09-14T23:05:19Z",
-    "timeLabel": "09/15 07:05"
-  },
-  {
     "symbol": "KLAC",
     "message": "较前一交易日下跌 -6.4%。",
     "createdAt": "2026-09-14T23:05:19Z",
@@ -5994,12 +5886,6 @@
     "timeLabel": "09/17 07:03"
   },
   {
-    "symbol": "TOELY",
-    "message": "当日成交量放大至 50 日均量的 153%。",
-    "createdAt": "2026-09-16T23:03:19Z",
-    "timeLabel": "09/17 07:03"
-  },
-  {
     "symbol": "KLAC",
     "message": "近 5 个交易日累计下跌 -8.5%。",
     "createdAt": "2026-09-16T23:03:19Z",
@@ -6296,12 +6182,6 @@
   {
     "symbol": "LRCX",
     "message": "近 5 个交易日累计下跌 -9.6%。",
-    "createdAt": "2026-09-17T23:03:49Z",
-    "timeLabel": "09/18 07:03"
-  },
-  {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 0%。",
     "createdAt": "2026-09-17T23:03:49Z",
     "timeLabel": "09/18 07:03"
   },
@@ -6638,12 +6518,6 @@
   {
     "symbol": "LRCX",
     "message": "当日成交量放大至 50 日均量的 207%。",
-    "createdAt": "2026-09-18T23:05:06Z",
-    "timeLabel": "09/19 07:05"
-  },
-  {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 0%。",
     "createdAt": "2026-09-18T23:05:06Z",
     "timeLabel": "09/19 07:05"
   },
@@ -7080,12 +6954,6 @@
     "timeLabel": "09/22 07:10"
   },
   {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 0%。",
-    "createdAt": "2026-09-21T23:10:20Z",
-    "timeLabel": "09/22 07:10"
-  },
-  {
     "symbol": "KLAC",
     "message": "近 5 个交易日累计上涨 +8.8%。",
     "createdAt": "2026-09-21T23:10:20Z",
@@ -7392,12 +7260,6 @@
     "timeLabel": "09/23 07:06"
   },
   {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 0%。",
-    "createdAt": "2026-09-22T23:06:21Z",
-    "timeLabel": "09/23 07:06"
-  },
-  {
     "symbol": "KLAC",
     "message": "近 5 个交易日累计上涨 +12.1%。",
     "createdAt": "2026-09-22T23:06:21Z",
@@ -7674,12 +7536,6 @@
     "timeLabel": "09/24 07:05"
   },
   {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 0%。",
-    "createdAt": "2026-09-23T23:05:41Z",
-    "timeLabel": "09/24 07:05"
-  },
-  {
     "symbol": "KLAC",
     "message": "近 5 个交易日累计上涨 +12.2%。",
     "createdAt": "2026-09-23T23:05:41Z",
@@ -7920,12 +7776,6 @@
     "timeLabel": "09/25 07:04"
   },
   {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 0%。",
-    "createdAt": "2026-09-24T23:04:19Z",
-    "timeLabel": "09/25 07:04"
-  },
-  {
     "symbol": "KLAC",
     "message": "近 5 个交易日累计上涨 +10.7%。",
     "createdAt": "2026-09-24T23:04:19Z",
@@ -8124,12 +7974,6 @@
     "timeLabel": "09/26 07:05"
   },
   {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 0%。",
-    "createdAt": "2026-09-25T23:05:08Z",
-    "timeLabel": "09/26 07:05"
-  },
-  {
     "symbol": "AEHR",
     "message": "较前一交易日上涨 +7.1%。",
     "createdAt": "2026-09-25T23:05:08Z",
@@ -8264,12 +8108,6 @@
   {
     "symbol": "SNDK",
     "message": "已不再满足趋势模板。",
-    "createdAt": "2026-09-28T23:08:43Z",
-    "timeLabel": "09/29 07:08"
-  },
-  {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 0%。",
     "createdAt": "2026-09-28T23:08:43Z",
     "timeLabel": "09/29 07:08"
   },
@@ -8448,12 +8286,6 @@
     "timeLabel": "09/30 07:03"
   },
   {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 0%。",
-    "createdAt": "2026-09-29T23:03:21Z",
-    "timeLabel": "09/30 07:03"
-  },
-  {
     "symbol": "LITE",
     "message": "较前一交易日上涨 +5.7%。",
     "createdAt": "2026-09-29T23:03:21Z",
@@ -8604,12 +8436,6 @@
     "timeLabel": "10/01 07:01"
   },
   {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 0%。",
-    "createdAt": "2026-09-30T23:01:19Z",
-    "timeLabel": "10/01 07:01"
-  },
-  {
     "symbol": "SPY",
     "message": "收盘价下穿 50 日均线（MA50 762.74）。",
     "createdAt": "2026-09-30T23:01:19Z",
@@ -8744,12 +8570,6 @@
   {
     "symbol": "LRCX",
     "message": "近 5 个交易日累计上涨 +10.7%。",
-    "createdAt": "2026-10-01T23:09:20Z",
-    "timeLabel": "10/02 07:09"
-  },
-  {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 0%。",
     "createdAt": "2026-10-01T23:09:20Z",
     "timeLabel": "10/02 07:09"
   },
@@ -9018,12 +8838,6 @@
     "timeLabel": "10/03 07:09"
   },
   {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 0%。",
-    "createdAt": "2026-10-02T23:09:19Z",
-    "timeLabel": "10/03 07:09"
-  },
-  {
     "symbol": "KLAC",
     "message": "近 5 个交易日累计上涨 +10.1%。",
     "createdAt": "2026-10-02T23:09:19Z",
@@ -9278,12 +9092,6 @@
   {
     "symbol": "LRCX",
     "message": "近 5 个交易日累计上涨 +10.0%。",
-    "createdAt": "2026-10-05T23:01:43Z",
-    "timeLabel": "10/06 07:01"
-  },
-  {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 0%。",
     "createdAt": "2026-10-05T23:01:43Z",
     "timeLabel": "10/06 07:01"
   },
@@ -9558,12 +9366,6 @@
     "timeLabel": "10/07 07:09"
   },
   {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 0%。",
-    "createdAt": "2026-10-06T23:09:13Z",
-    "timeLabel": "10/07 07:09"
-  },
-  {
     "symbol": "NBIS",
     "message": "较前一交易日上涨 +7.4%。",
     "createdAt": "2026-10-06T23:09:13Z",
@@ -9764,12 +9566,6 @@
   {
     "symbol": "WDC",
     "message": "近 5 个交易日累计下跌 -10.8%。",
-    "createdAt": "2026-10-07T23:07:19Z",
-    "timeLabel": "10/08 07:07"
-  },
-  {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 0%。",
     "createdAt": "2026-10-07T23:07:19Z",
     "timeLabel": "10/08 07:07"
   },
@@ -10046,12 +9842,6 @@
   {
     "symbol": "LRCX",
     "message": "已不再满足趋势模板。",
-    "createdAt": "2026-10-08T23:06:20Z",
-    "timeLabel": "10/09 07:06"
-  },
-  {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 0%。",
     "createdAt": "2026-10-08T23:06:20Z",
     "timeLabel": "10/09 07:06"
   },
@@ -10368,12 +10158,6 @@
     "timeLabel": "10/10 07:05"
   },
   {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 0%。",
-    "createdAt": "2026-10-09T23:05:12Z",
-    "timeLabel": "10/10 07:05"
-  },
-  {
     "symbol": "NBIS",
     "message": "近 5 个交易日累计下跌 -8.9%。",
     "createdAt": "2026-10-09T23:05:12Z",
@@ -10658,12 +10442,6 @@
   {
     "symbol": "LRCX",
     "message": "收盘价下穿 50 日均线（MA50 311.02）。",
-    "createdAt": "2026-10-12T23:09:20Z",
-    "timeLabel": "10/13 07:09"
-  },
-  {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 0%。",
     "createdAt": "2026-10-12T23:09:20Z",
     "timeLabel": "10/13 07:09"
   },
@@ -11000,12 +10778,6 @@
   {
     "symbol": "LRCX",
     "message": "近 5 个交易日累计下跌 -9.8%。",
-    "createdAt": "2026-10-13T23:07:19Z",
-    "timeLabel": "10/14 07:07"
-  },
-  {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 0%。",
     "createdAt": "2026-10-13T23:07:19Z",
     "timeLabel": "10/14 07:07"
   },
@@ -11450,12 +11222,6 @@
   {
     "symbol": "LRCX",
     "message": "近 5 个交易日累计下跌 -12.9%。",
-    "createdAt": "2026-10-14T23:09:19Z",
-    "timeLabel": "10/15 07:09"
-  },
-  {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 0%。",
     "createdAt": "2026-10-14T23:09:19Z",
     "timeLabel": "10/15 07:09"
   },
@@ -11978,12 +11744,6 @@
   {
     "symbol": "LRCX",
     "message": "当日成交量放大至 50 日均量的 164%。",
-    "createdAt": "2026-10-15T23:07:21Z",
-    "timeLabel": "10/16 07:07"
-  },
-  {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 0%。",
     "createdAt": "2026-10-15T23:07:21Z",
     "timeLabel": "10/16 07:07"
   },
@@ -12644,12 +12404,6 @@
   {
     "symbol": "LRCX",
     "message": "近 5 个交易日累计下跌 -17.2%。",
-    "createdAt": "2026-10-16T23:09:29Z",
-    "timeLabel": "10/17 07:09"
-  },
-  {
-    "symbol": "TOELY",
-    "message": "当日成交量缩至 50 日均量的 0%。",
     "createdAt": "2026-10-16T23:09:29Z",
     "timeLabel": "10/17 07:09"
   },
