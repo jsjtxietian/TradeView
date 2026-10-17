@@ -3988,5 +3988,402 @@
         "note": ""
       }
     ]
+  },
+  {
+    "id": 113,
+    "symbol": "BOXX",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-07-20",
+        "quantity": 300.0,
+        "price": 117.5,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-07-23",
+        "quantity": 50.0,
+        "price": 117.53,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-08-06",
+        "quantity": 90.0,
+        "price": 117.7105,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-08-25",
+        "quantity": 60.0,
+        "price": 117.95,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-08-27",
+        "quantity": 50.0,
+        "price": 117.995,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-08-28",
+        "quantity": 50.0,
+        "price": 118.025,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 114,
+    "symbol": "SMH",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-08-12",
+        "quantity": 10.0,
+        "price": 589.69,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-08-24",
+        "quantity": 10.0,
+        "price": 541.7405,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 115,
+    "symbol": "AVGO",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-08-21",
+        "quantity": 20.0,
+        "price": 375.06,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-08-26",
+        "quantity": 10.0,
+        "price": 350.83,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-09-03",
+        "quantity": 10.0,
+        "price": 344.0,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 116,
+    "symbol": "META",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-08-24",
+        "quantity": 15.0,
+        "price": 560.355,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-09-03",
+        "quantity": 7.0,
+        "price": 612.41,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-09-10",
+        "quantity": 2.0,
+        "price": 656.65,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-09-10",
+        "quantity": 2.0,
+        "price": 656.65,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-09-17",
+        "quantity": 4.0,
+        "price": 671.41,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 117,
+    "symbol": "NET",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-08-27",
+        "quantity": 10.0,
+        "price": 300.38,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-08-27",
+        "quantity": 10.0,
+        "price": 306.12,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-08-27",
+        "quantity": 10.0,
+        "price": 300.38,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-09-01",
+        "quantity": 10.0,
+        "price": 289.68,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 118,
+    "symbol": "FTNT",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-08-27",
+        "quantity": 10.0,
+        "price": 170.015,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-08-27",
+        "quantity": 10.0,
+        "price": 170.015,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-09-02",
+        "quantity": 20.0,
+        "price": 158.975,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 119,
+    "symbol": "SPCX",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-09-03",
+        "quantity": 10.0,
+        "price": 150.55,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-09-16",
+        "quantity": 10.0,
+        "price": 151.42,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 120,
+    "symbol": "FSLY",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-09-14",
+        "quantity": 100.0,
+        "price": 25.0484,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-09-21",
+        "quantity": 50.0,
+        "price": 27.572,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-09-21",
+        "quantity": 25.0,
+        "price": 26.98,
+        "action": "sell",
+        "note": ""
+      },
+      {
+        "date": "2026-09-21",
+        "quantity": 25.0,
+        "price": 26.976,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 121,
+    "symbol": "SMH",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-09-14",
+        "quantity": 5.0,
+        "price": 544.54,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-09-21",
+        "quantity": 5.0,
+        "price": 591.67,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 122,
+    "symbol": "TSM",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-09-17",
+        "quantity": 5.0,
+        "price": 426.17,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-10-08",
+        "quantity": 5.0,
+        "price": 456.355,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 123,
+    "symbol": "SNDK",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-09-22",
+        "quantity": 2.0,
+        "price": 1829.1292,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-09-23",
+        "quantity": 2.0,
+        "price": 1833.59,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 124,
+    "symbol": "SNDK",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-10-07",
+        "quantity": 3.0,
+        "price": 1680.17,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-10-13",
+        "quantity": 3.0,
+        "price": 1437.11,
+        "action": "sell",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": 125,
+    "symbol": "FSLY",
+    "currency": "USD",
+    "direction": "long",
+    "note": "",
+    "transactions": [
+      {
+        "date": "2026-10-13",
+        "quantity": 35.0,
+        "price": 27.925,
+        "action": "buy",
+        "note": ""
+      },
+      {
+        "date": "2026-10-13",
+        "quantity": 35.0,
+        "price": 27.925,
+        "action": "add",
+        "note": ""
+      },
+      {
+        "date": "2026-10-13",
+        "quantity": 70.0,
+        "price": 26.7918,
+        "action": "sell",
+        "note": ""
+      }
+    ]
   }
 ]
