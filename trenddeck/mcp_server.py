@@ -16,7 +16,8 @@ from starlette.datastructures import Headers
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from trenddeck import queries
+from trenddeck import queries, setup_queries
+from trenddeck.setup_model import MODEL_VERSION
 
 
 def env_list(name: str) -> list[str]:
@@ -45,6 +46,9 @@ def create_mcp_server() -> FastMCP:
             "saved watchlist. They preserve notes and holdings and do not fetch prices. "
             "Use get_watchlist to read membership, existing group IDs and manual holdings "
             "without market data; pass group_id to add_watchlist_symbol for group assignment. "
+            "Use get_setup_rankings for causal price-structure ranking, get_setup_report for "
+            "geometry and score evidence. "
+            "Setup scores are heuristic, not win probabilities; inspect status and coverage. "
             "Always state as_of_session and check coverage and benchmark_session. "
             "Daily changes are computed from bars, not alert timestamps. Historical queries use "
             "current watchlists/notes/alerts. No brokerage access, news or fundamentals. "
@@ -77,6 +81,41 @@ def _register_read_tools(server: FastMCP) -> None:
     live_read = ToolAnnotations(
         readOnlyHint=True, destructiveHint=False, idempotentHint=False, openWorldHint=True
     )
+
+    @server.tool(annotations=read_only)
+    async def get_setup_report(symbol: str, as_of: str | None = None,
+                               model_version: str = MODEL_VERSION,
+                               include_details: bool = False) -> dict[str, Any]:
+        """Return entry-quality score, Chinese reasons and Markdown scoring conditions.
+        Schema 2 is compact by default. include_details adds full diagnostics under
+        details. Cache only; as_of is an inclusive YYYY-MM-DD cutoff. The score
+        evaluates entry conditions, not profit or an exit policy.
+        """
+        return await anyio.to_thread.run_sync(partial(
+            setup_queries.get_setup_report, symbol, as_of, model_version, include_details))
+
+    @server.tool(annotations=read_only)
+    async def get_setup_rankings(
+        as_of: str | None = None,
+        symbols: Annotated[list[str], Field(max_length=200)] | None = None,
+        universe: str = "watchlist",
+        actionable_only: bool = False,
+        limit: Annotated[int, Field(ge=1, le=100)] = 30,
+        offset: Annotated[int, Field(ge=0, le=10000)] = 0,
+        model_version: str = MODEL_VERSION,
+        include_details: bool = False,
+    ) -> dict[str, Any]:
+        """Rank current watchlist or universe='cache' on a common cached SPY session.
+        Explicit symbols override universe membership. Missing/stale/short histories are
+        reported in coverage. Historical membership is current, not point-in-time.
+        Schema 2 returns symbol/rank/score/Chinese reasons plus shared Markdown
+        scoring conditions. include_details adds full per-item diagnostics under details.
+        actionable_only selects ready/confirmed breakouts.
+        No network, model inference, refresh or writes. Follow next_offset for more rows.
+        """
+        return await anyio.to_thread.run_sync(partial(
+            setup_queries.get_setup_rankings, as_of, symbols, universe, actionable_only,
+            limit, offset, model_version, include_details))
 
     @server.tool(annotations=read_only)
     async def get_watchlist() -> dict[str, Any]:

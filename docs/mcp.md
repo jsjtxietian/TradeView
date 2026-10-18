@@ -107,13 +107,15 @@ Host 不匹配返回 421。普通服务端 agent 不发送 Origin；若客户端
 
 ## 工具分类与对话方式
 
-MCP 暴露六个工具，按状态影响分类：
+MCP 暴露八个工具，按状态影响分类：
 
 | 分类 | 工具 | 行情联网 | 写入内容 |
 | --- | --- | --- | --- |
 | 纯只读 | `get_watchlist` | 否 | 无 |
 | 纯只读 | `get_daily_changes` | 否 | 无 |
 | 纯只读 | `get_realtime_quote` | 是 | 无 |
+| 纯只读 | `get_setup_report` | 否 | 无 |
+| 纯只读 | `get_setup_rankings` | 否 | 无 |
 | 可写，默认只读 | `get_symbol_report` | 仅 `refresh=true` | 该股票的日线缓存，仅 `refresh=true` |
 | 改变状态 | `add_watchlist_symbol` | 否 | 自选列表及分组 |
 | 改变状态 | `remove_watchlist_symbol` | 否 | 自选列表、分组及提醒比较快照 |
@@ -125,6 +127,17 @@ MCP 暴露六个工具，按状态影响分类：
 
 原来的 `get_symbol_data`、`get_symbol_analysis`、`get_price_history` 已移除；
 升级后重新加载 agent 的 MCP 工具列表，并更新已有定时任务中的工具名。
+
+新增的枢轴模型工具及 HTTP 接口见 [枢轴评分与研究](setups.md)：
+`get_setup_rankings` 排行、`get_setup_report` 单股评分。
+两者默认返回 schema 2 的分数、中文理由和共享 Markdown 评分条件；
+仅在 `include_details=true` 时附加完整诊断 `details`，HTTP 与 MCP 参数一致。
+两者只使用当前模型 `base-v4`；兼容字段 `model_version` 可省略，显式传值也只接受 `base-v4`。
+当前模型先识别独立基底，再判断内部收缩；详细的基底目录和早晚期背景仅在 `include_details=true` 中返回。
+算法和目前验证边界见 [当前基底评分与研究模型](setups.md)。
+Markdown 按当前模型实际权重与规则生成，整体形态分与突破时机标记分别返回。
+工具只读取本地缓存，不运行 LLM，也不自动调参。
+回测不注册为 MCP 工具；历史验证保留在本地研究脚本和 HTTP 研究接口中。
 
 ### `get_watchlist`
 

@@ -49,7 +49,7 @@ def test_authentication_and_host_origin_validation(server_url, monkeypatch):
     }
     monkeypatch.setenv("TRENDDECK_MCP_TOKEN", "previous-test-token")
     response = httpx.post(server_url + "/mcp", json=request, headers=old_headers)
-    assert response.status_code == 200 and len(response.json()["result"]["tools"]) == 6
+    assert response.status_code == 200 and len(response.json()["result"]["tools"]) == 8
     monkeypatch.setenv("TRENDDECK_MCP_TOKEN", "")
     assert httpx.post(server_url + "/mcp", json=request, headers=old_headers).status_code == 503
     assert (
@@ -113,10 +113,38 @@ def test_real_mcp_clients_discover_and_call_tools(server_url, cached_data, monke
                         "get_watchlist",
                         "get_symbol_report",
                         "get_realtime_quote",
+                        "get_setup_report",
+                        "get_setup_rankings",
                         "add_watchlist_symbol",
                         "remove_watchlist_symbol",
                     }
                     tools_by_name = {tool.name: tool for tool in tools}
+                    for name in ("get_setup_report", "get_setup_rankings"):
+                        assert tools_by_name[name].annotations.readOnlyHint
+                        assert not tools_by_name[name].annotations.openWorldHint
+                    setups = await session.call_tool("get_setup_rankings", {"symbols": ["NVDA"]})
+                    assert not setups.isError and setups.structuredContent["read_only"]
+                    assert setups.structuredContent["schema_version"] == 2
+                    assert set(setups.structuredContent["items"][0]) == {
+                        "symbol", "rank", "score", "status", "reasons"}
+                    setup = await session.call_tool("get_setup_report", {"symbol": "NVDA"})
+                    assert not setup.isError and setup.structuredContent["model_version"]
+                    assert "details" not in setup.structuredContent
+                    assert setup.structuredContent["reasons"]
+                    assert setup.structuredContent["conditions_markdown"] == setups.structuredContent["conditions_markdown"]
+                    for name, arguments in [
+                        ("get_setup_report", {"symbol": "NVDA"}),
+                        ("get_setup_rankings", {"symbols": ["NVDA"]}),
+                    ]:
+                        assert tools_by_name[name].inputSchema["properties"]["include_details"]["default"] is False
+                        detailed = await session.call_tool(name, {**arguments, "include_details": True})
+                        assert not detailed.isError and "details" in detailed.structuredContent
+                        payload = detailed.structuredContent
+                        diagnostics = payload["details"] if name == "get_setup_report" else payload["items"][0]["details"]
+                        assert "geometry" in diagnostics and "components" in diagnostics
+                    backtest = await session.call_tool("get_setup_backtest", {
+                        "start": "2025-12-01", "end": "2026-02-01"})
+                    assert backtest.isError
                     watchlist_tool = tools_by_name["get_watchlist"]
                     assert watchlist_tool.annotations.readOnlyHint
                     assert not watchlist_tool.annotations.openWorldHint

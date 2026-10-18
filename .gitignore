@@ -4,6 +4,8 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .env
+books/
+tmp/
 1.txt
 data/imports/
 todo.md

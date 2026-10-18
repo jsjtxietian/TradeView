@@ -64,6 +64,9 @@ tests/                  自动测试
 - [服务器部署、每日刷新及旧目录迁移](docs/deployment.md)
 - [IBKR 交易与账务导入](docs/ibkr-import.md)
 - [指标、提醒与界面设计](docs/design.md)
+- [当前基底模型、VCP 结构与研究接口](docs/setups.md)
+
+形态评分只运行当前 `base-v4`，后续直接在这个模型上迭代。
 
 从旧版本升级时，Git 会迁移已跟踪的数据文件；服务器安装脚本会检查并迁移剩余的
 `.cache/`、`.trade/` 本机文件。同名不同内容会停止迁移，绝不覆盖。
