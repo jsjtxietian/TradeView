@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import base64
+import json
 import os
 import socket
 import threading
@@ -132,6 +134,27 @@ def test_real_mcp_clients_discover_and_call_tools(server_url, cached_data, monke
                     assert "details" not in setup.structuredContent
                     assert setup.structuredContent["reasons"]
                     assert setup.structuredContent["conditions_markdown"] == setups.structuredContent["conditions_markdown"]
+                    pullback = await session.call_tool('get_setup_report', {'symbol':'NVDA','setup_type':'pullback'})
+                    assert not pullback.isError
+                    assert pullback.structuredContent['setup_type'] == 'pullback'
+                    assert pullback.structuredContent['score'] is None
+                    pullbacks = await session.call_tool('get_setup_rankings', {'symbols':['NVDA'],'setup_type':'pullback'})
+                    assert not pullbacks.isError
+                    assert pullbacks.structuredContent['ordering'] == 'status_then_symbol_not_quality_score'
+                    assert tools_by_name["get_setup_report"].inputSchema["properties"]["include_chart"]["default"] is False
+                    assert not any(c.type == "image" for c in setup.content)
+                    for setup_type, plain in [("base", setup), ("pullback", pullback)]:
+                        plotted = await session.call_tool("get_setup_report", {
+                            "symbol": "NVDA", "setup_type": setup_type, "include_chart": True})
+                        assert not plotted.isError
+                        assert [c.type for c in plotted.content] == ["text", "image"]
+                        assert plotted.content[1].mimeType == "image/png"
+                        assert base64.b64decode(plotted.content[1].data).startswith(b"\x89PNG\r\n\x1a\n")
+                        payload = plotted.structuredContent
+                        assert "data" not in payload["chart"]
+                        assert json.loads(plotted.content[0].text) == payload
+                        assert {k: v for k, v in payload.items() if k != "chart"} == plain.structuredContent
+                        assert payload["chart"]["as_of_session"] == payload["as_of_session"]
                     for name, arguments in [
                         ("get_setup_report", {"symbol": "NVDA"}),
                         ("get_setup_rankings", {"symbols": ["NVDA"]}),

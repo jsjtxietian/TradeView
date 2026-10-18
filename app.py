@@ -72,10 +72,11 @@ def setup_rankings(
     limit: int = Query(30, ge=1, le=100), offset: int = Query(0, ge=0, le=10000),
     model_version: str = MODEL_VERSION,
     include_details: bool = False,
+    setup_type: str = "base",
 ) -> dict[str, Any]:
     try:
         return setup_queries.get_setup_rankings(
-            as_of, symbols, universe, actionable_only, limit, offset, model_version, include_details
+            as_of, symbols, universe, actionable_only, limit, offset, model_version, include_details, setup_type
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -83,10 +84,12 @@ def setup_rankings(
 
 @app.get("/api/setups/report/{symbol}")
 def setup_report(
-    symbol: str, as_of: str | None = None, model_version: str = MODEL_VERSION, include_details: bool = False
+    symbol: str, as_of: str | None = None, model_version: str = MODEL_VERSION, include_details: bool = False,
+    setup_type: str = "base",
+    include_chart: bool = False,
 ) -> dict[str, Any]:
     try:
-        return setup_queries.get_setup_report(symbol, as_of, model_version, include_details)
+        return setup_queries.get_setup_report(symbol, as_of, model_version, include_details, setup_type, include_chart)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

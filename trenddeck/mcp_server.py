@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hmac
+import json
 import os
 from functools import partial
 from typing import Annotated, Any
@@ -10,7 +11,7 @@ from typing import Annotated, Any
 import anyio
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
-from mcp.types import ToolAnnotations
+from mcp.types import CallToolResult, ImageContent, TextContent, ToolAnnotations
 from pydantic import Field
 from starlette.datastructures import Headers
 from starlette.responses import JSONResponse
@@ -85,14 +86,27 @@ def _register_read_tools(server: FastMCP) -> None:
     @server.tool(annotations=read_only)
     async def get_setup_report(symbol: str, as_of: str | None = None,
                                model_version: str = MODEL_VERSION,
-                               include_details: bool = False) -> dict[str, Any]:
+                               include_details: bool = False, setup_type: str = "base",
+                               include_chart: bool = False) -> Annotated[CallToolResult, dict[str, Any]]:
         """Return entry-quality score, Chinese reasons and Markdown scoring conditions.
         Schema 2 is compact by default. include_details adds full diagnostics under
         details. Cache only; as_of is an inclusive YYYY-MM-DD cutoff. The score
         evaluates entry conditions, not profit or an exit policy.
+        setup_type='pullback' observes the first repair base after a deep correction:
+        returns stages/evidence with score=null, separately from the default base score.
+        include_chart adds a native PNG image with OHLCV, moving averages and the
+        same report's base/confirmation/breakout markers. Default false; no chart
+        files or URLs. chart metadata stays in structuredContent; image bytes do not.
         """
-        return await anyio.to_thread.run_sync(partial(
-            setup_queries.get_setup_report, symbol, as_of, model_version, include_details))
+        report = await anyio.to_thread.run_sync(partial(
+            setup_queries.get_setup_report, symbol, as_of, model_version, include_details, setup_type, include_chart))
+        image = None
+        if include_chart:
+            image = ImageContent(type="image", mimeType="image/png", data=report["chart"].pop("data"))
+        content = [TextContent(type="text", text=json.dumps(report, ensure_ascii=False))]
+        if image is not None:
+            content.append(image)
+        return CallToolResult(content=content, structuredContent=report)
 
     @server.tool(annotations=read_only)
     async def get_setup_rankings(
@@ -104,6 +118,7 @@ def _register_read_tools(server: FastMCP) -> None:
         offset: Annotated[int, Field(ge=0, le=10000)] = 0,
         model_version: str = MODEL_VERSION,
         include_details: bool = False,
+        setup_type: str = "base",
     ) -> dict[str, Any]:
         """Rank current watchlist or universe='cache' on a common cached SPY session.
         Explicit symbols override universe membership. Missing/stale/short histories are
@@ -112,10 +127,12 @@ def _register_read_tools(server: FastMCP) -> None:
         scoring conditions. include_details adds full per-item diagnostics under details.
         actionable_only selects ready/confirmed breakouts.
         No network, model inference, refresh or writes. Follow next_offset for more rows.
+        setup_type='pullback' orders by observation stage then symbol, not a quality
+        score. score is null; inspect actionable, pullback and reasons.
         """
         return await anyio.to_thread.run_sync(partial(
             setup_queries.get_setup_rankings, as_of, symbols, universe, actionable_only,
-            limit, offset, model_version, include_details))
+            limit, offset, model_version, include_details, setup_type))
 
     @server.tool(annotations=read_only)
     async def get_watchlist() -> dict[str, Any]:
