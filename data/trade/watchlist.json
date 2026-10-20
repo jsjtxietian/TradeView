@@ -84,6 +84,7 @@
     "XLF",
     "KBWB",
     "V",
+    "IALT",
     "WAGN",
     "SPHR",
     "IBB",
@@ -250,6 +251,7 @@
       "id": "GROUP_1777996255127_M9QE19",
       "name": "其他",
       "symbols": [
+        "IALT",
         "WAGN",
         "SPHR"
       ]
