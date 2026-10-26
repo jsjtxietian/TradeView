@@ -89,7 +89,9 @@
     "SPHR",
     "IBB",
     "LLY",
-    "XLV"
+    "XLV",
+    "CIBR",
+    "BUG"
   ],
   "groups": [
     {
@@ -114,7 +116,8 @@
         "ADBE",
         "CRWV",
         "OKTA",
-        "SE"
+        "SE",
+        "CIBR"
       ]
     },
     {
@@ -175,7 +178,8 @@
         "COPX",
         "TLT",
         "FFTY",
-        "EMXC"
+        "EMXC",
+        "BUG"
       ]
     },
     {
