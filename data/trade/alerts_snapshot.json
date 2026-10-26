@@ -529,22 +529,6 @@
       "crossedBelowMA50": false,
       "latestMA50Text": "302.21"
     },
-    "KLAC": {
-      "latestDate": "2026-10-23",
-      "latestClose": 145.61,
-      "dailyChangePct": -0.015,
-      "fiveDayChangePct": -0.1215,
-      "latestVolumeRatioMA50": 1.076,
-      "trendPassCount": 3,
-      "trendTotal": 8,
-      "isSixMonthHigh": false,
-      "isSixMonthLow": true,
-      "sixMonthHighText": "301.37",
-      "sixMonthLowText": "145.61",
-      "crossedAboveMA50": false,
-      "crossedBelowMA50": false,
-      "latestMA50Text": "182.42"
-    },
     "NBIS": {
       "latestDate": "2026-10-23",
       "latestClose": 158.74,
@@ -576,22 +560,6 @@
       "crossedAboveMA50": false,
       "crossedBelowMA50": false,
       "latestMA50Text": "179.86"
-    },
-    "COHR": {
-      "latestDate": "2026-10-23",
-      "latestClose": 209.29,
-      "dailyChangePct": 0.0071,
-      "fiveDayChangePct": -0.1014,
-      "latestVolumeRatioMA50": 0.9087,
-      "trendPassCount": 3,
-      "trendTotal": 8,
-      "isSixMonthHigh": false,
-      "isSixMonthLow": false,
-      "sixMonthHighText": "426.89",
-      "sixMonthLowText": "207.82",
-      "crossedAboveMA50": false,
-      "crossedBelowMA50": false,
-      "latestMA50Text": "287.90"
     },
     "SMTC": {
       "latestDate": "2026-10-23",
@@ -640,38 +608,6 @@
       "crossedAboveMA50": false,
       "crossedBelowMA50": false,
       "latestMA50Text": "146.32"
-    },
-    "CIEN": {
-      "latestDate": "2026-10-23",
-      "latestClose": 320.26,
-      "dailyChangePct": -0.0074,
-      "fiveDayChangePct": -0.0375,
-      "latestVolumeRatioMA50": 0.7243,
-      "trendPassCount": 3,
-      "trendTotal": 8,
-      "isSixMonthHigh": false,
-      "isSixMonthLow": false,
-      "sixMonthHighText": "627.00",
-      "sixMonthLowText": "317.46",
-      "crossedAboveMA50": false,
-      "crossedBelowMA50": false,
-      "latestMA50Text": "370.46"
-    },
-    "AEHR": {
-      "latestDate": "2026-10-23",
-      "latestClose": 55.31,
-      "dailyChangePct": -0.0061,
-      "fiveDayChangePct": -0.0873,
-      "latestVolumeRatioMA50": 0.6952,
-      "trendPassCount": 5,
-      "trendTotal": 8,
-      "isSixMonthHigh": false,
-      "isSixMonthLow": true,
-      "sixMonthHighText": "145.61",
-      "sixMonthLowText": "55.31",
-      "crossedAboveMA50": false,
-      "crossedBelowMA50": false,
-      "latestMA50Text": "89.98"
     },
     "MTRN": {
       "latestDate": "2026-10-23",
@@ -1232,22 +1168,6 @@
       "crossedAboveMA50": false,
       "crossedBelowMA50": false,
       "latestMA50Text": "207.60"
-    },
-    "SPHR": {
-      "latestDate": "2026-10-23",
-      "latestClose": 108.94,
-      "dailyChangePct": -0.0239,
-      "fiveDayChangePct": 0.0523,
-      "latestVolumeRatioMA50": 0.5235,
-      "trendPassCount": 3,
-      "trendTotal": 8,
-      "isSixMonthHigh": false,
-      "isSixMonthLow": false,
-      "sixMonthHighText": "176.38",
-      "sixMonthLowText": "102.46",
-      "crossedAboveMA50": false,
-      "crossedBelowMA50": false,
-      "latestMA50Text": "134.21"
     },
     "WAGN": {
       "latestDate": "2026-10-23",
