@@ -2,7 +2,6 @@
   "version": 1,
   "watchlist": [
     "QQQ",
-    "QQQI",
     "MAGS",
     "GOOG",
     "AAPL",
@@ -11,15 +10,7 @@
     "MSFT",
     "TSLA",
     "DELL",
-    "NET",
-    "IGV",
-    "FTNT",
-    "FSLY",
     "SFTBY",
-    "ADBE",
-    "CRWV",
-    "OKTA",
-    "SE",
     "NVDA",
     "TSM",
     "INTC",
@@ -29,6 +20,7 @@
     "QCOM",
     "CBRS",
     "DRAM",
+    "SKHY",
     "MU",
     "SNDK",
     "STX",
@@ -38,11 +30,11 @@
     "ASML",
     "AMAT",
     "LRCX",
-    "NBIS",
     "SMTC",
     "LITE",
     "ENTG",
     "MTRN",
+    "CRWV",
     "SPY",
     "MDY",
     "IWM",
@@ -52,12 +44,11 @@
     "COPX",
     "TLT",
     "FFTY",
-    "EMXC",
     "EWY",
     "DXJ",
     "EWZ",
-    "FXI",
     "VNM",
+    "EMXC",
     "RKLB",
     "SPCX",
     "COWZ",
@@ -66,35 +57,38 @@
     "NOBL",
     "PKW",
     "VTV",
+    "WAGN",
     "GEV",
     "BE",
-    "IREN",
     "XLP",
     "PG",
     "KO",
-    "WMT",
+    "XLF",
+    "KBWB",
+    "V",
     "MOO",
     "DE",
     "CAT",
     "VALE",
-    "XLF",
-    "KBWB",
-    "V",
     "IALT",
-    "WAGN",
+    "SE",
     "IBB",
     "LLY",
     "XLV",
+    "IGV",
     "CIBR",
-    "BUG"
+    "BUG",
+    "NET",
+    "FSLY",
+    "OKTA",
+    "FTNT"
   ],
   "groups": [
     {
       "id": "TECH",
-      "name": "科技",
+      "name": "大盘科技",
       "symbols": [
         "QQQ",
-        "QQQI",
         "MAGS",
         "GOOG",
         "AAPL",
@@ -103,16 +97,7 @@
         "MSFT",
         "TSLA",
         "DELL",
-        "NET",
-        "IGV",
-        "FTNT",
-        "FSLY",
-        "SFTBY",
-        "ADBE",
-        "CRWV",
-        "OKTA",
-        "SE",
-        "CIBR"
+        "SFTBY"
       ]
     },
     {
@@ -134,6 +119,7 @@
       "name": "内存与存储",
       "symbols": [
         "DRAM",
+        "SKHY",
         "MU",
         "SNDK",
         "STX",
@@ -149,11 +135,11 @@
         "ASML",
         "AMAT",
         "LRCX",
-        "NBIS",
         "SMTC",
         "LITE",
         "ENTG",
-        "MTRN"
+        "MTRN",
+        "CRWV"
       ]
     },
     {
@@ -168,9 +154,7 @@
         "SLV",
         "COPX",
         "TLT",
-        "FFTY",
-        "EMXC",
-        "BUG"
+        "FFTY"
       ]
     },
     {
@@ -180,8 +164,21 @@
         "EWY",
         "DXJ",
         "EWZ",
-        "FXI",
-        "VNM"
+        "VNM",
+        "EMXC"
+      ]
+    },
+    {
+      "id": "GROUP_1793199454666_JIWVDD",
+      "name": "软件安全",
+      "symbols": [
+        "IGV",
+        "CIBR",
+        "BUG",
+        "NET",
+        "FSLY",
+        "OKTA",
+        "FTNT"
       ]
     },
     {
@@ -201,7 +198,8 @@
         "SCHD",
         "NOBL",
         "PKW",
-        "VTV"
+        "VTV",
+        "WAGN"
       ]
     },
     {
@@ -209,8 +207,7 @@
       "name": "电",
       "symbols": [
         "GEV",
-        "BE",
-        "IREN"
+        "BE"
       ]
     },
     {
@@ -219,8 +216,16 @@
       "symbols": [
         "XLP",
         "PG",
-        "KO",
-        "WMT"
+        "KO"
+      ]
+    },
+    {
+      "id": "GROUP_1784217070859_HX3BJR",
+      "name": "金融",
+      "symbols": [
+        "XLF",
+        "KBWB",
+        "V"
       ]
     },
     {
@@ -234,20 +239,11 @@
       ]
     },
     {
-      "id": "GROUP_1784217070859_HX3BJR",
-      "name": "金融",
-      "symbols": [
-        "XLF",
-        "KBWB",
-        "V"
-      ]
-    },
-    {
       "id": "GROUP_1777996255127_M9QE19",
       "name": "其他",
       "symbols": [
         "IALT",
-        "WAGN"
+        "SE"
       ]
     },
     {
