@@ -5,9 +5,9 @@ from dataclasses import replace
 import pytest
 from fastapi.testclient import TestClient
 
-from trenddeck import setup_queries
-from trenddeck.setup_explanations import conditions_markdown, score_reasons
-from trenddeck.setup_model import load_model
+from trenddeck.setups import queries as setup_queries
+from trenddeck.setups.explanations import conditions_markdown, score_reasons
+from trenddeck.setups.model import load_model
 
 
 def test_report_default_is_compact_and_details_are_opt_in(cached_data):
@@ -166,6 +166,8 @@ def test_short_base_is_not_presented_as_flat_or_vcp():
     assert any("短期基底" in reason and "尚不能称为平底" in reason for reason in reasons)
     assert not any("多轮波动收缩" in reason or "识别到平底" in reason for reason in reasons)
     report["pattern"] = "vcp"
+    assert any("缺少完整的 VCP" in reason for reason in score_reasons(report, load_model("base-v4")))
+    report['geometry']['vcp_evidence'] = {'qualified': True, 'depths': [.15, .08, .04]}
     assert any("先识别出基底" in reason for reason in score_reasons(report, load_model("base-v4")))
 
 

@@ -8,8 +8,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-if (ROOT / "tmp/research-python").is_dir():
-    sys.path.insert(0, str(ROOT / "tmp/research-python"))
 
 import matplotlib  # noqa: E402
 
@@ -19,7 +17,7 @@ import numpy as np  # noqa: E402
 from matplotlib.patches import Rectangle  # noqa: E402
 
 from trenddeck.queries import read_history  # noqa: E402
-from trenddeck.setup_pullback import PullbackSeries, fingerprints  # noqa: E402
+from trenddeck.setups.pullback import PullbackSeries, fingerprints  # noqa: E402
 
 CASES = [
     ("META", "2025-06-04", "深度调整后的第一修复基底"),
@@ -215,7 +213,7 @@ def render(symbol, day, title, series, out):
 def main():
     plt.rcParams["font.family"] = "Microsoft YaHei"
     plt.rcParams["axes.unicode_minus"] = False
-    out = ROOT / "tmp/pullback-examples"
+    out = ROOT / "local/artifacts/pullback-examples"
     out.mkdir(parents=True, exist_ok=True)
     series = {symbol: PullbackSeries(read_history(symbol)) for symbol in ["META", "MSFT"]}
     manifest = [render(*case, series[case[0]], out) for case in CASES]

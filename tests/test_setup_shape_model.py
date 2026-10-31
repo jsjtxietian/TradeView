@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from trenddeck.setup_model import load_model
-from trenddeck.setups import SetupSeries, score_setup
+from trenddeck.setups.engine import SetupSeries, score_setup
+from trenddeck.setups.model import load_model
 
 
 def bars(anchors: dict[int, float]) -> pd.DataFrame:

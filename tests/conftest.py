@@ -9,6 +9,17 @@ import pytest
 from trenddeck import alerts, market, storage
 
 
+@pytest.fixture(autouse=True)
+def isolate_test_proxies(monkeypatch):
+    """Loopback HTTP tests must not depend on a developer's proxy configuration."""
+    import os
+
+    for name in list(os.environ):
+        if name.lower().endswith("_proxy"):
+            monkeypatch.delenv(name)
+    monkeypatch.setenv("NO_PROXY", "*")
+
+
 @pytest.fixture
 def cached_data(tmp_path, monkeypatch):
     cache = tmp_path / "data" / "stock"

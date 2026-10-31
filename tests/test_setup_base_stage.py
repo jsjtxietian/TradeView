@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from trenddeck.setup_base_stage import stage_context
+from trenddeck.setups.base_stage import stage_context
 
 
 def base(name, start, known, upper, lower, breakout=None):

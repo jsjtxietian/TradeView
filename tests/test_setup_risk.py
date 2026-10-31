@@ -4,10 +4,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from trenddeck.setup_model import load_model
-from trenddeck.setup_research import simulate_pivot_trade
-from trenddeck.setup_risk import structure_risk
-from trenddeck.setups import SetupSeries, score_setup
+from trenddeck.setups.engine import SetupSeries, score_setup
+from trenddeck.setups.model import load_model
+from trenddeck.setups.research import simulate_pivot_trade
+from trenddeck.setups.risk import structure_risk
 
 
 def risk_inputs() -> dict:

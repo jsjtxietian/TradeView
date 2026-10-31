@@ -3,6 +3,11 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# Serialize deployments with the scheduled job before either changes Git/data.
+mkdir -p local
+exec 9>local/maintenance.lock
+flock -x 9
+
 # Git may relocate tracked data files. Stop the app before pulling, and restore
 # it on failure as well as success if it was running before this update.
 WAS_ACTIVE=false

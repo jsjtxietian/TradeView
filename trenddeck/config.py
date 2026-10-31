@@ -4,13 +4,17 @@ import os
 from datetime import timedelta, timezone
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if (PROJECT_ROOT / ".env").is_file():
-    from dotenv import load_dotenv
+from dotenv import load_dotenv
 
-    # Keep app, importer, refresh and migration scripts on the same optional
-    # data-root override; explicitly supplied process environment takes priority.
-    load_dotenv(PROJECT_ROOT / ".env", override=False)
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PACKAGE_ROOT = Path(__file__).resolve().parent
+LOCAL_DIR = PROJECT_ROOT / "local"
+ENV_FILE = LOCAL_DIR / ".env"
+SECRETS_FILE = LOCAL_DIR / "secrets.toml"
+
+# Process environment > new local configuration > unmigrated legacy file.
+load_dotenv(ENV_FILE, override=False)
+load_dotenv(PROJECT_ROOT / ".env", override=False)
 _data_root = Path(os.environ.get("TRENDDECK_DATA_DIR", "data")).expanduser()
 DATA_DIR = (_data_root if _data_root.is_absolute() else PROJECT_ROOT / _data_root).resolve()
 STOCK_DIR = DATA_DIR / "stock"
@@ -21,8 +25,8 @@ WATCHLIST_FILE = TRADE_DIR / "watchlist.json"
 NOTES_FILE = TRADE_DIR / "notes.json"
 ALERTS_FILE = TRADE_DIR / "alerts.json"
 ALERTS_SNAPSHOT_FILE = TRADE_DIR / "alerts_snapshot.json"
-STATIC_DIR = PROJECT_ROOT / "static"
-PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "templates" / "analysis_prompt.md"
+STATIC_DIR = PACKAGE_ROOT / "web"
+PROMPT_TEMPLATE_PATH = PACKAGE_ROOT / "resources" / "templates" / "analysis_prompt.md"
 DEFAULT_HISTORY_PERIOD = "3y"
 DEFAULT_BENCHMARK = "SPY"
 RELATIVE_MARKET_SCORE_THRESHOLD = 60

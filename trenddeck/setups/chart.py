@@ -13,7 +13,7 @@ from threading import Lock
 import numpy as np
 import pandas as pd
 
-from trenddeck.setups import clean_history
+from trenddeck.setups.engine import clean_history
 
 _RENDER_LOCK = Lock()  # Matplotlib rendering/font internals are not thread-safe.
 

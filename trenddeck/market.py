@@ -18,6 +18,7 @@ from trenddeck.config import (
     PRICE_MODE_COLUMN,
     PROJECT_ROOT,
     REFRESH_COOLDOWN_SECONDS,
+    SECRETS_FILE,
     STOCK_DIR,
     TIINGO_REFRESH_BATCH_SIZE,
 )
@@ -56,7 +57,9 @@ def clear_symbol_memory_cache(symbol: str) -> None:
 
 
 def load_local_secrets() -> dict[str, Any]:
-    secrets_path = PROJECT_ROOT / ".streamlit" / "secrets.toml"
+    secrets_path = SECRETS_FILE
+    if not secrets_path.exists():
+        secrets_path = PROJECT_ROOT / ".streamlit" / "secrets.toml"
     if not secrets_path.exists():
         return {}
     try:

@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from trenddeck.setup_shapes import shape_context
+from trenddeck.setups.shapes import shape_context
 
 
 def shape_inputs(kind: str = "descending") -> dict:

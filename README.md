@@ -1,72 +1,76 @@
 # TrendDeck
 
-美股趋势看板：读取本地行情，展示技术指标、持仓笔记和交易复盘，并通过 HTTP MCP 向 agent 提供每日变化与单股分析。
+美股趋势看板：网页、交易复盘、基底/VCP 与回调修复观察，以及 HTTP MCP 接口。
 
-## 本机启动
+## 启动
 
-Python 3.11+，在项目目录执行：
+Python 3.11+，在项目根目录执行：
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python -m pip install -r requirements/runtime.txt
-.\.venv\Scripts\python -m uvicorn app:app --host 127.0.0.1 --port 8000
+.\.venv\Scripts\python -m pip install -e ".[dev]"
+.\.venv\Scripts\python -B scripts/migrate-local.py
+.\.venv\Scripts\python -B scripts/configure-mcp.py
+.\.venv\Scripts\python -B scripts/dev.py serve
 ```
 
-已有 `.venv` 时不用重复创建。网页地址：http://127.0.0.1:8000
+网页：http://127.0.0.1:8000，MCP：http://127.0.0.1:8000/mcp。
+已有虚拟环境不必重建。生产环境使用 `pip install -e .`，无需开发依赖。旧的 `python -m uvicorn app:app` 仍可使用。
 
-MCP 地址为 `http://127.0.0.1:8000/mcp`，token 仅存放在 Git 忽略的本地 `.env`。
-首次本机使用先运行 `.\.venv\Scripts\python scripts/configure-mcp.py`，再启动服务。
-服务器安装脚本会自动生成配置，后续部署保留原 token。显示可复制的 agent 配置：
-
-```powershell
-.\.venv\Scripts\python -m trenddeck.mcp_server
-```
-
-## 目录
+## 从哪里看
 
 ```text
-app.py                  网页和 MCP 服务入口（启动命令不变）
-trenddeck/              行情、指标、存储、分析和 MCP 代码
-static/                 网页资源及本地图表库
-scripts/                部署、刷新、迁移、IBKR 导入命令
-requirements/           runtime.txt / dev.txt 依赖清单
-templates/              analysis_prompt.md 分析 Prompt 模板
-data/
-  stock/                历史行情 CSV
-  trade/                交易、账务、自选股、笔记、提醒和提醒快照
-  imports/              原始账单及导入中间结果（不进入 Git）
-docs/                   设计、部署、导入和 MCP 说明
+trenddeck/              全部应用代码与资源
+  api/                  HTTP 路由、MCP 和应用装配
+  setups/               基底、VCP、pullback、评分、绘图与研究
+  web/                  现有 HTML / JS / CSS / 图表库
+  resources/            模型参数、提示词模板
+  importers/            IBKR 转换
+  config.py             路径与本地配置入口
+  market.py             行情与缓存
+  storage.py            自选、持仓、笔记和交易存储
+scripts/                启动、部署、迁移、刷新和研究命令
 tests/                  自动测试
+docs/                   架构、接口与模型规则
+data/                   行情及交易数据（保持原布局）
+local/                  本地密钥、参考资料、缓存及研究产物，不提交
+app.py                  兼容启动入口
+pyproject.toml          依赖、打包、测试和代码检查配置
 ```
 
-所有默认数据路径均从项目位置解析，不依赖启动时的工作目录。
-可选的 `TRENDDECK_DATA_DIR` 指向数据根目录，其中直接包含 `stock/`、`trade/`；
-相对路径从项目根目录解析。服务器和各命令脚本也会读取项目的可选 `.env`，进程环境变量优先。
+详细代码导航见 [架构与目录说明](docs/architecture.md)。修改页面看 `trenddeck/web/`；修改形态算法看 `trenddeck/setups/`；修改接口看 `trenddeck/api/`。
+
+## 配置
+
+本机配置放在 `local/.env`，示例为 [docs/config.env.example](docs/config.env.example)。原 Streamlit 密钥迁移到 `local/secrets.toml`；不再需要 Streamlit 目录。
+
+Tiingo key 可通过 `TIINGO_API_KEY`、`TIINGO_API_KEY_2` 环境变量或本地配置提供。进程环境变量优先。MCP token 首次运行配置脚本时生成，后续保留。查看 MCP 客户端配置（包含 token，请勿提交输出）：
+
+```powershell
+.\.venv\Scripts\python -B -m trenddeck.api.mcp
+```
+
+默认数据路径不依赖启动时的工作目录。`TRENDDECK_DATA_DIR` 可以覆盖 `data/`，内部仍使用 `stock/` 和 `trade/`。
 
 ## 常用命令
 
 ```powershell
-# 刷新行情，需要服务正在运行
-.\.venv\Scripts\python scripts/refresh-cache.py
-
-# 导入交易：先转换到 data/imports/，检查后再追加
-.\.venv\Scripts\python scripts/import-ibkr.py convert your-ibkr-statement.csv
-.\.venv\Scripts\python scripts/import-ibkr.py append data/imports/ibkr-trades.json
-
-# 安装开发依赖并测试
-.\.venv\Scripts\python -m pip install -r requirements/dev.txt
-.\.venv\Scripts\python -m pytest -q
+python -B scripts/dev.py test
+python -B scripts/dev.py check
+python -B scripts/refresh-cache.py
+python -B scripts/import-ibkr.py convert your-ibkr-statement.csv
+python -B scripts/import-ibkr.py append data/imports/ibkr-trades.json
 ```
 
-## 详细说明
+使用虚拟环境时，将 `python` 换成 `.\.venv\Scripts\python`。测试和检查缓存放在 `local/cache/`，这些命令不产生散落的 Python 字节码缓存。
 
-- [HTTP MCP 与 Hermes 接入](docs/mcp.md)
-- [服务器部署、每日刷新及旧目录迁移](docs/deployment.md)
-- [IBKR 交易与账务导入](docs/ibkr-import.md)
-- [指标、提醒与界面设计](docs/design.md)
-- [当前基底模型、VCP 结构与研究接口](docs/setups.md)
+## 说明
 
-形态评分只运行当前 `base-v4`，后续直接在这个模型上迭代。
+- [架构与目录导航](docs/architecture.md)
+- [HTTP MCP 与 Hermes](docs/mcp.md)
+- [部署与刷新](docs/deployment.md)
+- [形态模型与验证](docs/setups.md)
+- [IBKR 导入](docs/ibkr-import.md)
+- [指标与界面设计](docs/design.md)
 
-从旧版本升级时，Git 会迁移已跟踪的数据文件；服务器安装脚本会检查并迁移剩余的
-`.cache/`、`.trade/` 本机文件。同名不同内容会停止迁移，绝不覆盖。
+迁移本地资料可先执行 `python -B scripts/migrate-local.py --dry-run`。发现目标文件内容冲突时停止，不覆盖密钥或资料。书籍放在 `local/ref/books/`；之前的图和研究结果在 `local/artifacts/`。

@@ -14,8 +14,8 @@ Data layout:
 
 - `data/stock/` is committed to Git and is automatically updated by the scheduled refresh job.
 - `data/trade/alerts.json`, `data/trade/alerts_snapshot.json`, `data/trade/watchlist.json`, and `data/trade/notes.json` are staged by the scheduled refresh job.
-- MCP credentials live only in the Git-ignored local `.env` (mode 600 on Linux). Installation creates a random token when missing and preserves it on subsequent updates; see `.env.example`.
-- `.streamlit/` stays local and contains secrets such as market-data keys.
+- MCP credentials live only in the Git-ignored local `local/.env` (mode 600 on Linux). Installation creates a random token when missing and preserves it on subsequent updates; see `docs/config.env.example`.
+- `local/secrets.toml` contains the migrated Tiingo keys; reference material lives in `local/ref/`. All of `local/` is Git-ignored.
 - `.venv/` is generated on each machine and is ignored by Git.
 
 Install or update the server units:
@@ -30,14 +30,14 @@ bash scripts/update-server.sh
 Scheduled refresh:
 
 - timer: `trenddeck-refresh.timer`
-- schedule: `Tue..Sat 07:00:00` in the server local timezone
+- schedule: `Tue..Sat 07:00:00 Asia/Shanghai` (explicit Beijing time, with up to 10 minutes of randomized delay)
 - script: `scripts/refresh-and-push.sh`
 
 The refresh script:
 
 - pulls the latest Git commit with `git pull --ff-only`
-- restarts `trenddeck.service` if files outside `data/` changed
-- reinstalls dependencies first if any file under `requirements/` changed
+- runs the installer if files outside `data/` changed, updating dependencies, local file migrations and systemd units before restarting `trenddeck.service`
+- shares `local/maintenance.lock` with manual deployment so the two jobs cannot change Git or data concurrently
 - calls `scripts/refresh-cache.py`
 - refreshes through `POST /api/watchlist/refresh`, which shares the same backend refresh path as the UI refresh button
 - stages `data/stock`, `data/trade/alerts.json`, `data/trade/alerts_snapshot.json`, `data/trade/watchlist.json`, and `data/trade/notes.json`
@@ -86,7 +86,7 @@ git pull --ff-only
 bash scripts/install-server-systemd.sh
 ```
 
-安装脚本会安装 `requirements/runtime.txt`，检查并迁移遗留的本机文件，再启动服务和定时器。
+安装脚本会安装 `pyproject.toml`，检查并迁移遗留的本机文件，再启动服务和定时器。
 已被 Git 跟踪的文件会随提交迁移；迁移脚本处理剩余文件：
 
 - `.cache/*_history.csv` → `data/stock/*_history.csv`
@@ -107,10 +107,10 @@ bash scripts/install-server-systemd.sh
 
 ## 自定义数据目录
 
-默认数据根目录是项目的 `data/`。可在项目 `.env` 或进程环境中设置
+默认数据根目录是项目的 `data/`。可在项目 `local/.env` 或进程环境中设置
 `TRENDDECK_DATA_DIR=/srv/trenddeck-data`，其中直接包含 `stock/`、`trade/`，
 应用、导入、迁移和刷新脚本使用同一配置。相对路径相对于项目根目录解析。
-显式的进程环境变量优先于 `.env`；旧版本若设置过该变量，需要按新的目录含义检查路径。
+显式的进程环境变量优先于 `local/.env`；旧版本若设置过该变量，需要按新的目录含义检查路径。
 
 Git 自动提交只覆盖项目内的 `data/stock` 和选定的 `data/trade` 文件。
 使用项目外的数据目录时，应单独安排数据备份。

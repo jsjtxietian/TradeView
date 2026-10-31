@@ -6,8 +6,8 @@ Hermes 和其他支持 Streamable HTTP、可配置 Bearer header 的 agent 可�
 
 ## 启用
 
-Python 3.11+。token 只保存在项目根目录的本地 `.env` 中，该文件被 Git 忽略，
-仓库只提供不含真实凭据的 `.env.example`。源码不内置任何默认 token。
+Python 3.11+。token 只保存在项目本地 `local/.env` 中，该文件被 Git 忽略，
+仓库只提供不含真实凭据的 `docs/config.env.example`。源码不内置任何默认 token。
 
 服务器沿用原来的部署命令：
 
@@ -28,7 +28,7 @@ cd D:\Repos\TradeView
 ```
 
 `TRENDDECK_MCP_TOKEN` 未配置或为空时，MCP 返回 503，网页继续正常运行。
-已配置时，未携带或携带错误 token 的请求返回 401。进程环境变量仍优先于 `.env`；
+已配置时，未携带或携带错误 token 的请求返回 401。进程环境变量仍优先于 `local/.env`；
 如果终端以前设置过测试 token，请先清除该变量再启动，以免覆盖本地配置。
 
 ## Hermes 配置
@@ -36,13 +36,13 @@ cd D:\Repos\TradeView
 在服务器项目目录执行以下命令，可按需显示包含实际 token 的完整配置：
 
 ```bash
-.venv/bin/python -m trenddeck.mcp_server
+.venv/bin/python -m trenddeck.api.mcp
 ```
 
 Windows 对应命令：
 
 ```powershell
-.\.venv\Scripts\python -m trenddeck.mcp_server
+.\.venv\Scripts\python -m trenddeck.api.mcp
 ```
 
 将输出合并到运行 Hermes 的用户的 `~/.hermes/config.yaml` 中，保留已有服务器条目。
@@ -68,7 +68,7 @@ mcp_servers:
 sudo systemctl restart trenddeck.service
 ```
 
-这只更新 `.env` 中的 token，保留 Host、数据路径等其他设置。
+这只更新 `local/.env` 中的 token，保留 Host、数据路径等其他设置。
 服务重启后旧 token 失效，客户端需要换成新值。查看命令同上，不需要将 token 写入源码。
 历史提交里出现过的旧凭据无需继续使用；轮换后它们不再能访问服务。
 
@@ -93,7 +93,7 @@ location = /mcp {
 }
 ```
 
-在项目 `.env` 中设置实际的域名，例如：
+在项目 `local/.env` 中设置实际的域名，例如：
 
 ```dotenv
 TRENDDECK_MCP_ALLOWED_HOSTS=stocks.example.com
@@ -308,7 +308,7 @@ Consolidated 响应中 `tngoLast` 是衍生参考价，`lq*` 是流动性买卖�
 安装开发依赖后执行：
 
 ```bash
-python -m pip install -r requirements/dev.txt
+python -m pip install -e ".[dev]"
 python -m pytest -q
 python -m ruff check app.py trenddeck tests
 ```

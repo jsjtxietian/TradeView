@@ -17,8 +17,9 @@ from starlette.datastructures import Headers
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from trenddeck import queries, setup_queries
-from trenddeck.setup_model import MODEL_VERSION
+from trenddeck import queries
+from trenddeck.setups import queries as setup_queries
+from trenddeck.setups.model import MODEL_VERSION
 
 
 def env_list(name: str) -> list[str]:
@@ -84,10 +85,14 @@ def _register_read_tools(server: FastMCP) -> None:
     )
 
     @server.tool(annotations=read_only)
-    async def get_setup_report(symbol: str, as_of: str | None = None,
-                               model_version: str = MODEL_VERSION,
-                               include_details: bool = False, setup_type: str = "base",
-                               include_chart: bool = False) -> Annotated[CallToolResult, dict[str, Any]]:
+    async def get_setup_report(
+        symbol: str,
+        as_of: str | None = None,
+        model_version: str = MODEL_VERSION,
+        include_details: bool = False,
+        setup_type: str = "base",
+        include_chart: bool = False,
+    ) -> Annotated[CallToolResult, dict[str, Any]]:
         """Return entry-quality score, Chinese reasons and Markdown scoring conditions.
         Schema 2 is compact by default. include_details adds full diagnostics under
         details. Cache only; as_of is an inclusive YYYY-MM-DD cutoff. The score
@@ -98,8 +103,17 @@ def _register_read_tools(server: FastMCP) -> None:
         same report's base/confirmation/breakout markers. Default false; no chart
         files or URLs. chart metadata stays in structuredContent; image bytes do not.
         """
-        report = await anyio.to_thread.run_sync(partial(
-            setup_queries.get_setup_report, symbol, as_of, model_version, include_details, setup_type, include_chart))
+        report = await anyio.to_thread.run_sync(
+            partial(
+                setup_queries.get_setup_report,
+                symbol,
+                as_of,
+                model_version,
+                include_details,
+                setup_type,
+                include_chart,
+            )
+        )
         image = None
         if include_chart:
             image = ImageContent(type="image", mimeType="image/png", data=report["chart"].pop("data"))
@@ -130,9 +144,20 @@ def _register_read_tools(server: FastMCP) -> None:
         setup_type='pullback' orders by observation stage then symbol, not a quality
         score. score is null; inspect actionable, pullback and reasons.
         """
-        return await anyio.to_thread.run_sync(partial(
-            setup_queries.get_setup_rankings, as_of, symbols, universe, actionable_only,
-            limit, offset, model_version, include_details, setup_type))
+        return await anyio.to_thread.run_sync(
+            partial(
+                setup_queries.get_setup_rankings,
+                as_of,
+                symbols,
+                universe,
+                actionable_only,
+                limit,
+                offset,
+                model_version,
+                include_details,
+                setup_type,
+            )
+        )
 
     @server.tool(annotations=read_only)
     async def get_watchlist() -> dict[str, Any]:
@@ -255,7 +280,7 @@ class MCPAccessGuard:
             token = get_mcp_token()
             if not token:
                 await JSONResponse(
-                    {"error": "MCP is disabled. Configure TRENDDECK_MCP_TOKEN in the server's local .env."},
+                    {"error": "MCP is disabled. Configure TRENDDECK_MCP_TOKEN in the server's local/.env."},
                     status_code=503,
                     headers={"Cache-Control": "no-store"},
                 )(scope, receive, send)
@@ -283,11 +308,6 @@ if __name__ == "__main__":
     # Print ready-to-copy client configuration; this command does not start a server.
     import json
 
-    from dotenv import load_dotenv
-
-    from trenddeck.config import PROJECT_ROOT
-
-    load_dotenv(PROJECT_ROOT / ".env", override=True)
     if not get_mcp_token():
         raise SystemExit("MCP token is not configured. Run: python scripts/configure-mcp.py")
     print('mcp_servers:\n  trenddeck:\n    url: "http://127.0.0.1:8000/mcp"\n    headers:')

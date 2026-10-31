@@ -8,13 +8,13 @@ import pandas as pd
 
 from trenddeck import market, storage
 from trenddeck.queries import latest_date, read_history, valid_date, valid_symbol
-from trenddeck.setup_explanations import conditions_markdown, score_reasons
-from trenddeck.setup_model import MODEL_VERSION, load_model
-from trenddeck.setups import score_setup
+from trenddeck.setups.engine import score_setup
+from trenddeck.setups.explanations import conditions_markdown, score_reasons
+from trenddeck.setups.model import MODEL_VERSION, load_model
 
 
 def valid_setup_type(setup_type: str) -> str:
-    if setup_type not in {'base', 'pullback'}:
+    if setup_type not in {"base", "pullback"}:
         raise ValueError("setup_type must be base or pullback")
     return setup_type
 
@@ -36,7 +36,9 @@ def universe_symbols(symbols: list[str] | None, universe: str = "watchlist") -> 
 
 
 def get_setup_report(
-    symbol: str, as_of: str | None = None, model_version: str = MODEL_VERSION,
+    symbol: str,
+    as_of: str | None = None,
+    model_version: str = MODEL_VERSION,
     include_details: bool = False,
     setup_type: str = "base",
     include_chart: bool = False,
@@ -48,22 +50,32 @@ def get_setup_report(
         raise ValueError(f"No cached bars for {symbol} at this cutoff")
     cutoff = latest_date(stock)
     model = load_model(model_version)
-    if setup_type == 'pullback':
-        from trenddeck.setup_pullback import PullbackSeries, compact_context, fingerprints
-        from trenddeck.setup_pullback import conditions_markdown as pullback_conditions
+    if setup_type == "pullback":
+        from trenddeck.setups.pullback import PullbackSeries, compact_context, fingerprints
+        from trenddeck.setups.pullback import conditions_markdown as pullback_conditions
+
         result = PullbackSeries(stock, benchmark, model).report()
         response = {
-            'schema_version': 2, 'read_only': True, 'setup_type': setup_type, 'symbol': symbol,
-            'as_of_session': result['as_of_session'], 'score': None, 'status': result['status'],
-            'reasons': result['reasons'], 'actionable': result['actionable'],
-            'conditions_markdown': pullback_conditions(), 'model_version': model.version,
-            **fingerprints(model), 'requested_as_of': as_of, 'reference_session': latest_date(benchmark),
-            'stale': bool(not benchmark.empty and latest_date(benchmark) > cutoff),
-            'coverage': {'bars': len(stock), 'benchmark_available': not benchmark.empty},
+            "schema_version": 2,
+            "read_only": True,
+            "setup_type": setup_type,
+            "symbol": symbol,
+            "as_of_session": result["as_of_session"],
+            "score": None,
+            "status": result["status"],
+            "reasons": result["reasons"],
+            "actionable": result["actionable"],
+            "conditions_markdown": pullback_conditions(),
+            "model_version": model.version,
+            **fingerprints(model),
+            "requested_as_of": as_of,
+            "reference_session": latest_date(benchmark),
+            "stale": bool(not benchmark.empty and latest_date(benchmark) > cutoff),
+            "coverage": {"bars": len(stock), "benchmark_available": not benchmark.empty},
         }
-        response['pullback'] = compact_context(result)
+        response["pullback"] = compact_context(result)
         if include_details:
-            response['details'] = result
+            response["details"] = result
         return _with_chart(response, stock, result, setup_type, include_chart)
     result = score_setup(stock, benchmark, cutoff, model)
     response = {
@@ -93,7 +105,7 @@ def get_setup_report(
 
 def _with_chart(response, stock, result, setup_type, include_chart):
     if include_chart:
-        from trenddeck.setup_chart import render_setup_chart
+        from trenddeck.setups.chart import render_setup_chart
 
         response["chart"] = render_setup_chart(stock, response, result, setup_type)
     return response
@@ -136,37 +148,45 @@ def get_setup_rankings(
             if not expected.isin(frame.Date).all():
                 excluded.append({"symbol": symbol, "reason": "missing_sessions"})
                 continue
-            if setup_type == 'pullback':
-                from trenddeck.setup_pullback import PullbackSeries
+            if setup_type == "pullback":
+                from trenddeck.setups.pullback import PullbackSeries
+
                 report = PullbackSeries(frame, benchmark, model).report()
             else:
                 report = score_setup(frame, benchmark, model=model)
-            if report['status'] == 'insufficient_history':
+            if report["status"] == "insufficient_history":
                 excluded.append({"symbol": symbol, "reason": report["status"], "bars": len(frame)})
                 continue
             rows.append({"symbol": symbol, **report})
         except (ValueError, OSError, KeyError) as exc:
             excluded.append({"symbol": symbol, "reason": "invalid_data", "detail": str(exc)})
-    if setup_type == 'pullback':
-        from trenddeck.setup_pullback import STATUS_ORDER
-        rows.sort(key=lambda r: (STATUS_ORDER[r['status']], r['symbol']))
+    if setup_type == "pullback":
+        from trenddeck.setups.pullback import STATUS_ORDER
+
+        rows.sort(key=lambda r: (STATUS_ORDER[r["status"]], r["symbol"]))
     else:
         rows.sort(key=lambda r: (-r["score"], r["symbol"]))
     total_scored = len(rows)
     for i, row in enumerate(rows):
         row["universe_rank"] = i + 1
-        if setup_type == 'base':
+        if setup_type == "base":
             row["percentile"] = round(100 * (len(rows) - 1 - i) / max(len(rows) - 1, 1), 2)
     if actionable_only:
         rows = [r for r in rows if r.get("actionable")]
     items = []
     for row in rows[offset : offset + limit]:
-        item = {"symbol": row["symbol"], "rank": row["universe_rank"], "score": row["score"],
-                "status": row["status"], "reasons": row['reasons'] if setup_type == 'pullback' else score_reasons(row, model)}
-        if setup_type == 'pullback':
-            from trenddeck.setup_pullback import compact_context
-            item['actionable'] = row['actionable']
-            item['pullback'] = compact_context(row)
+        item = {
+            "symbol": row["symbol"],
+            "rank": row["universe_rank"],
+            "score": row["score"],
+            "status": row["status"],
+            "reasons": row["reasons"] if setup_type == "pullback" else score_reasons(row, model),
+        }
+        if setup_type == "pullback":
+            from trenddeck.setups.pullback import compact_context
+
+            item["actionable"] = row["actionable"]
+            item["pullback"] = compact_context(row)
         if include_details:
             item["details"] = row
         items.append(item)
@@ -191,11 +211,16 @@ def get_setup_rankings(
             "universe": selected,
             "model": {"parameters": dict(model.parameters), "weights": dict(model.weights)},
         }
-    if setup_type == 'pullback':
-        from trenddeck.setup_pullback import conditions_markdown as pullback_conditions
-        from trenddeck.setup_pullback import fingerprints
-        response.update(setup_type=setup_type, conditions_markdown=pullback_conditions(),
-                        ordering='status_then_symbol_not_quality_score', **fingerprints(model))
+    if setup_type == "pullback":
+        from trenddeck.setups.pullback import conditions_markdown as pullback_conditions
+        from trenddeck.setups.pullback import fingerprints
+
+        response.update(
+            setup_type=setup_type,
+            conditions_markdown=pullback_conditions(),
+            ordering="status_then_symbol_not_quality_score",
+            **fingerprints(model),
+        )
     return response
 
 
@@ -212,7 +237,7 @@ def get_setup_backtest(
     model_version: str = MODEL_VERSION,
     include_event_records: bool = False,
 ) -> dict[str, Any]:
-    from trenddeck.setup_research import evaluate_rankings
+    from trenddeck.setups.research import evaluate_rankings
 
     start, end, holdout_start = valid_date(start), valid_date(end), valid_date(holdout_start)
     if not start or not end or start > end:

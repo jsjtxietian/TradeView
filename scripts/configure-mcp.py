@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import runpy
 import secrets
 from pathlib import Path
 
@@ -34,9 +35,10 @@ def main() -> None:
         help="Replace the token; update clients and restart the service afterwards",
     )
     args = parser.parse_args()
-    changed = configure_token(ROOT / ".env", rotate=args.rotate)
-    print("MCP token saved to local .env." if changed else "Existing local MCP token preserved.")
-    print("Show client configuration when needed: python -m trenddeck.mcp_server")
+    runpy.run_path(str(ROOT / "scripts/migrate-local.py"))["migrate_local"](ROOT)
+    changed = configure_token(ROOT / "local/.env", rotate=args.rotate)
+    print("MCP token saved to local/.env." if changed else "Existing local MCP token preserved.")
+    print("Show client configuration when needed: python -m trenddeck.api.mcp")
 
 
 if __name__ == "__main__":

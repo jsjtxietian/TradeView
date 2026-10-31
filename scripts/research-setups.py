@@ -9,8 +9,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from trenddeck.setup_model import MODEL_VERSION  # noqa: E402
-from trenddeck.setup_queries import get_setup_backtest, get_setup_rankings, get_setup_report  # noqa: E402
+from trenddeck.setups.model import MODEL_VERSION  # noqa: E402
+from trenddeck.setups.queries import get_setup_backtest, get_setup_rankings, get_setup_report  # noqa: E402
 
 
 def main() -> None:
@@ -24,7 +24,7 @@ def main() -> None:
     parser.add_argument("--step", type=int, default=20)
     parser.add_argument("--top-n", type=int, default=10)
     parser.add_argument("--cost-bps", type=float, default=10)
-    parser.add_argument("--output", type=Path, default=Path("tmp/setup-research/latest.json"))
+    parser.add_argument("--output", type=Path, default=Path(__file__).resolve().parents[1] / "local/artifacts/setup-research/latest.json")
     args = parser.parse_args()
     symbols = args.symbols.split(",") if args.symbols else None
     version = MODEL_VERSION

@@ -4,11 +4,15 @@ from __future__ import annotations
 
 from typing import Any
 
-from trenddeck.setup_model import SetupModel
+from trenddeck.setups.model import SetupModel
+from trenddeck.setups.validity import base_invalidation_reason
 
 COMPONENTS = {
     "trend": ("上升趋势", "检查价格与长期均线、均线方向及一年高低点的位置"),
-    "structure": ("整理形态", "先识别有确认边界的基底，再评价恢复程度、持续时间、内部收缩和前段推进；VCP 是基底的一类特征"),
+    "structure": (
+        "整理形态",
+        "先识别有确认边界的基底，再评价恢复程度、持续时间、内部收缩和前段推进；VCP 是基底的一类特征",
+    ),
     "tightness": ("价格收紧", "比较近期平台宽度与前期真实波幅，避免只把低波动当作好形态"),
     "volume": ("成交量收缩", "比较末端整理近五日均量与该平台开始前五十日成交量中位数，观察供给是否减少"),
     "relative_strength": ("相对 SPY 强度", "比较个股与 SPY 在相同交易日的相对表现"),
@@ -16,8 +20,12 @@ COMPONENTS = {
     "risk": ("结构距离", "衡量当前价格距整理支撑的距离，距离较近得到较高分"),
 }
 
-PATTERNS = {"vcp": "多轮波动收缩", "flat_base": "平底整理",
-            "short_base": "短期基底", "range_base": "区间基底"}
+PATTERNS = {
+    "vcp": "多轮波动收缩",
+    "flat_base": "平底整理",
+    "short_base": "短期基底",
+    "range_base": "区间基底",
+}
 
 # Extend this mapping when the engine adds a new condition; raw machine codes
 # remain available only in details, while optional engine reason_texts can
@@ -94,8 +102,10 @@ def _base_stage_reason(report: dict[str, Any]) -> str | None:
 def score_reasons(report: dict[str, Any], model: SetupModel) -> list[str]:
     """Explain observed evidence, including score restrictions, without leaking diagnostics."""
     if report.get("status") == "insufficient_history":
-        return [f"历史数据不足：目前 {report.get('bars', 0)} 个交易日，"
-                f"至少需要 {report.get('required_bars', 253)} 个交易日，暂不评分。"]
+        return [
+            f"历史数据不足：目前 {report.get('bars', 0)} 个交易日，"
+            f"至少需要 {report.get('required_bars', 253)} 个交易日，暂不评分。"
+        ]
     reasons = []
     base_stage_reason = _base_stage_reason(report)
 
@@ -105,7 +115,9 @@ def score_reasons(report: dict[str, Any], model: SetupModel) -> list[str]:
 
     for warning in report.get("warnings", []):
         if warning == "average_dollar_volume_below_2m":
-            add(f"近期平均日成交额低于模型要求的 {model.parameters['min_dollar_volume']:,.0f} 美元，流动性不足。")
+            add(
+                f"近期平均日成交额低于模型要求的 {model.parameters['min_dollar_volume']:,.0f} 美元，流动性不足。"
+            )
         elif warning in WARNING_TEXT:
             add(WARNING_TEXT[warning])
     for explanation in report.get("reason_texts", []):
@@ -119,7 +131,14 @@ def score_reasons(report: dict[str, Any], model: SetupModel) -> list[str]:
         if pattern == "short_base":
             add("已识别出短期基底；整理时间较短，尚不能称为平底。")
         elif pattern == "vcp":
-            add("已先识别出基底，内部呈多轮波动收缩特征。")
+            evidence = geometry.get("vcp_evidence", {})
+            depths = " → ".join(f"{d:.1%}" for d in evidence.get("depths", []))
+            if evidence.get("qualified"):
+                add(
+                    f"已先识别出基底，内部已确认回调逐次收窄（{depths}），末轮回调量低于首轮，末端缩量且支撑保持；符合 VCP 标签条件。"
+                )
+            else:
+                add("已识别出基底，但缺少完整的 VCP 标签验证证据。")
         else:
             add(f"已识别出{PATTERNS.get(pattern, '基底')}，整体边界与末端平台分别衡量。")
     add(base_stage_reason or "")
@@ -145,70 +164,101 @@ def score_reasons(report: dict[str, Any], model: SetupModel) -> list[str]:
         "volume": "整理期间量能收缩不足，尚未看到明显缩量。",
         "relative_strength": "相对 SPY 的强度加分较少，价格领导性不足或数据尚不完整。",
     }
-    ratios = {key: value["points"] / value["maximum"] for key, value in components.items()
-              if value.get("maximum", 0) > 0}
-    weakest = sorted((key for key in weaknesses if ratios.get(key, 1) < .35), key=ratios.get)
+    ratios = {
+        key: value["points"] / value["maximum"]
+        for key, value in components.items()
+        if value.get("maximum", 0) > 0
+    }
+    weakest = sorted((key for key in weaknesses if ratios.get(key, 1) < 0.35), key=ratios.get)
     for key in weakest[:1]:
         add(weaknesses[key])
-    strongest = sorted((key for key in supportive if ratios.get(key, 0) >= .7),
-                       key=lambda key: components[key]["points"], reverse=True)
+    strongest = sorted(
+        (key for key in supportive if ratios.get(key, 0) >= 0.7),
+        key=lambda key: components[key]["points"],
+        reverse=True,
+    )
     for key in strongest[:2]:
         add(supportive[key])
     if geometry.get("terminal_contraction_intact") is False and report.get("pattern") == "none":
         add("最后一轮收缩仍不完整，当前不能认定为成熟的多轮收缩形态。")
-    compact = reasons[:6]
-    if base_stage_reason and base_stage_reason not in compact:
-        compact = compact[:5] + [base_stage_reason]
+    # Invalidation must survive compact output; it is not an optional positive.
+    required = [x for x in [base_invalidation_reason(report), base_stage_reason] if x]
+    compact = [x for x in reasons if x not in required][: max(0, 6 - len(required))] + required
     return compact
 
 
 def conditions_markdown(model: SetupModel) -> str:
     """Use the selected model's weights and thresholds, never a stale static table."""
     p = model.parameters
-    lines = [f"### 买点评分条件（{model.version}）", "",
-             "分数评价观察日的整体趋势与整理形态；突破时机另外标记。它不预测盈利，也不规定卖出方式。", "",
-             "| 项目 | 满分 | 依据 |", "| --- | ---: | --- |"]
+    lines = [
+        f"### 买点评分条件（{model.version}）",
+        "",
+        "分数评价观察日的整体趋势与整理形态；突破时机另外标记。它不预测盈利，也不规定卖出方式。",
+        "",
+        "| 项目 | 满分 | 依据 |",
+        "| --- | ---: | --- |",
+    ]
     for key, weight in model.weights.items():
         if weight == 0:
             continue
         name, description = COMPONENTS.get(key, (key, "按所选模型的对应证据计算"))
         if key == "relative_strength":
-            description += ("；综合六十三日表现、二十一日表现与相对强度线距近期高点的位置"
-                            if p.get("relative_context_enabled") else "；使用六十三日相对表现")
+            description += (
+                "；综合六十三日表现、二十一日表现与相对强度线距近期高点的位置"
+                if p.get("relative_context_enabled")
+                else "；使用六十三日相对表现"
+            )
         points = f"{weight:.2f}".rstrip("0").rstrip(".")
         lines.append(f"| {name} | {points} | {description} |")
-    lines.extend(["", "各项按证据强弱连续计分，再扣除深度回撤和分配压力；数据、趋势、结构状态也可能限制总分。",
-                  "", "- 长期趋势：价格高于 MA150/MA200、MA150 高于 MA200，且 MA200 较二十一日前上升。",
-                  f"- 临近突破：价格距阻力不超过下方 {p['ready_distance']:.0%}；"
-                  f"末端平台宽度不超过 {p['max_pause_width']:.0%}，并满足形态和缩量门槛。",
-                  f"- 放量确认：当日收盘越过事先形成的阻力，成交量至少为此前五十日均量的 "
-                  f"{p['breakout_volume_ratio']:g} 倍，收盘位于当日区间上方 "
-                  f"{1-p['breakout_close_location']:.0%} 内。",
-                  f"- 延伸限制：高于 MA20 {p['max_ma20_extension']:.0%}，形态得分受到限制；"
-                  "仅越过局部平台阻力不单独视为过度延伸。",
-                  f"- 数据：至少二百五十三个交易日、一致复权价格，平均日成交额至少 "
-                  f"{p['min_dollar_volume']:,.0f} 美元；相对强度使用同期 SPY。"])
-    lines.extend([
-        "- 趋势修复路径：长期均线尚未完全转好时，须同时站上 MA20、MA50、MA200，"
-        "MA20/MA50 上行，已确认波段连续形成更高高点和更高低点，并收复最近反弹高点；仍接受全部损伤和延伸检查。",
-        "- 基底优先：先确认锚点与反复整理，再识别 VCP、平底、短期基底或一般区间基底；"
-        "短期基底不等同于平底，基底可以存在而没有 VCP 特征。整体支撑、阻力带与末端平台分开记录。",
-        "- 分数与时机：上述有效权重归一至 100 分；枢轴距离和结构距离不直接加分。"
-        "形成中、已越过阻力、尚未放量确认三种状态不单独封顶，趋势不足、无形态、受损、失效和明确延伸仍限制分数。",
-        "- 形态背景诊断单独返回，不额外加分。表内小数为展示舍入，计算使用完整权重。",
-        f"- 基底识别：锚点使用前 {p['base_left_bars']:g} 日与后 {p['base_confirm_bars']:g} 日确认，"
-        f"至少观察 {p['base_min_bars']:g} 日整理，识别时深度不超过 {p['base_max_depth']:.0%}；"
-        "还需回转、恢复和横向运动证据。锚点日期不等于当时可知日期，识别后外部边界冻结。",
-        f"- 周期背景：基底计数区分重叠、嵌套与独立推进，独立推进使用 {p['base_count_min_advance']:.0%} 的工程门槛；"
-        f"观察到至少 {p['base_late_ordinal']:g} 个独立基底可提示偏后期。"
-        "历史未覆盖周期起点时不能凭少量基底判断早期；重置待确认时保持未知。",
-        "- 早期、成熟、偏后期与未知都是风险背景，不额外加分，也不放宽追价限制；"
-        "阶段计数不是作者人工判图的精确复刻。",
-    ])
+    lines.extend(
+        [
+            "",
+            "各项按证据强弱连续计分，再扣除深度回撤和分配压力；数据、趋势、结构状态也可能限制总分。",
+            "",
+            "- 长期趋势：价格高于 MA150/MA200、MA150 高于 MA200，且 MA200 较二十一日前上升。",
+            f"- 临近突破：价格距阻力不超过下方 {p['ready_distance']:.0%}；"
+            f"末端平台宽度不超过 {p['max_pause_width']:.0%}，并满足形态和缩量门槛。",
+            f"- 放量确认：当日收盘越过事先形成的阻力，成交量至少为此前五十日均量的 "
+            f"{p['breakout_volume_ratio']:g} 倍，收盘位于当日区间上方 "
+            f"{1 - p['breakout_close_location']:.0%} 内。",
+            f"- 延伸限制：高于 MA20 {p['max_ma20_extension']:.0%}，形态得分受到限制；"
+            "仅越过局部平台阻力不单独视为过度延伸。",
+            f"- 数据：至少二百五十三个交易日、一致复权价格，平均日成交额至少 "
+            f"{p['min_dollar_volume']:,.0f} 美元；相对强度使用同期 SPY。",
+        ]
+    )
+    lines.extend(
+        [
+            "- 趋势修复路径：长期均线尚未完全转好时，须同时站上 MA20、MA50、MA200，"
+            "MA20/MA50 上行，已确认波段连续形成更高高点和更高低点，并收复最近反弹高点；仍接受全部损伤和延伸检查。",
+            "- VCP 标签：至少两轮已确认回调、幅度逐次缩小、末轮回调成交量中位数低于首轮、"
+            "末端五日均量低于整理前基准、末端区间不超过10%且支撑完整；仅影响标签，不额外加分。"
+            "低点是否抬高单独记录，不要求每轮低点机械抬高。",
+            "- 失效：末端平台收盘跌破含缓冲支撑，与整体基底最近三日中两次收盘跌破冻结底边容差线，分别说明。"
+            "原尝试失败后保留记录；同一结构锚点重建至少等待15日，并重新满足形成条件。",
+            "- 基底优先：先确认锚点与反复整理，再识别 VCP、平底、短期基底或一般区间基底；"
+            "短期基底不等同于平底，基底可以存在而没有 VCP 特征。整体支撑、阻力带与末端平台分开记录。",
+            "- 分数与时机：上述有效权重归一至 100 分；枢轴距离和结构距离不直接加分。"
+            "形成中、已越过阻力、尚未放量确认三种状态不单独封顶，趋势不足、无形态、受损、失效和明确延伸仍限制分数。",
+            "- 形态背景诊断单独返回，不额外加分。表内小数为展示舍入，计算使用完整权重。",
+            f"- 基底识别：锚点使用前 {p['base_left_bars']:g} 日与后 {p['base_confirm_bars']:g} 日确认，"
+            f"至少观察 {p['base_min_bars']:g} 日整理，识别时深度不超过 {p['base_max_depth']:.0%}；"
+            "还需回转、恢复和横向运动证据。锚点日期不等于当时可知日期，识别后外部边界冻结。",
+            f"- 周期背景：基底计数区分重叠、嵌套与独立推进，独立推进使用 {p['base_count_min_advance']:.0%} 的工程门槛；"
+            f"观察到至少 {p['base_late_ordinal']:g} 个独立基底可提示偏后期。"
+            "历史未覆盖周期起点时不能凭少量基底判断早期；重置待确认时保持未知。",
+            "- 早期、成熟、偏后期与未知都是风险背景，不额外加分，也不放宽追价限制；"
+            "阶段计数不是作者人工判图的精确复刻。",
+        ]
+    )
     if p.get("damage_filters_enabled"):
-        lines.append("- 结构受损：未修复的下降高低点、失败反弹、连续实质下跌、重复大跌或原突破失效会限制分数；"
-                     "当前相关基底的失败事件按其冻结边界追踪。")
-        lines.append(f"- 自身波动延伸：高于 MA20 的距离超过此前平均日真实波幅的 "
-                     f"{p['risk_extension_atr']:g} 倍，也会限制买点评分。")
+        lines.append(
+            "- 结构受损：未修复的下降高低点、失败反弹、连续实质下跌、重复大跌或原突破失效会限制分数；"
+            "当前相关基底的失败事件按其冻结边界追踪。"
+        )
+        lines.append(
+            f"- 自身波动延伸：高于 MA20 的距离超过此前平均日真实波幅的 "
+            f"{p['risk_extension_atr']:g} 倍，也会限制买点评分。"
+        )
     lines.extend(["", "只使用截至观察日的 OHLCV；不按证券是否为 ETF 排除。未来走势仅用于独立验证。"])
     return "\n".join(lines)

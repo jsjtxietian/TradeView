@@ -2,7 +2,7 @@
 
 项目只运行当前模型 `base-v4`，后续直接在这个模型上迭代。它用本地复权 OHLCV 识别上涨后的整理基底，再评价内部收缩、趋势和相对强弱。分数是形态证据汇总，不是胜率；ETF 与个股采用相同规则。
 
-当前接口不联网刷新、不调用 LLM、不自动交易。书籍、提取文本和临时研究图由 `books/`、`tmp/` 忽略。
+当前接口不联网刷新、不调用 LLM、不自动交易。书籍、提取文本和临时研究图放在被忽略的 `local/ref/books/`、`local/artifacts/`。
 
 ## 先识别基底
 
@@ -14,6 +14,10 @@
 6. 末端通常测量十日；最近五日已有横向往返且振幅不超过10%时，使用这个独立小平台。新平台已损坏时不能借旧低点维持 ready。
 
 标签包括 `short_base`、`range_base`、`flat_base`、`vcp`。平底检查整个实际区间的宽度；VCP 是基底内部的收缩标签，不是所有窄幅走势的统称。下降整理、三角收敛等斜边证据在 `shape_context` 中提供诊断，尚未完整成为交易触发线。跳空保留为事件，未接入财报日历，原因标为未知。
+
+VCP 标签现在要求至少两轮已确认回调，回调幅度逐次缩小，末轮回调成交量中位数低于首轮，末端相对整理前基准缩量，末端区间不超过10%，且最后支撑保持完整。低点是否抬高是诊断证据，不强制每轮抬高。详细的通过条件、缺失条件、各轮幅度及成交量在 `details.geometry.vcp_evidence`。只收紧标签，原有基底选择、权重和分数计算不变；普通基底仍可得到高分。这些是显式工程条件，不宣称完全复刻人工判图。
+
+默认 `reasons` 固定保留本次基底识别日期与具体失效条件，不受六条精简上限截断。`details.invalidation` 区分末端平台一次收盘失守与整体底边最近三日中两次收盘失守，分别给出价格和是否触发。Pullback 的理由则按其自己的冻结底边和调整低点规则说明，并标明当前基底或历史尝试。识别失效不等于保证能按该价成交。
 
 每个报告用前一交易日已知的结构检验当日价格，所以 `as_of_session` 与 `setup_as_of_session` 相差一根交易日。确认波段、基底边界及已知时间都保留；不使用网页趋势图的事后压缩序列，也不用平滑抹掉暴跌。
 
@@ -65,7 +69,7 @@ Pullback 是独立观察分支，返回阶段、理由、调整幅度、支撑�
 6. 失效或过期保留在尝试历史中，后续基底不得回溯编号为第一。跌破确认时调整低点，或三日两次收盘跌破支撑容差带，记录失效。突破后回落至阻力带内标为 `retesting`；超过十个交易日不沿用旧突破作为新信号。
 
 `pullback.base_role` 区分正在观察的基底和仅保留的历史尝试；`include_details=true` 返回调整周期、未通过检查的候选、全部尝试与趋势条件。未通过的候选是当时证据快照，后续可以修复，不等于永久排除。
-参数位于 `setup_pullback.py` 的 `RULES`，沿用模型的流动性、延伸和风险限制，并提供独立配置和引擎指纹。
+参数位于 `trenddeck/setups/pullback.py` 的 `RULES`，沿用模型的流动性、延伸和风险限制，并提供独立配置和引擎指纹。
 这些阈值是工程假设，不是书中原话或根据案例收益拟合的最优值；止跌证据不能保证未来不再下跌。
 
 ```json
@@ -73,9 +77,9 @@ Pullback 是独立观察分支，返回阶段、理由、调整幅度、支撑�
 {"tool": "get_setup_rankings", "arguments": {"symbols": ["META", "MSFT"], "setup_type": "pullback"}}
 ```
 
-HTTP 同样支持 `?setup_type=pullback`。`python scripts/plot-pullback-examples.py` 生成 META、MSFT 五个正反案例及审计清单到被忽略的 `tmp/pullback-examples/`；每例核对完整历史回放与当日截断结果一致。图只展示截至观察日的数据，未来20日路径放在单独字段。案例由人工挑选，不是未触碰的验证集；本地2023年4月开始的数据不能检验2022年大底。MSFT 2025年快速恢复没有被强行补标为一个新的第一基底。
+HTTP 同样支持 `?setup_type=pullback`。`python scripts/plot-pullback-examples.py` 生成 META、MSFT 五个正反案例及审计清单到被忽略的 `local/artifacts/pullback-examples/`；每例核对完整历史回放与当日截断结果一致。图只展示截至观察日的数据，未来20日路径放在单独字段。案例由人工挑选，不是未触碰的验证集；本地2023年4月开始的数据不能检验2022年大底。MSFT 2025年快速恢复没有被强行补标为一个新的第一基底。
 
-配置为 `models/base-v4.json`；加载器校验参数和权重，配置 schema 为3。公共精简接口 schema 为2，与配置 schema 是不同概念。输出保留配置、引擎和研究数据指纹；仅保存配置不足以复现算法改动。
+配置为 `trenddeck/resources/models/base-v4.json`；加载器校验参数和权重，配置 schema 为3。公共精简接口 schema 为2，与配置 schema 是不同概念。输出保留配置、引擎和研究数据指纹；仅保存配置不足以复现算法改动。
 
 | 参数 | 当前值 | 含义 |
 | --- | ---: | --- |
@@ -92,7 +96,7 @@ HTTP 同样支持 `?setup_type=pullback`。`python scripts/plot-pullback-example
 
 完整参数见配置及详细接口。结构形成的25日分界、失败后15日重新观察、末端5/10日观察等仍有代码常量。它们及各项权重是明确的工程假设，不冒充书中原话或统计最优值。
 
-主要模块为 `setup_bases.py`（基底目录）、`setup_base_stage.py`（阶段背景）、`setup_shapes.py`（附加几何诊断）、`setups.py`（综合评分）、`setup_research.py`（历史研究）。修改当前模型时先写假设与验收条件，再记录配置/引擎指纹及独立验证；日常刷新行情仅重新算分，不自动训练参数。
+主要模块为 `trenddeck/setups/bases.py`（基底目录）、`trenddeck/setups/base_stage.py`（阶段背景）、`trenddeck/setups/shapes.py`（附加几何诊断）、`trenddeck/setups/engine.py`（综合评分）、`trenddeck/setups/research.py`（历史研究）。修改当前模型时先写假设与验收条件，再记录配置/引擎指纹及独立验证；日常刷新行情仅重新算分，不自动训练参数。
 
 ## HTTP 与 MCP
 
@@ -123,8 +127,8 @@ MCP 仅提供单股评分和排行，不暴露回测工具；回测保留为 HTT
 ## 当前研究命令与解释
 
 ```powershell
-python scripts/research-setups.py --end 2026-10-16 --output tmp/setup-research/current-20.json
-python scripts/research-setups.py --end 2026-10-16 --symbols AAPL,TSLA,QQQ --horizon 10 --step 20 --output tmp/setup-research/current-10.json
+python scripts/research-setups.py --end 2026-10-16 --output local/artifacts/setup-research/current-20.json
+python scripts/research-setups.py --end 2026-10-16 --symbols AAPL,TSLA,QQQ --horizon 10 --step 20 --output local/artifacts/setup-research/current-10.json
 ```
 
 CLI只运行当前模型，JSON保留顶层 `base-v4` 键以兼容现有结果读取方式。`--end` 同时限制信号与未来观察资料；默认包含逐条研究事件。API默认返回汇总，`include_event_records=true` 可取明细。
@@ -139,14 +143,14 @@ CLI只运行当前模型，JSON保留顶层 `base-v4` 键以兼容现有结果�
 
 ```powershell
 python scripts/plot-setup-examples.py
-python scripts/plot-setup-examples.py --latest --count 3 --output tmp/setup-current
+python scripts/plot-setup-examples.py --latest --count 3 --output local/artifacts/setup-current
 ```
 
 生成 AAPL、TSLA、DELL、QQQ 四个历史日期的日 K 图及原始评分 manifest，保存于被忽略的
-`tmp/setup-examples/`。蓝色标当前选中基底，橙色标末端平台，菱形标确认日期；每张图只显示截至观察日的行情。
+`local/artifacts/setup-examples/`。蓝色标当前选中基底，橙色标末端平台，菱形标确认日期；每张图只显示截至观察日的行情。
 `--latest` 则按 SPY 最新缓存日期对齐，跑全缓存排行并画得分靠前且有基底的标的，另存完整 `rankings.json`；
 不会自动刷新过期缓存，也不会因排名靠前而把形成中或失效状态改成准备突破。
-这是离线研究绘图，不修改网页。需要可选的 matplotlib，当前环境可复用 `tmp/research-python/` 中的绘图依赖。
+这是离线研究绘图，不修改网页。需要可选的 matplotlib，当前环境可复用 `local/artifacts/research-python/` 中的绘图依赖。
 
 ## 阅读依据与下一步
 

@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from trenddeck.setup_events import breach_episodes, pivot_outcome, summarize_events
-from trenddeck.setups import SetupSeries
+from trenddeck.setups.engine import SetupSeries
+from trenddeck.setups.events import breach_episodes, pivot_outcome, summarize_events
 
 
 def fixture_path(future=40):

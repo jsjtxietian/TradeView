@@ -12,7 +12,7 @@ from types import MappingProxyType
 from typing import Mapping
 
 MODEL_VERSION = "base-v4"
-MODEL_DIR = Path(__file__).resolve().parents[1] / "models"
+MODEL_DIR = Path(__file__).resolve().parents[1] / "resources" / "models"
 DEFAULT_PARAMETERS = {
     "swing_atr_multiplier": 0.8,
     "swing_min_reversal": 0.015,
@@ -54,9 +54,14 @@ DEFAULT_WEIGHTS = {
     "risk": 0.0,
 }
 BASE_PARAMETERS = {
-    "base_left_bars": 5, "base_confirm_bars": 3, "base_min_bars": 5,
-    "base_max_bars": 200, "base_zone_atr": .75, "base_max_depth": .45,
-    "base_count_min_advance": .20, "base_late_ordinal": 4,
+    "base_left_bars": 5,
+    "base_confirm_bars": 3,
+    "base_min_bars": 5,
+    "base_max_bars": 200,
+    "base_zone_atr": 0.75,
+    "base_max_depth": 0.45,
+    "base_count_min_advance": 0.20,
+    "base_late_ordinal": 4,
     "base_reset_below_ma_days": 20,
 }
 
@@ -95,14 +100,20 @@ def load_model(version: str = MODEL_VERSION) -> SetupModel:
         raise ValueError("The current model requires shape_context_enabled = 1")
     # Preserve the existing relative shape weights, without timing/risk points.
     w = {key: value * 100 / sum(w.values()) for key, value in w.items()}
-    for key in ['base_left_bars', 'base_confirm_bars', 'base_min_bars', 'base_max_bars',
-                'base_late_ordinal', 'base_reset_below_ma_days']:
+    for key in [
+        "base_left_bars",
+        "base_confirm_bars",
+        "base_min_bars",
+        "base_max_bars",
+        "base_late_ordinal",
+        "base_reset_below_ma_days",
+    ]:
         if p[key] < 1 or int(p[key]) != p[key]:
-            raise ValueError(f'{key} must be a positive integer')
-    if not p['base_confirm_bars'] < p['base_min_bars'] <= p['base_max_bars']:
-        raise ValueError('Invalid base observation windows')
-    if not 0 < p['base_max_depth'] < 1 or not 0 < p['base_count_min_advance'] < 1:
-        raise ValueError('Invalid base fraction parameters')
+            raise ValueError(f"{key} must be a positive integer")
+    if not p["base_confirm_bars"] < p["base_min_bars"] <= p["base_max_bars"]:
+        raise ValueError("Invalid base observation windows")
+    if not 0 < p["base_max_depth"] < 1 or not 0 < p["base_count_min_advance"] < 1:
+        raise ValueError("Invalid base fraction parameters")
     for key in ["damage_filters_enabled", "relative_context_enabled", "terminal_integrity_enabled"]:
         if p[key] not in (0, 1):
             raise ValueError(f"{key} must be 0 or 1")
@@ -127,9 +138,9 @@ def load_model(version: str = MODEL_VERSION) -> SetupModel:
             raise ValueError(f"{key} must be between 0 and 1")
     digest = hashlib.sha256(json.dumps(data, sort_keys=True, separators=(",", ":")).encode()).hexdigest()[:16]
     engine = hashlib.sha256()
-    names = ["setups.py", "setup_risk.py", "setup_research.py", "setup_events.py", "setup_model.py"]
-    names.append("setup_shapes.py")
-    names.extend(['setup_bases.py', 'setup_base_stage.py'])
+    names = ["engine.py", "risk.py", "research.py", "events.py", "model.py"]
+    names.append("shapes.py")
+    names.extend(["bases.py", "base_stage.py", "vcp.py", "validity.py"])
     for name in names:
         engine.update(Path(__file__).with_name(name).read_bytes())
     return SetupModel(version, digest, MappingProxyType(p), MappingProxyType(w), engine.hexdigest()[:16])

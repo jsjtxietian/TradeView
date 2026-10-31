@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 from PIL import Image
 
-from trenddeck.setup_queries import get_setup_report
+from trenddeck.setups.queries import get_setup_report
 
 
 @pytest.mark.parametrize("setup_type", ["base", "pullback"])

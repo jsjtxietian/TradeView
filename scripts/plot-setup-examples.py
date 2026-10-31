@@ -1,6 +1,6 @@
 """Render auditable, prefix-only examples from the current model and local cache.
 
-Optional plotting dependency: matplotlib. Outputs are research artifacts, not UI.
+Plotting dependency is installed with the app. Outputs are local research artifacts.
 """
 
 from __future__ import annotations
@@ -12,9 +12,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-# Reuse the isolated research dependency directory when it exists.
-if (ROOT / "tmp/research-python").is_dir():
-    sys.path.insert(0, str(ROOT / "tmp/research-python"))
 
 import matplotlib  # noqa: E402
 
@@ -26,7 +23,7 @@ from matplotlib import font_manager  # noqa: E402
 from matplotlib.patches import Rectangle  # noqa: E402
 
 from trenddeck.queries import read_history  # noqa: E402
-from trenddeck.setup_queries import get_setup_rankings, get_setup_report  # noqa: E402
+from trenddeck.setups.queries import get_setup_rankings, get_setup_report  # noqa: E402
 
 CASES = [
     (
@@ -250,7 +247,7 @@ def render(symbol, day, title, note, out):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, default=ROOT / "tmp/setup-examples")
+    parser.add_argument("--output", type=Path, default=ROOT / "local/artifacts/setup-examples")
     parser.add_argument("--latest", action="store_true", help="Plot highest-scoring current cached bases")
     parser.add_argument("--count", type=int, default=3, choices=range(1, 13), metavar="1..12")
     args = parser.parse_args()

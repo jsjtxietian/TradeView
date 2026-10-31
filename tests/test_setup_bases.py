@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from trenddeck.setup_model import load_model
-from trenddeck.setups import SetupSeries
+from trenddeck.setups.engine import SetupSeries
+from trenddeck.setups.model import load_model
 
 
 @pytest.mark.parametrize('retired', ['pivot-v1', 'pivot-v2', 'shape-v3'])

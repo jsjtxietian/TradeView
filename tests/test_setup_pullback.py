@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from trenddeck.setup_pullback import PullbackSeries
-from trenddeck.setup_queries import get_setup_rankings, get_setup_report
+from trenddeck.setups.pullback import PullbackSeries
+from trenddeck.setups.queries import get_setup_rankings, get_setup_report
 
 
 def frame(tail=None):

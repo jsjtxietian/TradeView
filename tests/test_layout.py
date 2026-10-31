@@ -37,7 +37,7 @@ def test_paths_do_not_depend_on_working_directory(tmp_path, override):
     assert data == PROJECT_ROOT / (override or "data")
     assert stock == data / "stock" and trade == data / "trade"
     assert snapshot == trade / "alerts_snapshot.json"
-    assert prompt == PROJECT_ROOT / "templates" / "analysis_prompt.md" and prompt.exists()
+    assert prompt == PROJECT_ROOT / "trenddeck/resources/templates/analysis_prompt.md" and prompt.exists()
 
 
 def test_migration_preserves_bytes_and_is_repeatable(tmp_path):

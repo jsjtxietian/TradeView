@@ -7,10 +7,10 @@ import pandas as pd
 import pytest
 from fastapi.testclient import TestClient
 
-from trenddeck import setup_queries
-from trenddeck.setup_model import load_model
-from trenddeck.setup_research import forward_outcome, simulate_pivot_trade
-from trenddeck.setups import SetupSeries, confirmed_swings, score_setup
+from trenddeck.setups import queries as setup_queries
+from trenddeck.setups.engine import SetupSeries, confirmed_swings, score_setup
+from trenddeck.setups.model import load_model
+from trenddeck.setups.research import forward_outcome, simulate_pivot_trade
 
 
 def pattern_frame() -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -205,7 +205,7 @@ def test_http_endpoints_and_backtest_validation(cached_data):
 
 
 def test_model_version_is_explicit_validated_and_hash_changes(tmp_path, monkeypatch):
-    from trenddeck import setup_model
+    from trenddeck.setups import model as setup_model
 
     original = load_model()
     data = json.loads((setup_model.MODEL_DIR / "base-v4.json").read_text())
@@ -234,7 +234,7 @@ def test_model_version_is_explicit_validated_and_hash_changes(tmp_path, monkeypa
 
 @pytest.mark.parametrize("schema", [1, 2])
 def test_model_loader_rejects_retired_configuration_schemas(tmp_path, monkeypatch, schema):
-    from trenddeck import setup_model
+    from trenddeck.setups import model as setup_model
 
     data = json.loads((setup_model.MODEL_DIR / "base-v4.json").read_text(encoding="utf-8"))
     data.update(version="unsupported-schema", schema_version=schema)

@@ -13,7 +13,8 @@ from pathlib import Path
 
 import numpy as np
 
-from trenddeck.setups import MIN_BARS, SetupSeries
+from trenddeck.setups.engine import MIN_BARS, SetupSeries
+from trenddeck.setups.validity import pullback_invalidation_reason
 
 RULES = {
     "peak_lookback": 252,
@@ -325,6 +326,7 @@ class PullbackSeries:
             reasons.append(
                 f"本轮第{b['ordinal']}个修复基底；识别日{b['known_session']}，阻力{b['upper']:.2f}，支撑{b['lower']:.2f}。"
             )
+            reasons.append(pullback_invalidation_reason(b, bool(cycle["base"] and status != "completed")))
         if cycle and cycle["history_left_censored"]:
             reasons.append("观察起点未覆盖完整调整历史，编号仅代表可见尝试，不能确认是实际第一基底。")
         if not quality:

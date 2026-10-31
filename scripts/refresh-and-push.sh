@@ -3,27 +3,24 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+mkdir -p local
+exec 9>local/maintenance.lock
+flock -x 9
+
 OLD_HEAD="$(git rev-parse HEAD)"
 git pull --ff-only
 NEW_HEAD="$(git rev-parse HEAD)"
 
 if [ "$OLD_HEAD" != "$NEW_HEAD" ]; then
-    if git diff --name-only "$OLD_HEAD" "$NEW_HEAD" | grep -qv '^data/'; then
-        if git diff --name-only "$OLD_HEAD" "$NEW_HEAD" | grep -Eq '^(requirements/|requirements(-dev)?\.txt$)'; then
-            . .venv/bin/activate
-            pip install -r requirements/runtime.txt
-            deactivate
-        fi
-        sudo systemctl stop trenddeck.service
-        if ! .venv/bin/python scripts/migrate-data.py; then
-            sudo systemctl start trenddeck.service
-            exit 1
-        fi
-        sudo systemctl restart trenddeck.service
+    if git diff --name-only "$OLD_HEAD" "$NEW_HEAD" | grep -v '^data/' >/dev/null; then
+        # Code updates can change package paths, credentials and systemd units.
+        # Use the same installation path as a manual deployment.
+        bash scripts/install-server-systemd.sh
     fi
 fi
 
 . .venv/bin/activate
+export PYTHONDONTWRITEBYTECODE=1
 python - <<'PY'
 import time
 from urllib.request import urlopen

@@ -4,6 +4,11 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .env
+local/
+ref/
+*.egg-info/
+build/
+dist/
 books/
 tmp/
 1.txt

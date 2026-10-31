@@ -12,8 +12,9 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from trenddeck.setup_model import SetupModel, load_model
-from trenddeck.setup_risk import relative_context, structure_risk
+from trenddeck.setups.model import SetupModel, load_model
+from trenddeck.setups.risk import relative_context, structure_risk
+from trenddeck.setups.validity import base_validity
 
 MIN_BARS = 253
 
@@ -100,7 +101,8 @@ class SetupSeries:
         self.base_swings = confirmed_swings(self.c, np.asarray(coarse))
         self.benchmark = clean_history(benchmark) if benchmark is not None else pd.DataFrame()
         self.price_mode = str(f.PriceMode.iloc[-1]) if len(f) and "PriceMode" in f else "unknown"
-        from trenddeck.setup_bases import BaseSeries
+        from trenddeck.setups.bases import BaseSeries
+
         self.bases = BaseSeries(self)
 
     def date(self, i: int) -> str:
@@ -170,10 +172,10 @@ class SetupSeries:
 
     def _geometry(self, end: int) -> dict[str, Any]:
         """Only the current base-first engine; end excludes the signal bar."""
-        return self.bases.snapshot(end)['selected']
+        return self.bases.snapshot(end)["selected"]
 
     def pivot_failures(self, i: int, current_geometry: dict[str, Any]) -> list[dict[str, Any]]:
-        return self.bases.failures(i+1)
+        return self.bases.failures(i + 1)
 
     def score(self, index: int | None = None) -> dict[str, Any]:
         i = len(self.c) - 1 if index is None else index
@@ -334,8 +336,7 @@ class SetupSeries:
             status = "ready"
         else:
             status = "developing"
-        caps = {"outside_stage2": 39, "damaged": 24, "no_base": 49,
-                "invalidated": 25, "extended": 49}
+        caps = {"outside_stage2": 39, "damaged": 24, "no_base": 49, "invalidated": 25, "extended": 49}
         score = min(quality, caps.get(status, 100), 100 if eligible else 39)
         gaps = self.gap_events(i)
         reasons = []
@@ -367,7 +368,9 @@ class SetupSeries:
             "leadership": leadership,
             "eligible": bool(eligible),
             "candidate_eligible": bool(
-                eligible and not damage_blocked and structural
+                eligible
+                and not damage_blocked
+                and structural
                 and status not in {"extended", "invalidated", "no_base"}
             ),
             "actionable": bool(
@@ -402,19 +405,21 @@ class SetupSeries:
             "gap_events": gaps,
             "warnings": reasons,
         }
-        from trenddeck.setup_shapes import shape_context
+        from trenddeck.setups.shapes import shape_context
 
         result["trend_phase"] = "stage2" if stage2 else "repairing" if repairing else "unconfirmed"
         result["shape_context"] = shape_context(h, low, c, v, self.trp, self.swings, self.dates, i)
         result["score_scope"] = "overall_shape_not_exact_entry_timing"
-        from trenddeck.setup_base_stage import stage_context
+        from trenddeck.setups.base_stage import stage_context
+
         context = self.bases.snapshot(i)
-        result['base_context'] = {
-            'selected_base_id': g.get('base_id'),
-            'active_count': context['active_count'],
-            'catalogue': context['catalogue'],
-            'stage': stage_context(context['catalogue'], c, self.ma[200], self.dates, i, self.p),
+        result["base_context"] = {
+            "selected_base_id": g.get("base_id"),
+            "active_count": context["active_count"],
+            "catalogue": context["catalogue"],
+            "stage": stage_context(context["catalogue"], c, self.ma[200], self.dates, i, self.p),
         }
+        result["invalidation"] = base_validity(self, i, g, result["invalidation_level"])
         return result
 
 

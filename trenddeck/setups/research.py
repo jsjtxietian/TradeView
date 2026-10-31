@@ -8,9 +8,9 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from trenddeck.setup_events import pivot_outcome, summarize_events
-from trenddeck.setup_model import SetupModel, load_model
-from trenddeck.setups import MIN_BARS, SetupSeries, clean_history
+from trenddeck.setups.engine import MIN_BARS, SetupSeries, clean_history
+from trenddeck.setups.events import pivot_outcome, summarize_events
+from trenddeck.setups.model import SetupModel, load_model
 
 
 def simulate_pivot_trade(
