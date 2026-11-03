@@ -16798,5 +16798,251 @@
     "message": "当日成交量放大至 50 日均量的 254%。",
     "createdAt": "2026-11-02T23:11:02Z",
     "timeLabel": "11/03 07:11"
+  },
+  {
+    "symbol": "GOOG",
+    "message": "近 5 个交易日累计下跌 -12.2%。",
+    "createdAt": "2026-11-03T23:02:34Z",
+    "timeLabel": "11/04 07:02"
+  },
+  {
+    "symbol": "AAPL",
+    "message": "已不再满足趋势模板。",
+    "createdAt": "2026-11-03T23:02:34Z",
+    "timeLabel": "11/04 07:02"
+  },
+  {
+    "symbol": "AAPL",
+    "message": "收盘价下穿 50 日均线（MA50 334.05）。",
+    "createdAt": "2026-11-03T23:02:34Z",
+    "timeLabel": "11/04 07:02"
+  },
+  {
+    "symbol": "MSFT",
+    "message": "收盘价上穿 50 日均线（MA50 514.06）。",
+    "createdAt": "2026-11-03T23:02:34Z",
+    "timeLabel": "11/04 07:02"
+  },
+  {
+    "symbol": "DELL",
+    "message": "近 5 个交易日累计下跌 -18.6%。",
+    "createdAt": "2026-11-03T23:02:34Z",
+    "timeLabel": "11/04 07:02"
+  },
+  {
+    "symbol": "INTC",
+    "message": "近 5 个交易日累计下跌 -35.4%。",
+    "createdAt": "2026-11-03T23:02:34Z",
+    "timeLabel": "11/04 07:02"
+  },
+  {
+    "symbol": "AMD",
+    "message": "近 5 个交易日累计下跌 -13.6%。",
+    "createdAt": "2026-11-03T23:02:34Z",
+    "timeLabel": "11/04 07:02"
+  },
+  {
+    "symbol": "ARM",
+    "message": "近 5 个交易日累计下跌 -10.6%。",
+    "createdAt": "2026-11-03T23:02:34Z",
+    "timeLabel": "11/04 07:02"
+  },
+  {
+    "symbol": "QCOM",
+    "message": "近 5 个交易日累计下跌 -10.7%。",
+    "createdAt": "2026-11-03T23:02:34Z",
+    "timeLabel": "11/04 07:02"
+  },
+  {
+    "symbol": "CBRS",
+    "message": "近 5 个交易日累计下跌 -18.0%。",
+    "createdAt": "2026-11-03T23:02:34Z",
+    "timeLabel": "11/04 07:02"
+  },
+  {
+    "symbol": "SNDK",
+    "message": "近 5 个交易日累计下跌 -13.7%。",
+    "createdAt": "2026-11-03T23:02:34Z",
+    "timeLabel": "11/04 07:02"
+  },
+  {
+    "symbol": "STX",
+    "message": "近 5 个交易日累计下跌 -9.2%。",
+    "createdAt": "2026-11-03T23:02:34Z",
+    "timeLabel": "11/04 07:02"
+  },
+  {
+    "symbol": "WDC",
+    "message": "近 5 个交易日累计下跌 -8.8%。",
+    "createdAt": "2026-11-03T23:02:34Z",
+    "timeLabel": "11/04 07:02"
+  },
+  {
+    "symbol": "SOXX",
+    "message": "近 5 个交易日累计下跌 -9.0%。",
+    "createdAt": "2026-11-03T23:02:47Z",
+    "timeLabel": "11/04 07:02"
+  },
+  {
+    "symbol": "SOXX",
+    "message": "当日成交量放大至 50 日均量的 158%。",
+    "createdAt": "2026-11-03T23:02:47Z",
+    "timeLabel": "11/04 07:02"
+  },
+  {
+    "symbol": "SMTC",
+    "message": "近 5 个交易日累计下跌 -11.7%。",
+    "createdAt": "2026-11-03T23:02:47Z",
+    "timeLabel": "11/04 07:02"
+  },
+  {
+    "symbol": "LITE",
+    "message": "近 5 个交易日累计下跌 -21.5%。",
+    "createdAt": "2026-11-03T23:02:47Z",
+    "timeLabel": "11/04 07:02"
+  },
+  {
+    "symbol": "CRWV",
+    "message": "较前一交易日上涨 +7.2%。",
+    "createdAt": "2026-11-03T23:02:47Z",
+    "timeLabel": "11/04 07:02"
+  },
+  {
+    "symbol": "CRWV",
+    "message": "近 5 个交易日累计下跌 -9.8%。",
+    "createdAt": "2026-11-03T23:02:47Z",
+    "timeLabel": "11/04 07:02"
+  },
+  {
+    "symbol": "SLV",
+    "message": "近 5 个交易日累计下跌 -8.8%。",
+    "createdAt": "2026-11-03T23:02:47Z",
+    "timeLabel": "11/04 07:02"
+  },
+  {
+    "symbol": "COPX",
+    "message": "创近 6 个月新低（71.71）。",
+    "createdAt": "2026-11-03T23:02:47Z",
+    "timeLabel": "11/04 07:02"
+  },
+  {
+    "symbol": "FFTY",
+    "message": "当日成交量放大至 50 日均量的 177%。",
+    "createdAt": "2026-11-03T23:02:47Z",
+    "timeLabel": "11/04 07:02"
+  },
+  {
+    "symbol": "VNM",
+    "message": "当日成交量放大至 50 日均量的 224%。",
+    "createdAt": "2026-11-03T23:02:47Z",
+    "timeLabel": "11/04 07:02"
+  },
+  {
+    "symbol": "NOBL",
+    "message": "当日成交量放大至 50 日均量的 187%。",
+    "createdAt": "2026-11-03T23:03:10Z",
+    "timeLabel": "11/04 07:03"
+  },
+  {
+    "symbol": "PKW",
+    "message": "当日成交量缩至 50 日均量的 40%。",
+    "createdAt": "2026-11-03T23:03:10Z",
+    "timeLabel": "11/04 07:03"
+  },
+  {
+    "symbol": "WAGN",
+    "message": "收盘价下穿 50 日均线（MA50 15.53）。",
+    "createdAt": "2026-11-03T23:03:10Z",
+    "timeLabel": "11/04 07:03"
+  },
+  {
+    "symbol": "GEV",
+    "message": "较前一交易日上涨 +6.5%。",
+    "createdAt": "2026-11-03T23:03:10Z",
+    "timeLabel": "11/04 07:03"
+  },
+  {
+    "symbol": "BE",
+    "message": "较前一交易日上涨 +9.0%。",
+    "createdAt": "2026-11-03T23:03:10Z",
+    "timeLabel": "11/04 07:03"
+  },
+  {
+    "symbol": "XLP",
+    "message": "当日成交量放大至 50 日均量的 176%。",
+    "createdAt": "2026-11-03T23:03:10Z",
+    "timeLabel": "11/04 07:03"
+  },
+  {
+    "symbol": "MOO",
+    "message": "当日成交量缩至 50 日均量的 46%。",
+    "createdAt": "2026-11-03T23:03:10Z",
+    "timeLabel": "11/04 07:03"
+  },
+  {
+    "symbol": "CAT",
+    "message": "近 5 个交易日累计下跌 -12.5%。",
+    "createdAt": "2026-11-03T23:03:10Z",
+    "timeLabel": "11/04 07:03"
+  },
+  {
+    "symbol": "VALE",
+    "message": "创近 6 个月新低（10.98）。",
+    "createdAt": "2026-11-03T23:03:10Z",
+    "timeLabel": "11/04 07:03"
+  },
+  {
+    "symbol": "LLY",
+    "message": "近 5 个交易日累计上涨 +9.9%。",
+    "createdAt": "2026-11-03T23:03:10Z",
+    "timeLabel": "11/04 07:03"
+  },
+  {
+    "symbol": "IGV",
+    "message": "近 5 个交易日累计下跌 -8.2%。",
+    "createdAt": "2026-11-03T23:03:10Z",
+    "timeLabel": "11/04 07:03"
+  },
+  {
+    "symbol": "CIBR",
+    "message": "近 5 个交易日累计下跌 -11.3%。",
+    "createdAt": "2026-11-03T23:03:17Z",
+    "timeLabel": "11/04 07:03"
+  },
+  {
+    "symbol": "BUG",
+    "message": "近 5 个交易日累计下跌 -10.5%。",
+    "createdAt": "2026-11-03T23:03:17Z",
+    "timeLabel": "11/04 07:03"
+  },
+  {
+    "symbol": "NET",
+    "message": "近 5 个交易日累计下跌 -16.5%。",
+    "createdAt": "2026-11-03T23:03:17Z",
+    "timeLabel": "11/04 07:03"
+  },
+  {
+    "symbol": "FSLY",
+    "message": "近 5 个交易日累计下跌 -23.0%。",
+    "createdAt": "2026-11-03T23:03:17Z",
+    "timeLabel": "11/04 07:03"
+  },
+  {
+    "symbol": "OKTA",
+    "message": "近 5 个交易日累计下跌 -16.1%。",
+    "createdAt": "2026-11-03T23:03:17Z",
+    "timeLabel": "11/04 07:03"
+  },
+  {
+    "symbol": "OKTA",
+    "message": "当日成交量放大至 50 日均量的 735%。",
+    "createdAt": "2026-11-03T23:03:17Z",
+    "timeLabel": "11/04 07:03"
+  },
+  {
+    "symbol": "FTNT",
+    "message": "近 5 个交易日累计下跌 -30.8%。",
+    "createdAt": "2026-11-03T23:03:17Z",
+    "timeLabel": "11/04 07:03"
   }
 ]
