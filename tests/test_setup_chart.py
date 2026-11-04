@@ -47,6 +47,11 @@ def test_chart_matches_report_and_ignores_future_bars(cached_data, setup_type):
     assert chart["base"]["breakout_session"] == evidence["breakout_session"]
     assert chart["base"]["upper"] == evidence["upper" if setup_type == "pullback" else "pivot"]
     assert chart["as_of_session"] == chart["display_end_session"] == day
+    context = plain["details"].get("right_side", {})
+    assert chart["right_side"]["parent"] == context.get("parent")
+    assert chart["right_side"]["pause"] == context.get("pause")
+    if setup_type == "base" and chart["current_setup_support"]:
+        assert chart["current_setup_support"]["level"] == plain["details"]["invalidation_level"]
     with Image.open(BytesIO(base64.b64decode(chart["data"]))) as image:
         assert image.format == "PNG"
         assert image.size == (chart["width"], chart["height"])

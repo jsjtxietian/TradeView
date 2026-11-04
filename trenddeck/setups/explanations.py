@@ -14,7 +14,7 @@ COMPONENTS = {
         "先识别有确认边界的基底，再评价恢复程度、持续时间、内部收缩和前段推进；VCP 是基底的一类特征",
     ),
     "tightness": ("价格收紧", "比较近期平台宽度与前期真实波幅，避免只把低波动当作好形态"),
-    "volume": ("成交量收缩", "比较末端整理近五日均量与该平台开始前五十日成交量中位数，观察供给是否减少"),
+    "volume": ("成交量收缩", "比较实际已确认整理全段均量与开始前五十日成交量中位数，观察供给是否减少"),
     "relative_strength": ("相对 SPY 强度", "比较个股与 SPY 在相同交易日的相对表现"),
     "location": ("接近突破位置", "衡量当前价格与观察时已经形成的阻力区域的距离"),
     "risk": ("结构距离", "衡量当前价格距整理支撑的距离，距离较近得到较高分"),
@@ -182,7 +182,10 @@ def score_reasons(report: dict[str, Any], model: SetupModel) -> list[str]:
     if geometry.get("terminal_contraction_intact") is False and report.get("pattern") == "none":
         add("最后一轮收缩仍不完整，当前不能认定为成熟的多轮收缩形态。")
     # Invalidation must survive compact output; it is not an optional positive.
-    required = [x for x in [base_invalidation_reason(report), base_stage_reason] if x]
+    from trenddeck.setups.right_side import right_side_reason
+
+    required = [x for x in [base_invalidation_reason(report), right_side_reason(report.get("right_side")),
+                           base_stage_reason] if x]
     compact = [x for x in reasons if x not in required][: max(0, 6 - len(required))] + required
     return compact
 
@@ -232,7 +235,7 @@ def conditions_markdown(model: SetupModel) -> str:
             "- 趋势修复路径：长期均线尚未完全转好时，须同时站上 MA20、MA50、MA200，"
             "MA20/MA50 上行，已确认波段连续形成更高高点和更高低点，并收复最近反弹高点；仍接受全部损伤和延伸检查。",
             "- VCP 标签：至少两轮已确认回调、幅度逐次缩小、末轮回调成交量中位数低于首轮、"
-            "末端五日均量低于整理前基准、末端区间不超过10%且支撑完整；仅影响标签，不额外加分。"
+            "实际末端整理均量低于整理前基准、末端区间不超过10%且支撑完整；仅影响标签，不额外加分。"
             "低点是否抬高单独记录，不要求每轮低点机械抬高。",
             "- 失效：末端平台收盘跌破含缓冲支撑，与整体基底最近三日中两次收盘跌破冻结底边容差线，分别说明。"
             "原尝试失败后保留记录；同一结构锚点重建至少等待15日，并重新满足形成条件。",
@@ -241,6 +244,12 @@ def conditions_markdown(model: SetupModel) -> str:
             "- 分数与时机：上述有效权重归一至 100 分；枢轴距离和结构距离不直接加分。"
             "形成中、已越过阻力、尚未放量确认三种状态不单独封顶，趋势不足、无形态、受损、失效和明确延伸仍限制分数。",
             "- 形态背景诊断单独返回，不额外加分。表内小数为展示舍入，计算使用完整权重。",
+            "- 右侧结构：已确认的浅基底或回升后的独立停顿，至少5日、宽度不超过10%，"
+            "需要区间内反复运动与回升证据；识别后小平台上下沿冻结，分别记录下探、收复、连续站稳、"
+            "突破和失效。连续站稳需至少3日收盘守住支撑且区间重新收窄；收复不撤销已确认失效。"
+            "用实际整理区间计算原有收紧与量能分，不再使用固定5／10日末端窗口；"
+            "突破当天不参与整理质量评分，主基底突破位不变，形态名称不重复加分。"
+            "没有有效整理不获末端质量分；正在下探或刚收复尚未稳定时不标记 ready。",
             f"- 基底识别：锚点使用前 {p['base_left_bars']:g} 日与后 {p['base_confirm_bars']:g} 日确认，"
             f"至少观察 {p['base_min_bars']:g} 日整理，识别时深度不超过 {p['base_max_depth']:.0%}；"
             "还需回转、恢复和横向运动证据。锚点日期不等于当时可知日期，识别后外部边界冻结。",

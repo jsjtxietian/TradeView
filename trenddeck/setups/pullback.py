@@ -369,4 +369,23 @@ class PullbackSeries:
     def report(self, index=None):
         if not self.timeline:
             self._build()
-        return deepcopy(self.timeline[-1 if index is None else index])
+        i = len(self.timeline) - 1 if index is None else index
+        result = deepcopy(self.timeline[i])
+        from trenddeck.setups.right_side import right_side_context, right_side_reason
+
+        cycle = result.get("cycle")
+        parent = None
+        if cycle and result.get("base") and result["status"] not in {"completed", "expired"}:
+            parent = {
+                "base_id": cycle["cycle_id"],
+                "start_index": int(np.searchsorted(self.s.dates, np.datetime64(cycle["peak_session"]))),
+                "known_index": int(np.searchsorted(self.s.dates, np.datetime64(cycle["known_session"]))),
+                "upper": cycle["peak"],
+                "lower": cycle["low"],
+                "role": "correction_range",
+            }
+        result["right_side"] = right_side_context(self.s, parent, i + 1)
+        reason = right_side_reason(result["right_side"])
+        if reason:
+            result["reasons"].append(reason)
+        return result

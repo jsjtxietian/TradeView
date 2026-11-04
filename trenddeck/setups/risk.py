@@ -47,6 +47,7 @@ def structure_risk(
     pause_start = geometry.get("pause_start", "")
     new_pause = bool(
         lows
+        and geometry.get("terminal_available", False)
         and pause_start > date(lows[-1]["index"])
         and geometry.get("pause_width", 1) <= p["max_pause_width"]
         and geometry.get("pause_bars", 0) >= 5

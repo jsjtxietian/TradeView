@@ -94,10 +94,13 @@ def test_falling_sequence_is_not_repaired_by_weak_or_steep_pause(change):
 
 def test_valid_new_pause_or_reclaimed_resistance_repairs_old_descending_sequence():
     args = descending_inputs()
+    args["geometry"]["terminal_available"] = True
     repaired = structure_risk(**args)
     assert repaired["lower_highs"] and repaired["lower_lows"]
     assert repaired["new_right_side_pause"]
     assert not repaired["blocks"]
+    args["geometry"]["terminal_available"] = False
+    assert not structure_risk(**args)["new_right_side_pause"]
     args["geometry"] = {}
     args["close"][-1] = 121
     args["high"][-1] = 122

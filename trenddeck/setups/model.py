@@ -140,7 +140,7 @@ def load_model(version: str = MODEL_VERSION) -> SetupModel:
     engine = hashlib.sha256()
     names = ["engine.py", "risk.py", "research.py", "events.py", "model.py"]
     names.append("shapes.py")
-    names.extend(["bases.py", "base_stage.py", "vcp.py", "validity.py"])
+    names.extend(["bases.py", "base_stage.py", "vcp.py", "validity.py", "right_side.py"])
     for name in names:
         engine.update(Path(__file__).with_name(name).read_bytes())
     return SetupModel(version, digest, MappingProxyType(p), MappingProxyType(w), engine.hexdigest()[:16])

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from trenddeck.setups.right_side import right_side_context
 from trenddeck.setups.vcp import vcp_evidence
 
 
@@ -21,6 +22,7 @@ class BaseSeries:
         self.s = series
         self.records = None
         self.cache = {}
+        self.selection_merits = {}
 
     def _catalogue(self):
         s = self.s
@@ -168,10 +170,29 @@ class BaseSeries:
                 continue
             if r["breakout_index"] is not None and end - 1 - r["breakout_index"] > 5:
                 continue
-            candidates.append(self._geometry(r, end))
-        # Choose structural evidence first, then proximity. Do not choose based on
-        # future performance or turn a tiny interior pause into the outer base.
-        selected = max(candidates, key=lambda g: g["merit"]) if candidates else {}
+            geometry = self._geometry(r, end)
+            # Choose between bases using evidence frozen at each recognition.
+            # Daily quality still changes, but cannot make two existing ranges
+            # swap back and forth merely because price/volume moved slightly.
+            if r["base_id"] not in self.selection_merits:
+                self.selection_merits[r["base_id"]] = self._geometry(r, r["known_index"] + 1)["merit"]
+            geometry["selection_merit"] = self.selection_merits[r["base_id"]]
+            geometry["selection_basis"] = "quality_at_recognition"
+            candidates.append(geometry)
+        # A contained shelf supplies terminal evidence inside its active outer
+        # base; it does not compete with that base as an unrelated alternative.
+        active_ids = {g["base_id"] for g in candidates}
+        parents = {r["base_id"]: r["parent_id"] for r in records}
+        roots = []
+        for geometry in candidates:
+            ancestor = geometry["parent_id"]
+            contained = False
+            while ancestor:
+                contained |= ancestor in active_ids
+                ancestor = parents.get(ancestor)
+            if not contained:
+                roots.append(geometry)
+        selected = max(roots, key=lambda g: g["selection_merit"]) if roots else {}
         result = {
             "selected": selected,
             "catalogue": records,
@@ -189,33 +210,22 @@ class BaseSeries:
         e = max(e, r["known_index"] + 1)
         a = r["start_index"]
         observed_depth = float(1 - s.low[a:e].min() / s.h[a:e].max())
-        ps = max(a, e - 10)
-        # A separately formed last-five-session shelf owns its tighter support.
-        # Require observed back-and-forth travel, so a five-day vertical rally
-        # cannot manufacture a new pause merely by shortening the window.
-        if e - a >= 5:
-            recent = s.c[e - 5 : e]
-            travel = float(np.abs(np.diff(recent)).sum())
-            efficiency = abs(recent[-1] - recent[0]) / max(travel, 1e-9)
-            recent_width = 1 - float(s.low[e - 5 : e].min() / s.h[e - 5 : e].max())
-            if efficiency <= 0.65 and recent_width <= s.p["max_pause_width"]:
-                ps = e - 5
-        # Terminal pause owns its own support and cannot borrow the outer low.
-        terminal_h = float(s.h[ps:e].max())
-        floor = float(s.low[ps:e].min())
-        width = 1 - floor / terminal_h
-        dry = (
-            float(np.mean(s.v[max(ps, e - 5) : e]) / max(np.median(s.v[max(0, ps - 50) : ps]), 1))
-            if ps
-            else 1.0
-        )
-        atr_ratio = (
-            float(np.mean(s.trp[max(ps, e - 5) : e]) / max(np.mean(s.trp[max(0, ps - 30) : ps]), 0.001))
-            if ps
-            else 1.0
-        )
-        tight = 0.5 * (1 - clip(width, 0.03, 0.12)) + 0.5 * (1 - clip(atr_ratio, 0.5, 1.2))
-        volume = 1 - clip(dry, 0.4, 1.2)
+        context = right_side_context(s, {
+            **r, "role": "selected_base", "allow_base_pause": True,
+        }, end)
+        context.update(diagnostic_only=False, score_effect="existing_tightness_and_volume")
+        pause = context["pause"]
+        usable = bool(pause and not pause["historical_only"] and pause["state"] != "invalidated")
+        metrics = pause["metrics"] if pause else {}
+        ps = pause["start_index"] if pause else a
+        # Support freezes at recognition; widening does not redefine a broken stop.
+        floor = pause["lower"] if pause else r["lower"]
+        width = metrics.get("width", observed_depth)
+        dry = metrics.get("volume_ratio")
+        atr_ratio = metrics.get("true_range_ratio")
+        tight = (0.5 * (1 - clip(width, 0.03, 0.12))
+                 + 0.5 * (1 - clip(atr_ratio, 0.5, 1.2))) if usable else 0.
+        volume = (1 - clip(dry, 0.4, 1.2)) if usable and dry is not None else 0.
         known = [x for x in s.base_swings if x["confirmed_index"] < e and x["index"] >= a]
         legs = []
         for hi, lo in zip(known, known[1:]):
@@ -246,7 +256,7 @@ class BaseSeries:
         recovered = float(np.clip((s.c[e - 1] - r["lower"]) / (r["upper"] - r["lower"]), 0, 1))
         strength = 0.35 + 0.25 * recovered + 0.2 * min(1.0, (e - a) / 25) + 0.2 * contraction
         strength *= 0.5 + 0.5 * r["prior_advance_quality"]
-        vcp = vcp_evidence(legs, terminal_intact, width, dry)
+        vcp = vcp_evidence(legs, terminal_intact and usable, width, dry if dry is not None else 1.)
         pattern = (
             "vcp"
             if vcp["qualified"]
@@ -283,11 +293,13 @@ class BaseSeries:
             "floor": floor,
             "upper_zone": [r["upper"] * (1 - r["zone"]), r["upper"] * (1 + r["zone"])],
             "pause_start": s.date(ps),
-            "pause_bars": e - ps,
+            "pause_bars": metrics.get("bars", 0),
             "pause_width": width,
-            "pause_drift": float(s.c[e - 1] / s.c[ps] - 1),
-            "volume_ratio_5_to_prior50_median": dry,
-            "true_range_ratio_5_to_prior30": atr_ratio,
+            "pause_drift": float(s.c[ps + metrics["bars"] - 1] / s.c[ps] - 1) if metrics else 0.,
+            "volume_ratio_to_prior50_median": dry,
+            "true_range_ratio_to_prior30": atr_ratio,
+            "terminal_available": usable,
+            "right_side": context,
             "tightness": tight,
             "volume_quality": volume,
             "contractions": legs,

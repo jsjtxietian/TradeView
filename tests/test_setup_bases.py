@@ -138,8 +138,52 @@ def test_recent_independent_shelf_cannot_hide_damage_behind_older_low():
     tail=[100,97,90,85,80]+list(np.linspace(81,98,30))+[97.5,98.5,97.8,98.6,98.2,96]
     s=SetupSeries(frame(tail))
     r=s.score()
-    assert r['geometry']['pause_bars']==5
+    # The actual shelf starts at the recovery high, not at a rolling five-day cut.
+    assert r['geometry']['pause_bars']==6
+    assert r['geometry']['right_side']['pause']['start_session']==s.date(len(s.c)-7)
     assert r['geometry']['floor']>97
     assert r['geometry']['base_low_price']<81
     assert not r['actionable']
     assert r['status'] in {'invalidated','damaged'}
+
+
+def test_unchanged_base_catalogue_does_not_switch_on_daily_quality_noise():
+    s = SetupSeries(frame([100,97,90,85,80] + list(np.linspace(81,98,30))
+                          + [97,98,97.5,98,98.5,97.5,98,97,98,97.5] * 2))
+    previous = None
+    comparisons = 0
+    merits = set()
+    for end in range(286, len(s.c)+1):
+        snap = s.bases.snapshot(end)
+        catalogue = [(r['base_id'], r['lifecycle'], r['parent_id']) for r in snap['catalogue']]
+        selected = snap['selected']
+        identity = selected.get('base_id')
+        signature = (catalogue, snap['active_count'])
+        if previous and previous[0] == signature and identity:
+            assert identity == previous[1]
+            comparisons += 1
+        if identity:
+            merits.add(round(selected['merit'], 6))
+            assert selected['selection_basis'] == 'quality_at_recognition'
+        previous = (signature, identity)
+    assert comparisons >= 5 and len(merits) > 1
+
+
+def test_later_outer_breakout_confirmation_does_not_rewind_known_inner_pause():
+    tail = [100,95,90,85,80] + list(np.linspace(81,98,24))
+    tail += [101,100.5,102,101,102,100.5,101.5,103.5,104]
+    f = frame(tail)
+    # Wide pre-base daily ranges give the outer base a wider confirmation zone:
+    # price can cross its roof before the eventual two-close confirmation.
+    f.loc[:259, 'High'] = f.loc[:259, 'Close'] * 1.02
+    f.loc[:259, 'Low'] = f.loc[:259, 'Close'] * .98
+    s = SetupSeries(f)
+    before = s.bases.snapshot(len(s.c)-1)['selected']
+    after = s.bases.snapshot(len(s.c))['selected']
+    assert before['base_id'] == after['base_id']
+    assert before['right_side']['pause'] is not None
+    assert before['right_side']['pause']['pause_id'] == after['right_side']['pause']['pause_id']
+    assert after['breakout_session'] is not None
+    outer_end = int(np.searchsorted(s.dates, np.datetime64(after['base_start']))) + after['base_bars']
+    assert after['right_side']['pause']['known_index'] >= outer_end
+    assert after['right_side']['as_of_session'] == s.date(len(s.c)-1)

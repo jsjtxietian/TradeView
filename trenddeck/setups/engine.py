@@ -234,6 +234,18 @@ class SetupSeries:
                 "contractions": [],
             }
         pivot, floor = g["pivot"], g["floor"]
+        from copy import deepcopy
+
+        from trenddeck.setups.right_side import _observe
+
+        # Score only the pause known before today's bar; today's bar can test or
+        # break that same pause, but cannot manufacture its own entry setup.
+        right_side = deepcopy(g.get("right_side", {}))
+        if right_side.get("pause"):
+            right_side["as_of_session"] = self.date(i)
+            right_side["attempts"] = [_observe(self, x, i + 1) for x in right_side["attempts"]]
+            right_side["pause"] = right_side["attempts"][-1]
+        pause_state = (right_side.get("pause") or {}).get("state")
         distance = float(close / pivot - 1)
         risk = float(1 - floor * (1 - self.p["stop_buffer"]) / close)
         volume_ratio = float(v[i] / max(np.mean(v[i - 50 : i]), 1))
@@ -299,6 +311,8 @@ class SetupSeries:
         structural = (
             g["pattern_strength"] >= self.p["structure_min_strength"]
             and g["pause_width"] <= self.p["max_pause_width"]
+            and g.get("terminal_available", False)
+            and pause_state not in {"under_test", "reclaimed", "retesting", "invalidated"}
         )
         # The books require an established advance, not just low absolute volatility.
         leadership = bool(g.get("prior_advance_quality", 0) >= 0.5)
@@ -318,7 +332,7 @@ class SetupSeries:
             status = "damaged"
         elif not has_base:
             status = "no_base"
-        elif close < floor * (1 - self.p["stop_buffer"]):
+        elif pause_state == "invalidated" or close < floor * (1 - self.p["stop_buffer"]):
             status = "invalidated"
         elif overextended:
             status = "extended"
@@ -420,6 +434,7 @@ class SetupSeries:
             "stage": stage_context(context["catalogue"], c, self.ma[200], self.dates, i, self.p),
         }
         result["invalidation"] = base_validity(self, i, g, result["invalidation_level"])
+        result["right_side"] = right_side
         return result
 
 

@@ -60,12 +60,23 @@ def render_setup_chart(frame, report, detail, setup_type):
     frame = frame.loc[pd.to_datetime(frame.Date) <= pd.Timestamp(report["as_of_session"])]
     full = clean_history(frame)
     base = chart_base(detail, setup_type)
+    right_side = detail.get("right_side", {})
+    parent = right_side.get("parent")
+    pause = right_side.get("pause")
+    geometry = detail.get("geometry", {})
+    setup_support = (
+        {"start_session": geometry["pause_start"], "level": detail["invalidation_level"],
+         "breached": bool(detail.get("invalidation", {}).get("terminal_breached"))}
+        if setup_type == "base" and geometry.get("base_id") else None
+    )
     start = max(0, len(full) - 125)
     if base:
         start = min(start, max(0, int(full.Date.searchsorted(pd.Timestamp(base["start_session"]))) - 20))
     cycle = detail.get("cycle")
     if cycle:
         start = min(start, max(0, int(full.Date.searchsorted(pd.Timestamp(cycle["peak_session"]))) - 12))
+    if parent:
+        start = min(start, max(0, int(full.Date.searchsorted(pd.Timestamp(parent["start_session"]))) - 12))
     start = max(start, len(full) - 504)
     f = full.iloc[start:].reset_index(drop=True)
     dates = f.Date.dt.strftime("%Y-%m-%d").tolist()
@@ -80,6 +91,9 @@ def render_setup_chart(frame, report, detail, setup_type):
         "display_bars": len(f),
         "price_mode": str(full.PriceMode.iloc[-1]) if "PriceMode" in full else "unknown",
         "base": base,
+        "right_side": {"parent": parent, "pause": pause,
+                       "diagnostic_only": right_side.get("diagnostic_only", True)},
+        "current_setup_support": setup_support,
         "base_start_clipped": bool(base and base["start_session"] < dates[0]),
         "base_role": report.get("pullback", {}).get("base_role")
         if setup_type == "pullback"
@@ -176,7 +190,7 @@ def render_setup_chart(frame, report, detail, setup_type):
                     max(0.8, right - left + 0.8),
                     base["upper"] - base["lower"],
                     color="#2d85c5",
-                    alpha=0.12,
+                    alpha=0.055,
                 )
             )
             ax.hlines(base["upper"], left, len(f) - 1, color="#2d85c5", lw=1.2, label="Base upper")
@@ -217,6 +231,86 @@ def render_setup_chart(frame, report, detail, setup_type):
         else:
             lines = ["No qualifying base", "No box or breakout marker", "has been inferred."]
         lines += ["", f"Actionable: {detail.get('actionable', False)}"]
+        if setup_support:
+            left = max(0, int(np.searchsorted(dates, setup_support["start_session"])))
+            ax.hlines(setup_support["level"], left, len(f) - 1, color="#ab4679", lw=1.5,
+                      label="Current setup support")
+            lines += [f"Setup support: {setup_support['level']:.2f}"
+                      + (" (lost)" if setup_support["breached"] else "")]
+        if parent and (not base or parent["base_id"] != base["base_id"]):
+            left = max(0, int(np.searchsorted(dates, parent["start_session"])))
+            ax.add_patch(Rectangle(
+                (left - 0.4, parent["lower"]), len(f) - left,
+                parent["upper"] - parent["lower"], fill=False,
+                edgecolor="#7d8c9c", lw=0.9, ls=":", label="Parent range (context)",
+            ))
+        if pause:
+            for old in right_side.get("attempts", [])[-3:-1]:
+                left = max(0, int(np.searchsorted(dates, old["start_session"])))
+                last = old.get("invalidated_session") or old.get("breakout_session") or pause["start_session"]
+                right = min(len(f)-1, int(np.searchsorted(dates, last)))
+                ax.add_patch(Rectangle(
+                    (left-.4, old["lower"]), max(.8, right-left+.8), old["upper"]-old["lower"],
+                    facecolor="#94a3b8", edgecolor="#94a3b8", alpha=.07, lw=.7,
+                ))
+            inactive = pause["state"] == "invalidated" or pause.get("historical_only")
+            pause_color = "#9a6970" if inactive else "#b87814"
+            left = max(0, int(np.searchsorted(dates, pause["start_session"])))
+            end_day = pause["invalidated_session"] or pause["breakout_session"] or dates[-1]
+            right = min(len(f) - 1, int(np.searchsorted(dates, end_day)))
+            ax.add_patch(Rectangle(
+                (left - 0.4, pause["lower"]), max(0.8, right - left + 0.8),
+                pause["upper"] - pause["lower"], facecolor=pause_color, alpha=.07 if inactive else .18,
+                edgecolor=pause_color, lw=1.5, label="Earlier / failed pause" if inactive else "Active consolidation",
+            ))
+            ax.hlines([pause["upper"], pause["lower"]], left, len(f) - 1,
+                      color=pause_color, lw=.7 if inactive else 1.3, ls="--")
+            # These are observed vertices, not a fitted cup or a future ZigZag.
+            vertices = [pause["recovery_low_session"], pause["recovery_high_session"]]
+            if all(day in dates for day in vertices):
+                ax.plot([dates.index(day) for day in vertices],
+                        [pause["recovery_low"], float(f.High.iloc[dates.index(vertices[1])])],
+                        color="#b87814", lw=1, ls=":", label="Observed recovery")
+            if pause["known_session"] in dates:
+                j = dates.index(pause["known_session"])
+                ax.scatter(j, f.Close.iloc[j], marker="s", s=40, color=pause_color,
+                           zorder=7, label="Pause known (date at right)")
+            if not base or pause["breakout_session"] != base["breakout_session"]:
+                mark(pause["breakout_session"], "Local cross", "^", "#a16b13", 38)
+            if not base or pause["invalidated_session"] != base["invalidated_session"]:
+                mark(pause["invalidated_session"], "Pause lost", "x", "#c23c4b", -38)
+            # Small event markers avoid obscuring the actual candles/price path.
+            event_labels = set()
+            for event in pause["support_tests"]:
+                for key, marker, color, label in [
+                    ("breach_session", "v", "#c23c4b", "Support test"),
+                    ("reclaim_session", "o", "#147f78", "Reclaim"),
+                    ("settled_session", "s", "#147f78", "Settled"),
+                ]:
+                    day = event[key]
+                    if day in dates:
+                        j = dates.index(day)
+                        y = f.Low.iloc[j] if key == "breach_session" else f.Close.iloc[j]
+                        ax.scatter(j, y, s=28, marker=marker, c=color, zorder=7,
+                                   label=label if label not in event_labels else None)
+                        event_labels.add(label)
+            lines += ["", "ACTIVE CONSOLIDATION" if not inactive else "EARLIER CONSOLIDATION",
+                      f"State: {pause['state'].replace('_', ' ')}",
+                      f"Range: {pause['lower']:.2f} - {pause['upper']:.2f}",
+                      f"Known: {pause['known_session']}"]
+            m = pause.get("metrics")
+            if m:
+                lines += [f"Actual consolidation: {m['bars']} sessions",
+                          f"Width: {pause['width']:.1%} -> {m['width']:.1%}",
+                          f"Price: {m['price_change']}; volume: {m['volume_change']}"]
+                if m['volume_ratio'] is not None:
+                    lines += [f"Mean volume / prior: {m['volume_ratio']:.2f}x"]
+                if m['recent_distribution_bars']:
+                    lines += [f"Weak high-volume bars: {m['recent_distribution_bars']}"]
+            if pause.get("historical_only"):
+                lines += ["Earlier pause; not a fresh setup"]
+        elif parent:
+            lines += ["", "Right side: no independent", "recovery-pause confirmed"]
         if setup_type == "pullback":
             lines += ["MA200: required", "MA50: background only"]
         if metadata["base_start_clipped"]:
@@ -224,7 +318,7 @@ def render_setup_chart(frame, report, detail, setup_type):
         if report.get("stale"):
             lines += ["", "STALE vs benchmark cache"]
         lines += ["", "Recognition is not an entry order."]
-        aside.text(0, 1, "\n".join(lines), va="top", fontsize=9, linespacing=1.65, color="#24384f")
+        aside.text(0, 1, "\n".join(lines), va="top", fontsize=8.3, linespacing=1.35, color="#24384f")
         vol.bar(np.arange(len(f)), f.Volume / 1e6, color=colors, width=0.7)
         for panel in [ax, vol]:
             panel.set_facecolor("white")
