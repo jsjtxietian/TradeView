@@ -81,7 +81,8 @@
     "NET",
     "FSLY",
     "OKTA",
-    "FTNT"
+    "FTNT",
+    "SHOP"
   ],
   "groups": [
     {
@@ -243,7 +244,8 @@
       "name": "其他",
       "symbols": [
         "IALT",
-        "SE"
+        "SE",
+        "SHOP"
       ]
     },
     {
