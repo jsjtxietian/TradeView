@@ -20056,5 +20056,329 @@
     "message": "近 5 个交易日累计下跌 -22.9%。",
     "createdAt": "2026-11-10T23:01:51Z",
     "timeLabel": "11/11 07:01"
+  },
+  {
+    "symbol": "MAGS",
+    "message": "当日成交量放大至 50 日均量的 151%。",
+    "createdAt": "2026-11-11T23:03:09Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "AAPL",
+    "message": "创近 6 个月新高（355.63）。",
+    "createdAt": "2026-11-11T23:03:09Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "DELL",
+    "message": "较前一交易日上涨 +11.8%。",
+    "createdAt": "2026-11-11T23:03:09Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "SFTBY",
+    "message": "较前一交易日上涨 +10.9%。",
+    "createdAt": "2026-11-11T23:03:09Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "NVDA",
+    "message": "近 5 个交易日累计下跌 -13.2%。",
+    "createdAt": "2026-11-11T23:03:09Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "NVDA",
+    "message": "当日成交量放大至 50 日均量的 205%。",
+    "createdAt": "2026-11-11T23:03:09Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "INTC",
+    "message": "较前一交易日上涨 +7.5%。",
+    "createdAt": "2026-11-11T23:03:09Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "AMD",
+    "message": "刚刚满足趋势模板。",
+    "createdAt": "2026-11-11T23:03:09Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "AMD",
+    "message": "较前一交易日上涨 +7.3%。",
+    "createdAt": "2026-11-11T23:03:09Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "AMD",
+    "message": "近 5 个交易日累计上涨 +13.1%。",
+    "createdAt": "2026-11-11T23:03:09Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "AMD",
+    "message": "当日成交量放大至 50 日均量的 168%。",
+    "createdAt": "2026-11-11T23:03:09Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "AMD",
+    "message": "收盘价上穿 50 日均线（MA50 550.43）。",
+    "createdAt": "2026-11-11T23:03:09Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "ARM",
+    "message": "较前一交易日上涨 +12.0%。",
+    "createdAt": "2026-11-11T23:03:09Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "CBRS",
+    "message": "较前一交易日上涨 +7.9%。",
+    "createdAt": "2026-11-11T23:03:09Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "CBRS",
+    "message": "近 5 个交易日累计上涨 +10.1%。",
+    "createdAt": "2026-11-11T23:03:09Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "DRAM",
+    "message": "较前一交易日上涨 +10.4%。",
+    "createdAt": "2026-11-11T23:03:09Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "DRAM",
+    "message": "当日成交量放大至 50 日均量的 164%。",
+    "createdAt": "2026-11-11T23:03:09Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "SKHY",
+    "message": "较前一交易日上涨 +9.7%。",
+    "createdAt": "2026-11-11T23:03:09Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "MU",
+    "message": "较前一交易日上涨 +11.9%。",
+    "createdAt": "2026-11-11T23:03:09Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "SNDK",
+    "message": "较前一交易日上涨 +13.7%。",
+    "createdAt": "2026-11-11T23:03:09Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "SNDK",
+    "message": "当日成交量放大至 50 日均量的 157%。",
+    "createdAt": "2026-11-11T23:03:09Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "STX",
+    "message": "较前一交易日上涨 +10.0%。",
+    "createdAt": "2026-11-11T23:03:09Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "WDC",
+    "message": "较前一交易日上涨 +8.3%。",
+    "createdAt": "2026-11-11T23:03:09Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "SMH",
+    "message": "当日成交量放大至 50 日均量的 164%。",
+    "createdAt": "2026-11-11T23:03:09Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "SOXX",
+    "message": "较前一交易日上涨 +6.0%。",
+    "createdAt": "2026-11-11T23:03:21Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "SOXX",
+    "message": "当日成交量放大至 50 日均量的 174%。",
+    "createdAt": "2026-11-11T23:03:21Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "AMAT",
+    "message": "较前一交易日上涨 +6.0%。",
+    "createdAt": "2026-11-11T23:03:21Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "LRCX",
+    "message": "较前一交易日上涨 +6.1%。",
+    "createdAt": "2026-11-11T23:03:21Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "SMTC",
+    "message": "较前一交易日上涨 +10.3%。",
+    "createdAt": "2026-11-11T23:03:21Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "SMTC",
+    "message": "近 5 个交易日累计上涨 +12.8%。",
+    "createdAt": "2026-11-11T23:03:21Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "LITE",
+    "message": "较前一交易日上涨 +10.7%。",
+    "createdAt": "2026-11-11T23:03:21Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "ENTG",
+    "message": "刚刚满足趋势模板。",
+    "createdAt": "2026-11-11T23:03:21Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "ENTG",
+    "message": "较前一交易日上涨 +11.3%。",
+    "createdAt": "2026-11-11T23:03:21Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "ENTG",
+    "message": "收盘价上穿 50 日均线（MA50 146.74）。",
+    "createdAt": "2026-11-11T23:03:21Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "MTRN",
+    "message": "近 5 个交易日累计上涨 +12.4%。",
+    "createdAt": "2026-11-11T23:03:21Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "CRWV",
+    "message": "较前一交易日上涨 +24.7%。",
+    "createdAt": "2026-11-11T23:03:21Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "CRWV",
+    "message": "近 5 个交易日累计上涨 +25.5%。",
+    "createdAt": "2026-11-11T23:03:21Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "CRWV",
+    "message": "当日成交量放大至 50 日均量的 319%。",
+    "createdAt": "2026-11-11T23:03:21Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "IWM",
+    "message": "收盘价上穿 50 日均线（MA50 281.30）。",
+    "createdAt": "2026-11-11T23:03:21Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "FFTY",
+    "message": "当日成交量放大至 50 日均量的 166%。",
+    "createdAt": "2026-11-11T23:03:21Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "EWY",
+    "message": "较前一交易日上涨 +6.2%。",
+    "createdAt": "2026-11-11T23:03:21Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "RKLB",
+    "message": "较前一交易日上涨 +5.5%。",
+    "createdAt": "2026-11-11T23:03:21Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "RKLB",
+    "message": "近 5 个交易日累计上涨 +26.3%。",
+    "createdAt": "2026-11-11T23:03:21Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "PKW",
+    "message": "当日成交量缩至 50 日均量的 37%。",
+    "createdAt": "2026-11-11T23:03:43Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "WAGN",
+    "message": "当日成交量缩至 50 日均量的 42%。",
+    "createdAt": "2026-11-11T23:03:43Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "BE",
+    "message": "较前一交易日上涨 +13.0%。",
+    "createdAt": "2026-11-11T23:03:43Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "KBWB",
+    "message": "收盘价上穿 50 日均线（MA50 89.88）。",
+    "createdAt": "2026-11-11T23:03:43Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "MOO",
+    "message": "当日成交量缩至 50 日均量的 22%。",
+    "createdAt": "2026-11-11T23:03:43Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "VALE",
+    "message": "当日成交量缩至 50 日均量的 42%。",
+    "createdAt": "2026-11-11T23:03:43Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "SE",
+    "message": "创近 6 个月新低（73.99）。",
+    "createdAt": "2026-11-11T23:03:43Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "SE",
+    "message": "当日成交量放大至 50 日均量的 190%。",
+    "createdAt": "2026-11-11T23:03:43Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "NET",
+    "message": "近 5 个交易日累计上涨 +18.2%。",
+    "createdAt": "2026-11-11T23:03:51Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "FSLY",
+    "message": "较前一交易日上涨 +6.3%。",
+    "createdAt": "2026-11-11T23:03:51Z",
+    "timeLabel": "11/12 07:03"
+  },
+  {
+    "symbol": "FSLY",
+    "message": "近 5 个交易日累计下跌 -17.9%。",
+    "createdAt": "2026-11-11T23:03:51Z",
+    "timeLabel": "11/12 07:03"
   }
 ]
