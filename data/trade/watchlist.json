@@ -9,8 +9,8 @@
     "AMZN",
     "MSFT",
     "TSLA",
+    "SPCX",
     "DELL",
-    "SFTBY",
     "NVDA",
     "TSM",
     "INTC",
@@ -19,70 +19,70 @@
     "ARM",
     "QCOM",
     "CBRS",
-    "DRAM",
-    "SKHY",
-    "MU",
-    "SNDK",
-    "STX",
-    "WDC",
-    "SMH",
     "SOXX",
+    "DRAM",
     "ASML",
+    "MU",
     "AMAT",
     "LRCX",
-    "SMTC",
     "LITE",
     "ENTG",
-    "MTRN",
     "CRWV",
+    "SKHY",
+    "STX",
+    "SNDK",
     "SPY",
-    "MDY",
     "IWM",
-    "BRK-B",
-    "IAU",
-    "SLV",
-    "COPX",
+    "MDY",
+    "IWD",
+    "IWF",
+    "DBC",
     "TLT",
+    "UUP",
+    "HYG",
     "FFTY",
     "EWY",
     "DXJ",
     "EWZ",
-    "VNM",
+    "EFA",
     "EMXC",
+    "SHOP",
+    "NET",
+    "FSLY",
+    "OKTA",
+    "SFTBY",
     "RKLB",
-    "SPCX",
+    "IGV",
+    "CIBR",
+    "FTNT",
+    "BRK-B",
     "COWZ",
     "SCHY",
     "SCHD",
     "NOBL",
     "PKW",
-    "VTV",
-    "WAGN",
     "GEV",
     "BE",
     "XLP",
+    "XLY",
     "PG",
     "KO",
     "XLF",
     "KBWB",
     "V",
-    "MOO",
+    "XLE",
     "DE",
     "CAT",
     "VALE",
     "IALT",
-    "SE",
+    "WAGN",
     "IBB",
     "LLY",
     "XLV",
-    "IGV",
-    "CIBR",
-    "BUG",
-    "NET",
-    "FSLY",
-    "OKTA",
-    "FTNT",
-    "SHOP"
+    "IAU",
+    "SLV",
+    "COPX",
+    "TIP"
   ],
   "groups": [
     {
@@ -97,8 +97,8 @@
         "AMZN",
         "MSFT",
         "TSLA",
-        "DELL",
-        "SFTBY"
+        "SPCX",
+        "DELL"
       ]
     },
     {
@@ -116,31 +116,21 @@
       ]
     },
     {
-      "id": "GROUP_1777997274330_S5B83E",
-      "name": "内存与存储",
-      "symbols": [
-        "DRAM",
-        "SKHY",
-        "MU",
-        "SNDK",
-        "STX",
-        "WDC"
-      ]
-    },
-    {
       "id": "AI",
       "name": "半导体",
       "symbols": [
-        "SMH",
         "SOXX",
+        "DRAM",
         "ASML",
+        "MU",
         "AMAT",
         "LRCX",
-        "SMTC",
         "LITE",
         "ENTG",
-        "MTRN",
-        "CRWV"
+        "CRWV",
+        "SKHY",
+        "STX",
+        "SNDK"
       ]
     },
     {
@@ -148,14 +138,16 @@
       "name": "指标",
       "symbols": [
         "SPY",
-        "MDY",
         "IWM",
-        "BRK-B",
-        "IAU",
-        "SLV",
-        "COPX",
+        "MDY",
+        "IWD",
+        "IWF",
+        "DBC",
         "TLT",
-        "FFTY"
+        "UUP",
+        "HYG",
+        "FFTY",
+        "TIP"
       ]
     },
     {
@@ -165,8 +157,20 @@
         "EWY",
         "DXJ",
         "EWZ",
-        "VNM",
+        "EFA",
         "EMXC"
+      ]
+    },
+    {
+      "id": "GROUP_1794748456292_HTFLTV",
+      "name": "成长",
+      "symbols": [
+        "SHOP",
+        "NET",
+        "FSLY",
+        "OKTA",
+        "SFTBY",
+        "RKLB"
       ]
     },
     {
@@ -175,32 +179,19 @@
       "symbols": [
         "IGV",
         "CIBR",
-        "BUG",
-        "NET",
-        "FSLY",
-        "OKTA",
         "FTNT"
       ]
     },
     {
-      "id": "GROUP_1778851641441_FGQVDM",
-      "name": "航天",
-      "symbols": [
-        "RKLB",
-        "SPCX"
-      ]
-    },
-    {
       "id": "GROUP_1784217345053_H20477",
-      "name": "股息",
+      "name": "防御与股息",
       "symbols": [
+        "BRK-B",
         "COWZ",
         "SCHY",
         "SCHD",
         "NOBL",
-        "PKW",
-        "VTV",
-        "WAGN"
+        "PKW"
       ]
     },
     {
@@ -216,6 +207,7 @@
       "name": "消费",
       "symbols": [
         "XLP",
+        "XLY",
         "PG",
         "KO"
       ]
@@ -231,9 +223,9 @@
     },
     {
       "id": "GROUP_1776776297702_IGDO7X",
-      "name": "农业采矿",
+      "name": "能源与资源",
       "symbols": [
-        "MOO",
+        "XLE",
         "DE",
         "CAT",
         "VALE"
@@ -241,11 +233,10 @@
     },
     {
       "id": "GROUP_1777996255127_M9QE19",
-      "name": "其他",
+      "name": "策略",
       "symbols": [
         "IALT",
-        "SE",
-        "SHOP"
+        "WAGN"
       ]
     },
     {
@@ -255,6 +246,15 @@
         "IBB",
         "LLY",
         "XLV"
+      ]
+    },
+    {
+      "id": "GROUP_1794749084645_YALD72",
+      "name": "金属",
+      "symbols": [
+        "IAU",
+        "SLV",
+        "COPX"
       ]
     }
   ]
