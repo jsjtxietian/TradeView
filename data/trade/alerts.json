@@ -21874,5 +21874,443 @@
     "message": "当日成交量放大至 50 日均量的 347%。",
     "createdAt": "2026-11-18T23:08:16Z",
     "timeLabel": "11/19 07:08"
+  },
+  {
+    "symbol": "QQQ",
+    "message": "创近 6 个月新低（645.04）。",
+    "createdAt": "2026-11-19T23:06:33Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "QQQ",
+    "message": "当日成交量放大至 50 日均量的 163%。",
+    "createdAt": "2026-11-19T23:06:33Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "GOOG",
+    "message": "创近 6 个月新低（271.02）。",
+    "createdAt": "2026-11-19T23:06:33Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "GOOG",
+    "message": "近 5 个交易日累计下跌 -8.2%。",
+    "createdAt": "2026-11-19T23:06:33Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "TSLA",
+    "message": "收盘价下穿 50 日均线（MA50 376.03）。",
+    "createdAt": "2026-11-19T23:06:33Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "DELL",
+    "message": "近 5 个交易日累计下跌 -15.8%。",
+    "createdAt": "2026-11-19T23:06:33Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "NVDA",
+    "message": "近 5 个交易日累计下跌 -12.2%。",
+    "createdAt": "2026-11-19T23:06:33Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "NVDA",
+    "message": "当日成交量放大至 50 日均量的 187%。",
+    "createdAt": "2026-11-19T23:06:33Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "TSM",
+    "message": "创近 6 个月新低（352.09）。",
+    "createdAt": "2026-11-19T23:06:33Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "TSM",
+    "message": "近 5 个交易日累计下跌 -13.2%。",
+    "createdAt": "2026-11-19T23:06:33Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "INTC",
+    "message": "近 5 个交易日累计下跌 -8.9%。",
+    "createdAt": "2026-11-19T23:06:33Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "AMD",
+    "message": "较前一交易日下跌 -7.7%。",
+    "createdAt": "2026-11-19T23:06:33Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "AMD",
+    "message": "近 5 个交易日累计下跌 -16.4%。",
+    "createdAt": "2026-11-19T23:06:33Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "AMD",
+    "message": "当日成交量放大至 50 日均量的 245%。",
+    "createdAt": "2026-11-19T23:06:33Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "ARM",
+    "message": "近 5 个交易日累计下跌 -11.3%。",
+    "createdAt": "2026-11-19T23:06:33Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "QCOM",
+    "message": "近 5 个交易日累计下跌 -8.5%。",
+    "createdAt": "2026-11-19T23:06:33Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "CBRS",
+    "message": "较前一交易日下跌 -7.6%。",
+    "createdAt": "2026-11-19T23:06:33Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "CBRS",
+    "message": "近 5 个交易日累计下跌 -11.0%。",
+    "createdAt": "2026-11-19T23:06:33Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "SOXX",
+    "message": "近 5 个交易日累计下跌 -11.0%。",
+    "createdAt": "2026-11-19T23:06:33Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "DRAM",
+    "message": "近 5 个交易日累计下跌 -12.0%。",
+    "createdAt": "2026-11-19T23:06:33Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "ASML",
+    "message": "创近 6 个月新低（1,356.20）。",
+    "createdAt": "2026-11-19T23:06:33Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "ASML",
+    "message": "近 5 个交易日累计下跌 -9.4%。",
+    "createdAt": "2026-11-19T23:06:33Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "MU",
+    "message": "近 5 个交易日累计下跌 -13.5%。",
+    "createdAt": "2026-11-19T23:06:33Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "AMAT",
+    "message": "近 5 个交易日累计下跌 -10.9%。",
+    "createdAt": "2026-11-19T23:06:33Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "LRCX",
+    "message": "近 5 个交易日累计下跌 -12.9%。",
+    "createdAt": "2026-11-19T23:06:33Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "LITE",
+    "message": "近 5 个交易日累计下跌 -14.3%。",
+    "createdAt": "2026-11-19T23:06:33Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "ENTG",
+    "message": "近 5 个交易日累计下跌 -9.8%。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "CRWV",
+    "message": "较前一交易日下跌 -6.1%。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "CRWV",
+    "message": "近 5 个交易日累计下跌 -20.6%。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "SKHY",
+    "message": "创近 6 个月新低（119.20）。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "SKHY",
+    "message": "近 5 个交易日累计下跌 -13.4%。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "SNDK",
+    "message": "近 5 个交易日累计下跌 -19.4%。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "SPY",
+    "message": "创近 6 个月新低（715.87）。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "SPY",
+    "message": "当日成交量放大至 50 日均量的 154%。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "IWM",
+    "message": "创近 6 个月新低（264.22）。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "MDY",
+    "message": "创近 6 个月新低（643.03）。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "IWD",
+    "message": "收盘价下穿 50 日均线（MA50 255.58）。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "IWF",
+    "message": "创近 6 个月新低（108.24）。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "IWF",
+    "message": "当日成交量放大至 50 日均量的 202%。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "FFTY",
+    "message": "创近 6 个月新低（27.82）。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "FFTY",
+    "message": "当日成交量缩至 50 日均量的 48%。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "EFA",
+    "message": "创近 6 个月新低（98.78）。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "EFA",
+    "message": "当日成交量放大至 50 日均量的 181%。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "EMXC",
+    "message": "创近 6 个月新低（82.87）。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "EMXC",
+    "message": "当日成交量放大至 50 日均量的 273%。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "SHOP",
+    "message": "较前一交易日下跌 -5.3%。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "SHOP",
+    "message": "近 5 个交易日累计下跌 -10.1%。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "FSLY",
+    "message": "较前一交易日下跌 -5.8%。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "OKTA",
+    "message": "刚刚满足趋势模板。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "OKTA",
+    "message": "较前一交易日上涨 +5.8%。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "OKTA",
+    "message": "近 5 个交易日累计上涨 +13.3%。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "OKTA",
+    "message": "收盘价上穿 50 日均线（MA50 199.56）。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "SFTBY",
+    "message": "近 5 个交易日累计下跌 -10.5%。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "SFTBY",
+    "message": "当日成交量放大至 50 日均量的 178%。",
+    "createdAt": "2026-11-19T23:06:45Z",
+    "timeLabel": "11/20 07:06"
+  },
+  {
+    "symbol": "RKLB",
+    "message": "近 5 个交易日累计下跌 -20.4%。",
+    "createdAt": "2026-11-19T23:07:08Z",
+    "timeLabel": "11/20 07:07"
+  },
+  {
+    "symbol": "CIBR",
+    "message": "当日成交量放大至 50 日均量的 194%。",
+    "createdAt": "2026-11-19T23:07:08Z",
+    "timeLabel": "11/20 07:07"
+  },
+  {
+    "symbol": "SCHD",
+    "message": "收盘价下穿 50 日均线（MA50 34.30）。",
+    "createdAt": "2026-11-19T23:07:08Z",
+    "timeLabel": "11/20 07:07"
+  },
+  {
+    "symbol": "NOBL",
+    "message": "当日成交量放大至 50 日均量的 172%。",
+    "createdAt": "2026-11-19T23:07:08Z",
+    "timeLabel": "11/20 07:07"
+  },
+  {
+    "symbol": "GEV",
+    "message": "创近 6 个月新低（756.28）。",
+    "createdAt": "2026-11-19T23:07:08Z",
+    "timeLabel": "11/20 07:07"
+  },
+  {
+    "symbol": "BE",
+    "message": "近 5 个交易日累计下跌 -16.8%。",
+    "createdAt": "2026-11-19T23:07:08Z",
+    "timeLabel": "11/20 07:07"
+  },
+  {
+    "symbol": "XLP",
+    "message": "当日成交量放大至 50 日均量的 175%。",
+    "createdAt": "2026-11-19T23:07:08Z",
+    "timeLabel": "11/20 07:07"
+  },
+  {
+    "symbol": "XLF",
+    "message": "当日成交量放大至 50 日均量的 155%。",
+    "createdAt": "2026-11-19T23:07:08Z",
+    "timeLabel": "11/20 07:07"
+  },
+  {
+    "symbol": "XLF",
+    "message": "收盘价下穿 50 日均线（MA50 55.90）。",
+    "createdAt": "2026-11-19T23:07:08Z",
+    "timeLabel": "11/20 07:07"
+  },
+  {
+    "symbol": "KBWB",
+    "message": "创近 6 个月新低（84.31）。",
+    "createdAt": "2026-11-19T23:07:08Z",
+    "timeLabel": "11/20 07:07"
+  },
+  {
+    "symbol": "CAT",
+    "message": "创近 6 个月新低（537.37）。",
+    "createdAt": "2026-11-19T23:07:08Z",
+    "timeLabel": "11/20 07:07"
+  },
+  {
+    "symbol": "CAT",
+    "message": "近 5 个交易日累计下跌 -11.2%。",
+    "createdAt": "2026-11-19T23:07:08Z",
+    "timeLabel": "11/20 07:07"
+  },
+  {
+    "symbol": "VALE",
+    "message": "近 5 个交易日累计下跌 -12.8%。",
+    "createdAt": "2026-11-19T23:07:08Z",
+    "timeLabel": "11/20 07:07"
+  },
+  {
+    "symbol": "WAGN",
+    "message": "当日成交量放大至 50 日均量的 289%。",
+    "createdAt": "2026-11-19T23:07:08Z",
+    "timeLabel": "11/20 07:07"
+  },
+  {
+    "symbol": "XLV",
+    "message": "当日成交量放大至 50 日均量的 187%。",
+    "createdAt": "2026-11-19T23:07:17Z",
+    "timeLabel": "11/20 07:07"
+  },
+  {
+    "symbol": "SLV",
+    "message": "近 5 个交易日累计下跌 -12.2%。",
+    "createdAt": "2026-11-19T23:07:17Z",
+    "timeLabel": "11/20 07:07"
+  },
+  {
+    "symbol": "SLV",
+    "message": "当日成交量放大至 50 日均量的 155%。",
+    "createdAt": "2026-11-19T23:07:17Z",
+    "timeLabel": "11/20 07:07"
+  },
+  {
+    "symbol": "COPX",
+    "message": "近 5 个交易日累计下跌 -16.5%。",
+    "createdAt": "2026-11-19T23:07:17Z",
+    "timeLabel": "11/20 07:07"
+  },
+  {
+    "symbol": "COPX",
+    "message": "当日成交量放大至 50 日均量的 242%。",
+    "createdAt": "2026-11-19T23:07:17Z",
+    "timeLabel": "11/20 07:07"
   }
 ]
